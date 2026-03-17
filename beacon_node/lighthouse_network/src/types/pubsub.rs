@@ -18,6 +18,7 @@ use types::{
     SignedBeaconBlockGloas, SignedBlsToExecutionChange, SignedContributionAndProof,
     SignedExecutionPayloadBid, SignedExecutionPayloadEnvelope, SignedProposerPreferences,
     SignedVoluntaryExit, SingleAttestation, SubnetId, SyncCommitteeMessage, SyncSubnetId,
+    SignedInclusionList,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -56,6 +57,8 @@ pub enum PubsubMessage<E: EthSpec> {
     LightClientFinalityUpdate(Box<LightClientFinalityUpdate<E>>),
     /// Gossipsub message providing notification of a light client optimistic update.
     LightClientOptimisticUpdate(Box<LightClientOptimisticUpdate<E>>),
+    /// Gossipsub message providing notification of a signed inclusion list (FOCIL/EIP-7805).
+    SignedInclusionList(Box<SignedInclusionList<E>>),
 }
 
 // Implements the `DataTransform` trait of gossipsub to employ snappy compression
@@ -163,6 +166,7 @@ impl<E: EthSpec> PubsubMessage<E> {
             PubsubMessage::LightClientOptimisticUpdate(_) => {
                 GossipKind::LightClientOptimisticUpdate
             }
+            PubsubMessage::SignedInclusionList(_) => GossipKind::SignedInclusionList,
         }
     }
 
@@ -430,6 +434,14 @@ impl<E: EthSpec> PubsubMessage<E> {
                             light_client_optimistic_update,
                         )))
                     }
+                    GossipKind::SignedInclusionList => {
+                        let signed_inclusion_list =
+                            SignedInclusionList::from_ssz_bytes(data)
+                                .map_err(|e| format!("{:?}", e))?;
+                        Ok(PubsubMessage::SignedInclusionList(Box::new(
+                            signed_inclusion_list,
+                        )))
+                    }
                 }
             }
         }
@@ -460,6 +472,7 @@ impl<E: EthSpec> PubsubMessage<E> {
             PubsubMessage::ProposerPreferences(data) => data.as_ssz_bytes(),
             PubsubMessage::LightClientFinalityUpdate(data) => data.as_ssz_bytes(),
             PubsubMessage::LightClientOptimisticUpdate(data) => data.as_ssz_bytes(),
+            PubsubMessage::SignedInclusionList(data) => data.as_ssz_bytes(),
         }
     }
 }
@@ -550,6 +563,13 @@ impl<E: EthSpec> std::fmt::Display for PubsubMessage<E> {
             }
             PubsubMessage::LightClientOptimisticUpdate(_data) => {
                 write!(f, "Light CLient Optimistic Update")
+            }
+            PubsubMessage::SignedInclusionList(data) => {
+                write!(
+                    f,
+                    "Signed Inclusion List: slot: {:?}, validator_index: {:?}",
+                    data.message.slot, data.message.validator_index
+                )
             }
         }
     }

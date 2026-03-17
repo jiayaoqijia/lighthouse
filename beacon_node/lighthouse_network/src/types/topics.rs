@@ -35,6 +35,7 @@ pub const PAYLOAD_ATTESTATION: &str = "payload_attestation_message";
 pub const PROPOSER_PREFERENCES: &str = "proposer_preferences";
 pub const LIGHT_CLIENT_FINALITY_UPDATE: &str = "light_client_finality_update";
 pub const LIGHT_CLIENT_OPTIMISTIC_UPDATE: &str = "light_client_optimistic_update";
+pub const SIGNED_INCLUSION_LIST_TOPIC: &str = "inclusion_list";
 
 #[derive(Debug)]
 pub struct TopicConfig {
@@ -130,7 +131,8 @@ pub fn is_fork_non_core_topic(topic: &GossipTopic, _fork_name: ForkName) -> bool
         | GossipKind::PayloadAttestation
         | GossipKind::ProposerPreferences
         | GossipKind::LightClientFinalityUpdate
-        | GossipKind::LightClientOptimisticUpdate => false,
+        | GossipKind::LightClientOptimisticUpdate
+        | GossipKind::SignedInclusionList => false,
     }
 }
 
@@ -198,6 +200,8 @@ pub enum GossipKind {
     LightClientFinalityUpdate,
     /// Topic for publishing optimistic updates for light clients.
     LightClientOptimisticUpdate,
+    /// Topic for signed inclusion lists (FOCIL/EIP-7805).
+    SignedInclusionList,
 }
 
 impl std::fmt::Display for GossipKind {
@@ -284,6 +288,7 @@ impl GossipTopic {
                 PROPOSER_PREFERENCES => GossipKind::ProposerPreferences,
                 LIGHT_CLIENT_FINALITY_UPDATE => GossipKind::LightClientFinalityUpdate,
                 LIGHT_CLIENT_OPTIMISTIC_UPDATE => GossipKind::LightClientOptimisticUpdate,
+                SIGNED_INCLUSION_LIST_TOPIC => GossipKind::SignedInclusionList,
                 topic => match subnet_topic_index(topic) {
                     Some(kind) => kind,
                     None => return Err(format!("Unknown topic: {}", topic)),
@@ -353,6 +358,7 @@ impl std::fmt::Display for GossipTopic {
             GossipKind::ProposerPreferences => PROPOSER_PREFERENCES.into(),
             GossipKind::LightClientFinalityUpdate => LIGHT_CLIENT_FINALITY_UPDATE.into(),
             GossipKind::LightClientOptimisticUpdate => LIGHT_CLIENT_OPTIMISTIC_UPDATE.into(),
+            GossipKind::SignedInclusionList => SIGNED_INCLUSION_LIST_TOPIC.into(),
         };
         write!(
             f,

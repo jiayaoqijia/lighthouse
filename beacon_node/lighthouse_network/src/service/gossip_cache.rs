@@ -52,6 +52,8 @@ pub struct GossipCache {
     light_client_finality_update: Option<Duration>,
     /// Timeout for light client optimistic updates.
     light_client_optimistic_update: Option<Duration>,
+    /// Timeout for signed inclusion lists.
+    signed_inclusion_list: Option<Duration>,
 }
 
 #[derive(Default)]
@@ -91,6 +93,8 @@ pub struct GossipCacheBuilder {
     light_client_finality_update: Option<Duration>,
     /// Timeout for light client optimistic updates.
     light_client_optimistic_update: Option<Duration>,
+    /// Timeout for signed inclusion lists.
+    signed_inclusion_list: Option<Duration>,
 }
 
 #[allow(dead_code)]
@@ -211,6 +215,7 @@ impl GossipCacheBuilder {
             proposer_preferences,
             light_client_finality_update,
             light_client_optimistic_update,
+            signed_inclusion_list,
         } = self;
         GossipCache {
             expirations: DelayQueue::default(),
@@ -232,6 +237,7 @@ impl GossipCacheBuilder {
             proposer_preferences: proposer_preferences.or(default_timeout),
             light_client_finality_update: light_client_finality_update.or(default_timeout),
             light_client_optimistic_update: light_client_optimistic_update.or(default_timeout),
+            signed_inclusion_list: signed_inclusion_list.or(default_timeout),
         }
     }
 }
@@ -263,6 +269,7 @@ impl GossipCache {
             GossipKind::ProposerPreferences => self.proposer_preferences,
             GossipKind::LightClientFinalityUpdate => self.light_client_finality_update,
             GossipKind::LightClientOptimisticUpdate => self.light_client_optimistic_update,
+            GossipKind::SignedInclusionList => self.signed_inclusion_list,
         };
         let Some(expire_timeout) = expire_timeout else {
             return;
