@@ -52,3 +52,10 @@ pub use withdrawal::*;
 pub mod graffiti {
     pub use crate::core::{GRAFFITI_BYTES_LEN, Graffiti, GraffitiString};
 }
+
+pub mod inclusion_list;
+
+pub use inclusion_list::{
+    InclusionList, IlTransaction, IlTransactions, SignedInclusionList,
+    MAX_BYTES_PER_INCLUSION_LIST, MAX_TRANSACTIONS_PER_INCLUSION_LIST,
+};
