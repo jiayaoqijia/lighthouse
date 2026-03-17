@@ -13,7 +13,7 @@ use test_random_derive::TestRandom;
 use tree_hash_derive::TreeHash;
 
 use crate::{
-    core::{EthSpec, Hash256, Slot},
+    core::{EthSpec, Hash256, Slot, SignedRoot},
     fork::ForkName,
     test_utils::TestRandom,
 };
@@ -68,6 +68,9 @@ impl<E: EthSpec> InclusionList<E> {
         self.total_bytes() > MAX_BYTES_PER_INCLUSION_LIST
     }
 }
+
+// Implement SignedRoot for signature verification
+impl<E: EthSpec> SignedRoot for InclusionList<E> {}
 
 /// SignedInclusionList wraps an InclusionList with a BLS signature.
 ///

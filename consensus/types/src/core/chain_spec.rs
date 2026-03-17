@@ -37,6 +37,7 @@ pub enum Domain {
     BeaconBuilder,
     PTCAttester,
     ProposerPreferences,
+    InclusionListCommittee,
     ApplicationMask(ApplicationDomain),
 }
 
@@ -177,6 +178,7 @@ pub struct ChainSpec {
     pub update_timeout: u64,
     pub(crate) domain_sync_committee: u32,
     pub(crate) domain_sync_committee_selection_proof: u32,
+    pub(crate) domain_inclusion_list_committee: u32,
     pub(crate) domain_contribution_and_proof: u32,
     pub altair_fork_version: [u8; 4],
     /// The Altair fork epoch is optional, with `None` representing "Altair never happens".
@@ -517,6 +519,7 @@ impl ChainSpec {
             Domain::SyncCommittee => self.domain_sync_committee,
             Domain::ContributionAndProof => self.domain_contribution_and_proof,
             Domain::SyncCommitteeSelectionProof => self.domain_sync_committee_selection_proof,
+            Domain::InclusionListCommittee => self.domain_inclusion_list_committee,
             Domain::ApplicationMask(application_domain) => application_domain.get_domain_constant(),
             Domain::BlsToExecutionChange => self.domain_bls_to_execution_change,
         }
@@ -1146,6 +1149,7 @@ impl ChainSpec {
             domain_sync_committee: 7,
             domain_sync_committee_selection_proof: 8,
             domain_contribution_and_proof: 9,
+            domain_inclusion_list_committee: 14,  // 0x0E000000 as per EIP-7805
             altair_fork_version: [0x01, 0x00, 0x00, 0x00],
             altair_fork_epoch: Some(Epoch::new(74240)),
 
@@ -1539,6 +1543,7 @@ impl ChainSpec {
             domain_sync_committee: 7,
             domain_sync_committee_selection_proof: 8,
             domain_contribution_and_proof: 9,
+            domain_inclusion_list_committee: 14,  // 0x0E000000 as per EIP-7805
             altair_fork_version: [0x01, 0x00, 0x00, 0x64],
             altair_fork_epoch: Some(Epoch::new(512)),
             sync_message_due_bps: 3333,
