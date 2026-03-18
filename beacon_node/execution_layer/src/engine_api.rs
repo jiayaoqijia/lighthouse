@@ -211,6 +211,25 @@ impl PayloadAttributes {
             }),
         }
     }
+
+    /// [New in Heze:EIP7805] Create a V4 PayloadAttributes with inclusion_list_transactions.
+    pub fn new_v4(
+        timestamp: u64,
+        prev_randao: Hash256,
+        suggested_fee_recipient: Address,
+        withdrawals: Vec<Withdrawal>,
+        parent_beacon_block_root: Hash256,
+        inclusion_list_transactions: Vec<Vec<u8>>,
+    ) -> Self {
+        PayloadAttributes::V4(PayloadAttributesV4 {
+            timestamp,
+            prev_randao,
+            suggested_fee_recipient,
+            withdrawals,
+            parent_beacon_block_root,
+            inclusion_list_transactions,
+        })
+    }
 }
 
 impl From<PayloadAttributes> for SsePayloadAttributes {
