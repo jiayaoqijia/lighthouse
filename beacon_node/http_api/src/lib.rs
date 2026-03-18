@@ -1544,25 +1544,10 @@ pub fn serve<T: BeaconChainTypes>(
         post_beacon_pool_bls_to_execution_changes(&network_tx_filter, &beacon_pool_path);
 
     // POST beacon/pool/inclusion_lists
-    let post_beacon_pool_inclusion_lists = beacon_pool_path
-        .clone()
-        .and(warp::path("inclusion_lists"))
-        .and(warp::path::end())
-        .and(warp_utils::json::json())
-        .and(network_tx_filter.clone())
-        .then(
-            |task_spawner: TaskSpawner<T::EthSpec>,
-             _chain: Arc<BeaconChain<T>>,
-             _signed_inclusion_list: eth2::types::SignedInclusionList<T::EthSpec>,
-             _network_tx: UnboundedSender<NetworkMessage<T::EthSpec>>| {
-                task_spawner.blocking_json_task(Priority::P0, move || {
-                    // Stub implementation - accept but don't process
-                    // TODO: Implement full validation and gossip broadcast
-                    Ok(())
-                })
-            },
-        )
-        .boxed();
+    let post_beacon_pool_inclusion_lists = post_beacon_pool_inclusion_lists(
+        &network_tx_filter,
+        &beacon_pool_path,
+    );
 
     // GET beacon/blocks/{block_id}/inclusion_lists
     let get_beacon_blocks_inclusion_lists = beacon_blocks_path_v1

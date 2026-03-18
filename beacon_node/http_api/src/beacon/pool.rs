@@ -18,7 +18,7 @@ use tokio::sync::mpsc::UnboundedSender;
 use tracing::{debug, info, warn};
 use types::{
     Attestation, AttestationData, AttesterSlashing, ForkName, ProposerSlashing,
-    SignedBlsToExecutionChange, SignedVoluntaryExit, SingleAttestation, SyncCommitteeMessage,
+    SignedBlsToExecutionChange, SignedInclusionList, SignedVoluntaryExit, SingleAttestation, SyncCommitteeMessage,
 };
 use warp::filters::BoxedFilter;
 use warp::{Filter, Reply};
@@ -516,6 +516,100 @@ pub fn post_beacon_pool_attestations_v2<T: BeaconChainTypes>(
                 .await
                 .map(|()| warp::reply::json(&()));
                 convert_rejection(result).await
+            },
+        )
+        .boxed()
+}
+
+/// POST beacon/pool/inclusion_lists
+///
+/// Submit a signed inclusion list to the beacon node for validation and gossip.
+/// Implements the Beacon API endpoint for FOCIL (EIP-7805).
+pub fn post_beacon_pool_inclusion_lists<T: BeaconChainTypes>(
+    network_tx_filter: &NetworkTxFilter<T>,
+    beacon_pool_path: &BeaconPoolPathFilter<T>,
+) -> ResponseFilter {
+    beacon_pool_path
+        .clone()
+        .and(warp::path("inclusion_lists"))
+        .and(warp::path::end())
+        .and(warp_utils::json::json())
+        .and(network_tx_filter.clone())
+        .then(
+            |task_spawner: TaskSpawner<T::EthSpec>,
+             chain: Arc<BeaconChain<T>>,
+             signed_inclusion_list: SignedInclusionList<T::EthSpec>,
+             network_tx: UnboundedSender<NetworkMessage<T::EthSpec>>| {
+                task_spawner.blocking_json_task(Priority::P0, move || {
+                    // Get current slot for basic verification
+                    let current_slot = chain
+                        .slot_clock
+                        .now()
+                        .ok_or_else(|| {
+                            warp_utils::reject::custom_server_error(
+                                "Unable to determine current slot".to_string(),
+                            )
+                        })?;
+                    
+                    // Perform basic verification (size, slot range)
+                    use beacon_chain::inclusion_list_verification::VerifiedInclusionList;
+                    let verified = VerifiedInclusionList::verify_basic(
+                        signed_inclusion_list.clone(),
+                        current_slot,
+                    ).map_err(|e| {
+                        warp_utils::reject::object_invalid(format!(
+                            "inclusion list verification failed: {:?}",
+                            e
+                        ))
+                    })?;
+                    
+                    // Get slot for timing check
+                    let slot = verified.as_inner().message.slot;
+                    
+                    // Calculate view freeze cutoff manually
+                    let slot_start = chain
+                        .slot_clock
+                        .start_of(slot)
+                        .ok_or_else(|| {
+                            warp_utils::reject::custom_server_error(
+                                "Unable to determine slot start time".to_string(),
+                            )
+                        })?;
+                    
+                    let now = chain
+                        .slot_clock
+                        .now_duration()
+                        .ok_or_else(|| {
+                            warp_utils::reject::custom_server_error(
+                                "Unable to determine current time".to_string(),
+                            )
+                        })?;
+                    
+                    let elapsed = now.saturating_sub(slot_start);
+                    let view_freeze_cutoff = chain.spec.get_view_freeze_cutoff();
+                    let is_before_view_freeze_cutoff = elapsed < view_freeze_cutoff;
+                    
+                    // Process through the inclusion list store
+                    let processed = chain.inclusion_list_store.process_signed_inclusion_list(
+                        verified.into_inner(),
+                        is_before_view_freeze_cutoff,
+                    );
+                    
+                    if processed {
+                        // Broadcast to network via gossip
+                        utils::publish_pubsub_message(
+                            &network_tx,
+                            PubsubMessage::SignedInclusionList(Box::new(signed_inclusion_list)),
+                        )?;
+                        
+                        debug!(
+                            slot = %slot,
+                            "Inclusion list accepted and broadcast"
+                        );
+                    }
+                    
+                    Ok(())
+                })
             },
         )
         .boxed()
