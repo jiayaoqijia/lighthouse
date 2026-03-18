@@ -96,11 +96,13 @@ use store::{Error as DBError, KeyValueStore};
 use strum::AsRefStr;
 use task_executor::JoinHandle;
 use tracing::{Instrument, Span, debug, debug_span, error, info_span, instrument};
+use tree_hash::TreeHash;
 use types::{
     BeaconBlockRef, BeaconState, BeaconStateError, BlobsList, ChainSpec, DataColumnSidecarList,
-    Epoch, EthSpec, FullPayload, Hash256, InconsistentFork, KzgProofs, RelativeEpoch,
+    Epoch, EthSpec, ForkName, FullPayload, Hash256, InconsistentFork, KzgProofs, RelativeEpoch,
     SignedBeaconBlock, SignedBeaconBlockHeader, Slot, StatePayloadStatus,
     data::DataColumnSidecarError,
+    inclusion_list::get_inclusion_list_committee,
 };
 
 /// Maximum block slot number. Block with slots bigger than this constant will NOT be processed.
@@ -321,6 +323,13 @@ pub enum BlockError {
         bid_parent_root: Hash256,
         block_parent_root: Hash256,
     },
+    /// The inclusion_list_bits in the execution payload bid is invalid.
+    /// The bits must be a superset of the locally observed inclusion list bits.
+    ///
+    /// ## Peer scoring
+    ///
+    /// The block is invalid and the peer should be penalized.
+    InvalidInclusionListBits,
 }
 
 /// Which specific signature(s) are invalid in a SignedBeaconBlock
@@ -1622,6 +1631,60 @@ impl<T: BeaconChainTypes> ExecutionPendingBlock<T> {
         };
 
         metrics::stop_timer(core_timer);
+
+        /*
+         * Verify inclusion_list_bits for Heze blocks (EIP-7805).
+         *
+         * The inclusion_list_bits in the execution payload bid must be a superset of the
+         * locally observed inclusion list bits for the previous slot.
+         */
+        if block.as_block().fork_name_unchecked() == ForkName::Heze {
+            // Get the signed execution payload bid from the block body
+            let signed_bid = block
+                .message()
+                .body()
+                .signed_execution_payload_bid()
+                .cloned()
+                .map_err(|e| {
+                    BlockError::BeaconChainError(Box::new(BeaconChainError::DBInconsistent(
+                        format!("Heze block missing signed_execution_payload_bid: {:?}", e),
+                    )))
+                })?;
+            let bid = signed_bid.message();
+
+            // Get inclusion_list_bits from the Heze bid
+            // If this fails, it means we got a Gloas bid for a Heze block, which is invalid
+            let inclusion_list_bits = bid.inclusion_list_bits().map_err(|_| {
+                BlockError::BeaconChainError(Box::new(BeaconChainError::DBInconsistent(
+                    "Heze block missing inclusion_list_bits in bid".to_string(),
+                )))
+            })?;
+
+            // Get the IL slot (previous slot) - ILs are for slot-1 when building block at slot
+            let il_slot = block.slot().saturating_sub(Slot::new(1));
+
+            // Get the inclusion list committee for the IL slot
+            let committee = match get_inclusion_list_committee(&state, il_slot) {
+                Ok(c) => c,
+                Err(e) => {
+                    return Err(BlockError::BeaconChainError(Box::new(
+                        BeaconChainError::DBInconsistent(format!(
+                            "Failed to get IL committee: {}",
+                            e
+                        )),
+                    )));
+                }
+            };
+            let committee_root = committee.tree_hash_root();
+
+            // Create the store key for the IL slot
+            let key = (il_slot, committee_root);
+
+            // Check if the bid's inclusion_list_bits are inclusive of our local view
+            if !chain.inclusion_list_store.is_inclusive(key, &committee, inclusion_list_bits) {
+                return Err(BlockError::InvalidInclusionListBits);
+            }
+        }
 
         /*
          * Calculate the state root of the newly modified state
