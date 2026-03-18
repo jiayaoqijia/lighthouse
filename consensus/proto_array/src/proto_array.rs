@@ -840,6 +840,13 @@ impl ProtoArray {
                         no_change
                     } else if child.weight == best_child.weight {
                         // Tie-breaker of equal weights by root.
+                        // TODO(gloas): Replace this with `get_payload_status_tiebreaker` which uses
+                        // `should_extend_payload`. In Heze, `should_extend_payload` checks IL satisfaction
+                        // via `is_payload_inclusion_list_satisfied` before extending a payload.
+                        // This requires:
+                        // 1. `ForkChoiceNode` with `payload_status` (EMPTY/FULL/PENDING)
+                        // 2. Integration with `payload_inclusion_list_satisfaction` from fork_choice_store
+                        // See: specs/gloas/fork-choice.md and specs/heze/fork-choice.md
                         if child.root >= best_child.root {
                             change_to_child
                         } else {
