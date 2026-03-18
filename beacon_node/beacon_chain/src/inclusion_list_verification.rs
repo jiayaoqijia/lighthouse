@@ -127,6 +127,85 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
             signed_inclusion_list,
         })
     }
+    
+    /// Perform full P2P verification with state-dependent checks.
+    ///
+    /// Implements all P2P validation rules from Heze spec:
+    ///
+    /// 1. [REJECT] The size of `message.transactions` is within `MAX_BYTES_PER_INCLUSION_LIST`.
+    /// 2. [REJECT] The slot is equal to the previous or current slot.
+    /// 3. [IGNORE] The slot is current, or previous and current time < attestation_due.
+    /// 4. [IGNORE] The `inclusion_list_committee_root` matches the computed committee root.
+    /// 5. [REJECT] The validator index is within the inclusion list committee.
+    /// 6. [IGNORE] This is the first or second valid IL from this validator.
+    /// 7. [REJECT] The signature is valid.
+    ///
+    /// Note: Rules 3, 4, 6 are IGNORE rules - they don't reject but may skip processing.
+    pub fn verify_for_gossip(
+        signed_inclusion_list: SignedInclusionList<E>,
+        current_slot: Slot,
+        state: &types::BeaconState<E>,
+        spec: &ChainSpec,
+        il_store: &InclusionListStore<E>,
+    ) -> Result<Self, Error> {
+        // First, do basic structural verification
+        let verified = Self::verify_basic(signed_inclusion_list, current_slot)?;
+        let signed_il = verified.signed_inclusion_list;
+        let message = &signed_il.message;
+        
+        // 4. [IGNORE] Committee root verification
+        // Note: This is IGNORE, not REJECT - we skip if mismatch but don't punish
+        let expected_committee_root = types::inclusion_list::get_inclusion_list_committee_root(state, message.slot)
+            .map_err(|e| Error::InternalError(format!("Failed to compute committee root: {}", e)))?;
+        
+        if message.inclusion_list_committee_root != expected_committee_root {
+            // IGNORE: Committee root mismatch - skip processing
+            return Err(Error::CommitteeRootMismatch {
+                expected: expected_committee_root,
+                provided: message.inclusion_list_committee_root,
+            });
+        }
+        
+        // 5. [REJECT] Validator must be in committee
+        let committee = types::inclusion_list::get_inclusion_list_committee(state, message.slot)
+            .map_err(|e| Error::InternalError(format!("Failed to get committee: {}", e)))?;
+        
+        if !committee.contains(&message.validator_index) {
+            return Err(Error::ValidatorNotInCommittee {
+                validator_index: message.validator_index,
+            });
+        }
+        
+        // 6. [IGNORE] Check if this is the first or second IL from this validator
+        // This is used for equivocation tracking - we allow up to 2 ILs per validator
+        let key = (message.slot, message.inclusion_list_committee_root);
+        let il_count = il_store.get_inclusion_lists(key)
+            .iter()
+            .filter(|il| il.validator_index == message.validator_index)
+            .count();
+        
+        if il_count >= 2 {
+            // IGNORE: Already have 2 ILs from this validator
+            return Err(Error::EquivocatedValidator {
+                validator_index: message.validator_index,
+            });
+        }
+        
+        // 7. [REJECT] Signature verification
+        let is_valid_sig = types::inclusion_list::is_valid_inclusion_list_signature(
+            state,
+            &signed_il,
+            spec,
+        ).map_err(|e| Error::InternalError(format!("Signature verification error: {}", e)))?;
+        
+        if !is_valid_sig {
+            return Err(Error::InvalidSignature);
+        }
+        
+        Ok(Self {
+            signed_inclusion_list: signed_il,
+        })
+    }
 }
 
 /// Verify that the inclusion list slot is within the allowed propagation range.
@@ -166,12 +245,15 @@ type StoreKey = (Slot, Hash256);
 pub struct InclusionListStore<E: EthSpec> {
     /// Store of valid inclusion lists by (slot, committee_root).
     /// Each entry contains the set of ILs for that key.
-    inclusion_lists: RwLock<HashMap<StoreKey, HashSet<SignedInclusionList<E>>>>,
+    /// Spec: `inclusion_lists: DefaultDict[Tuple[Slot, Root], Set[InclusionList]]`
+    inclusion_lists: RwLock<HashMap<StoreKey, HashSet<InclusionList<E>>>>,
     
     /// Track equivocators: (slot, committee_root) -> Set of validator indices that have equivocated.
+    /// Spec: `equivocators: DefaultDict[Tuple[Slot, Root], Set[ValidatorIndex]]`
     equivocators: RwLock<HashMap<StoreKey, HashSet<u64>>>,
     
     /// Track which validators we've seen ILs from: (slot, committee_root) -> (validator_index -> IL hash).
+    /// Used for equivocation detection.
     seen_validators: RwLock<HashMap<StoreKey, HashMap<u64, Hash256>>>,
 }
 
@@ -184,6 +266,12 @@ impl<E: EthSpec> InclusionListStore<E> {
     /// Process a new inclusion list.
     ///
     /// Implements `process_inclusion_list` from the Heze spec:
+    /// ```python
+    /// def process_inclusion_list(
+    ///     store: InclusionListStore, inclusion_list: InclusionList, is_before_view_freeze_cutoff: bool
+    /// ) -> None:
+    /// ```
+    ///
     /// - Ignores ILs from equivocators
     /// - Detects equivocation (same validator, different IL)
     /// - Stores valid ILs before view freeze cutoff
@@ -191,12 +279,11 @@ impl<E: EthSpec> InclusionListStore<E> {
     /// Returns true if the IL was processed (either stored or detected as equivocation).
     pub fn process_inclusion_list(
         &self,
-        signed_il: SignedInclusionList<E>,
+        inclusion_list: InclusionList<E>,
         is_before_view_freeze_cutoff: bool,
     ) -> bool {
-        let message = &signed_il.message;
-        let key = (message.slot, message.inclusion_list_committee_root);
-        let validator_index = message.validator_index;
+        let key = (inclusion_list.slot, inclusion_list.inclusion_list_committee_root);
+        let validator_index = inclusion_list.validator_index;
         
         // Check if this validator is already an equivocator
         if self.is_equivocator(key, validator_index) {
@@ -204,7 +291,7 @@ impl<E: EthSpec> InclusionListStore<E> {
         }
         
         // Compute hash of this IL
-        let il_hash = signed_il.tree_hash_root();
+        let il_hash = inclusion_list.tree_hash_root();
         
         // Check if we've seen this validator before
         let mut seen = self.seen_validators.write();
@@ -227,11 +314,22 @@ impl<E: EthSpec> InclusionListStore<E> {
         // First IL from this validator
         if is_before_view_freeze_cutoff {
             // Store the IL
-            self.store_il(key, signed_il.clone());
+            self.store_il(key, inclusion_list);
             validator_map.insert(validator_index, il_hash);
         }
         
         true
+    }
+
+    /// Process a signed inclusion list (convenience method).
+    ///
+    /// Extracts the message (InclusionList) from SignedInclusionList and processes it.
+    pub fn process_signed_inclusion_list(
+        &self,
+        signed_il: SignedInclusionList<E>,
+        is_before_view_freeze_cutoff: bool,
+    ) -> bool {
+        self.process_inclusion_list(signed_il.message, is_before_view_freeze_cutoff)
     }
 
     /// Check if a validator is an equivocator for the given key.
@@ -258,23 +356,23 @@ impl<E: EthSpec> InclusionListStore<E> {
     }
 
     /// Store an inclusion list.
-    fn store_il(&self, key: StoreKey, signed_il: SignedInclusionList<E>) {
+    fn store_il(&self, key: StoreKey, inclusion_list: InclusionList<E>) {
         self.inclusion_lists
             .write()
             .entry(key)
             .or_default()
-            .insert(signed_il);
+            .insert(inclusion_list);
     }
 
     /// Remove an inclusion list for a specific validator.
     fn remove_il(&self, key: StoreKey, validator_index: u64) {
         if let Some(ils) = self.inclusion_lists.write().get_mut(&key) {
-            ils.retain(|il| il.message.validator_index != validator_index);
+            ils.retain(|il| il.validator_index != validator_index);
         }
     }
 
     /// Get all inclusion lists for a given key, excluding equivocators.
-    pub fn get_inclusion_lists(&self, key: StoreKey) -> Vec<SignedInclusionList<E>> {
+    pub fn get_inclusion_lists(&self, key: StoreKey) -> Vec<InclusionList<E>> {
         let equivocators = self.equivocators.read().get(&key).cloned().unwrap_or_default();
         
         self.inclusion_lists
@@ -282,7 +380,7 @@ impl<E: EthSpec> InclusionListStore<E> {
             .get(&key)
             .map(|ils| {
                 ils.iter()
-                    .filter(|il| !equivocators.contains(&il.message.validator_index))
+                    .filter(|il| !equivocators.contains(&il.validator_index))
                     .cloned()
                     .collect()
             })
@@ -304,8 +402,8 @@ impl<E: EthSpec> InclusionListStore<E> {
             .get(&key)
             .map(|ils| {
                 ils.iter()
-                    .filter(|il| !equivocators.contains(&il.message.validator_index))
-                    .map(|il| il.message.validator_index)
+                    .filter(|il| !equivocators.contains(&il.validator_index))
+                    .map(|il| il.validator_index)
                     .collect()
             })
             .unwrap_or_default();
@@ -322,6 +420,7 @@ impl<E: EthSpec> InclusionListStore<E> {
     }
 
     /// Get all unique transactions from inclusion lists for a given key.
+    /// Implements `get_inclusion_list_transactions` from the Heze spec.
     pub fn get_transactions(&self, key: StoreKey) -> Vec<Vec<u8>> {
         let equivocators = self.equivocators.read().get(&key).cloned().unwrap_or_default();
         
@@ -330,8 +429,8 @@ impl<E: EthSpec> InclusionListStore<E> {
             .get(&key)
             .map(|ils| {
                 ils.iter()
-                    .filter(|il| !equivocators.contains(&il.message.validator_index))
-                    .flat_map(|il| il.message.transactions.iter().cloned())
+                    .filter(|il| !equivocators.contains(&il.validator_index))
+                    .flat_map(|il| il.transactions.iter().cloned())
                     .collect()
             })
             .unwrap_or_default();
@@ -343,6 +442,7 @@ impl<E: EthSpec> InclusionListStore<E> {
     }
 
     /// Check if the given inclusion list bits are inclusive of our local view.
+    /// Implements `is_inclusion_list_bits_inclusive` from the Heze spec.
     ///
     /// Returns true if `inclusion_list_bits` is a superset of the locally observed bits.
     pub fn is_inclusive(

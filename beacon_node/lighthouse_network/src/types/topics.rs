@@ -103,6 +103,10 @@ pub fn core_topics_to_subscribe<E: EthSpec>(
         topics.push(GossipKind::ProposerPreferences);
     }
 
+    if fork_name.heze_enabled() {
+        topics.push(GossipKind::SignedInclusionList);
+    }
+
     topics
 }
 

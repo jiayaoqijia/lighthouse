@@ -20,7 +20,7 @@ use crate::{
     block::{
         BeaconBlockBodyAltair, BeaconBlockBodyBase, BeaconBlockBodyBellatrix,
         BeaconBlockBodyCapella, BeaconBlockBodyDeneb, BeaconBlockBodyElectra, BeaconBlockBodyFulu,
-        BeaconBlockBodyGloas, BeaconBlockBodyRef, BeaconBlockBodyRefMut, BeaconBlockHeader,
+        BeaconBlockBodyGloas, BeaconBlockBodyHeze, BeaconBlockBodyRef, BeaconBlockBodyRefMut, BeaconBlockHeader,
         SignedBeaconBlock, SignedBeaconBlockHeader,
     },
     core::{ChainSpec, Domain, Epoch, EthSpec, Graffiti, Hash256, SignedRoot, Slot},
@@ -39,7 +39,7 @@ use crate::{
 
 /// A block of the `BeaconChain`.
 #[superstruct(
-    variants(Base, Altair, Bellatrix, Capella, Deneb, Electra, Fulu, Gloas),
+    variants(Base, Altair, Bellatrix, Capella, Deneb, Electra, Fulu, Gloas, Heze),
     variant_attributes(
         derive(
             Debug,
@@ -107,6 +107,8 @@ pub struct BeaconBlock<E: EthSpec, Payload: AbstractExecPayload<E> = FullPayload
     pub body: BeaconBlockBodyFulu<E, Payload>,
     #[superstruct(only(Gloas), partial_getter(rename = "body_gloas"))]
     pub body: BeaconBlockBodyGloas<E, Payload>,
+    #[superstruct(only(Heze), partial_getter(rename = "body_heze"))]
+    pub body: BeaconBlockBodyHeze<E, Payload>,
 }
 
 pub type BlindedBeaconBlock<E> = BeaconBlock<E, BlindedPayload<E>>;
@@ -262,6 +264,7 @@ impl<'a, E: EthSpec, Payload: AbstractExecPayload<E>> BeaconBlockRef<'a, E, Payl
             BeaconBlockRef::Electra { .. } => ForkName::Electra,
             BeaconBlockRef::Fulu { .. } => ForkName::Fulu,
             BeaconBlockRef::Gloas { .. } => ForkName::Gloas,
+            BeaconBlockRef::Heze { .. } => ForkName::Heze,
         }
     }
 
@@ -320,6 +323,14 @@ impl<'a, E: EthSpec, Payload: AbstractExecPayload<E>> BeaconBlockRef<'a, E, Payl
             BeaconBlockRef::Electra(block) => Some(block.body.blob_kzg_commitments.len()),
             BeaconBlockRef::Fulu(block) => Some(block.body.blob_kzg_commitments.len()),
             BeaconBlockRef::Gloas(block) => Some(
+            block
+                .body
+                .signed_execution_payload_bid
+                .message
+                .blob_kzg_commitments
+                .len(),
+        ),
+        BeaconBlockRef::Heze(block) => Some(
                 block
                     .body
                     .signed_execution_payload_bid
@@ -724,6 +735,37 @@ impl<E: EthSpec, Payload: AbstractExecPayload<E>> EmptyBlock for BeaconBlockGloa
     }
 }
 
+impl<E: EthSpec, Payload: AbstractExecPayload<E>> EmptyBlock for BeaconBlockHeze<E, Payload> {
+    /// Returns an empty Heze block to be used during genesis.
+    fn empty(spec: &ChainSpec) -> Self {
+        BeaconBlockHeze {
+            slot: spec.genesis_slot,
+            proposer_index: 0,
+            parent_root: Hash256::zero(),
+            state_root: Hash256::zero(),
+            body: BeaconBlockBodyHeze {
+                randao_reveal: Signature::empty(),
+                eth1_data: Eth1Data {
+                    deposit_root: Hash256::zero(),
+                    block_hash: Hash256::zero(),
+                    deposit_count: 0,
+                },
+                graffiti: Graffiti::default(),
+                proposer_slashings: VariableList::empty(),
+                attester_slashings: VariableList::empty(),
+                attestations: VariableList::empty(),
+                deposits: VariableList::empty(),
+                voluntary_exits: VariableList::empty(),
+                sync_aggregate: SyncAggregate::empty(),
+                bls_to_execution_changes: VariableList::empty(),
+                signed_execution_payload_bid: SignedExecutionPayloadBid::empty(),
+                payload_attestations: VariableList::empty(),
+                _phantom: PhantomData,
+            },
+        }
+    }
+}
+
 // TODO(EIP-7732) Mark's branch had the following implementation but not sure if it's needed so will just add header below for reference
 // impl<E: EthSpec, Payload: AbstractExecPayload<E>> BeaconBlockEIP7732<E, Payload> {
 
@@ -741,6 +783,29 @@ impl<E: EthSpec> From<BeaconBlockGloas<E, BlindedPayload<E>>>
         } = block;
 
         BeaconBlockGloas {
+            slot,
+            proposer_index,
+            parent_root,
+            state_root,
+            body: body.into(),
+        }
+    }
+}
+
+// Heze uses the same block structure as Gloas
+impl<E: EthSpec> From<BeaconBlockHeze<E, BlindedPayload<E>>>
+    for BeaconBlockHeze<E, FullPayload<E>>
+{
+    fn from(block: BeaconBlockHeze<E, BlindedPayload<E>>) -> Self {
+        let BeaconBlockHeze {
+            slot,
+            proposer_index,
+            parent_root,
+            state_root,
+            body,
+        } = block;
+
+        BeaconBlockHeze {
             slot,
             proposer_index,
             parent_root,
@@ -833,6 +898,7 @@ impl_from!(BeaconBlockDeneb, <E, FullPayload<E>>, <E, BlindedPayload<E>>, |body:
 impl_from!(BeaconBlockElectra, <E, FullPayload<E>>, <E, BlindedPayload<E>>, |body: BeaconBlockBodyElectra<_, _>| body.into());
 impl_from!(BeaconBlockFulu, <E, FullPayload<E>>, <E, BlindedPayload<E>>, |body: BeaconBlockBodyFulu<_, _>| body.into());
 impl_from!(BeaconBlockGloas, <E, FullPayload<E>>, <E, BlindedPayload<E>>, |body: BeaconBlockBodyGloas<_, _>| body.into());
+impl_from!(BeaconBlockHeze, <E, FullPayload<E>>, <E, BlindedPayload<E>>, |body: BeaconBlockBodyHeze<_, _>| body.into());
 
 // We can clone blocks with payloads to blocks without payloads, without cloning the payload.
 macro_rules! impl_clone_as_blinded {
@@ -868,6 +934,7 @@ impl_clone_as_blinded!(BeaconBlockDeneb, <E, FullPayload<E>>, <E, BlindedPayload
 impl_clone_as_blinded!(BeaconBlockElectra, <E, FullPayload<E>>, <E, BlindedPayload<E>>);
 impl_clone_as_blinded!(BeaconBlockFulu, <E, FullPayload<E>>, <E, BlindedPayload<E>>);
 impl_clone_as_blinded!(BeaconBlockGloas, <E, FullPayload<E>>, <E, BlindedPayload<E>>);
+impl_clone_as_blinded!(BeaconBlockHeze, <E, FullPayload<E>>, <E, BlindedPayload<E>>);
 
 // A reference to a full beacon block can be cloned into a blinded beacon block, without cloning the
 // execution payload.

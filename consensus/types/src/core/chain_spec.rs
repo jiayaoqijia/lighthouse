@@ -246,6 +246,14 @@ pub struct ChainSpec {
     pub gloas_fork_version: [u8; 4],
     /// The Gloas fork epoch is optional, with `None` representing "Gloas never happens".
     pub gloas_fork_epoch: Option<Epoch>,
+
+    /*
+     * Heze hard fork params (EIP-7805 FOCIL)
+     */
+    pub heze_fork_version: [u8; 4],
+    /// The Heze fork epoch is optional, with `None` representing "Heze never happens".
+    pub heze_fork_epoch: Option<Epoch>,
+
     pub builder_payment_threshold_numerator: u64,
     pub builder_payment_threshold_denominator: u64,
     pub min_builder_withdrawability_delay: Epoch,
@@ -370,6 +378,7 @@ impl ChainSpec {
     /// Returns the name of the fork which is active at `epoch`.
     pub fn fork_name_at_epoch(&self, epoch: Epoch) -> ForkName {
         let forks = [
+            (self.heze_fork_epoch, ForkName::Heze),
             (self.gloas_fork_epoch, ForkName::Gloas),
             (self.fulu_fork_epoch, ForkName::Fulu),
             (self.electra_fork_epoch, ForkName::Electra),
@@ -402,6 +411,7 @@ impl ChainSpec {
             ForkName::Electra => self.electra_fork_version,
             ForkName::Fulu => self.fulu_fork_version,
             ForkName::Gloas => self.gloas_fork_version,
+            ForkName::Heze => self.heze_fork_version,
         }
     }
 
@@ -421,6 +431,7 @@ impl ChainSpec {
             ForkName::Electra => self.electra_fork_epoch,
             ForkName::Fulu => self.fulu_fork_epoch,
             ForkName::Gloas => self.gloas_fork_epoch,
+            ForkName::Heze => self.heze_fork_epoch,
         }
     }
 
@@ -1229,6 +1240,13 @@ impl ChainSpec {
              */
             gloas_fork_version: [0x07, 0x00, 0x00, 0x00],
             gloas_fork_epoch: None,
+
+            /*
+             * Heze hard fork params (EIP-7805 FOCIL)
+             */
+            heze_fork_version: [0x08, 0x00, 0x00, 0x00],
+            heze_fork_epoch: None,
+
             builder_payment_threshold_numerator: 6,
             builder_payment_threshold_denominator: 10,
             min_builder_withdrawability_delay: Epoch::new(4096),
@@ -1375,6 +1393,9 @@ impl ChainSpec {
             // Gloas
             gloas_fork_version: [0x07, 0x00, 0x00, 0x01],
             gloas_fork_epoch: None,
+            // Heze
+            heze_fork_version: [0x08, 0x00, 0x00, 0x01],
+            heze_fork_epoch: None,
 
             /*
              * Derived time values (set by `compute_derived_values()`)
@@ -1624,6 +1645,13 @@ impl ChainSpec {
              */
             gloas_fork_version: [0x07, 0x00, 0x00, 0x64],
             gloas_fork_epoch: None,
+
+            /*
+             * Heze hard fork params (EIP-7805 FOCIL)
+             */
+            heze_fork_version: [0x08, 0x00, 0x00, 0x64],
+            heze_fork_epoch: None,
+
             builder_payment_threshold_numerator: 6,
             builder_payment_threshold_denominator: 10,
             min_builder_withdrawability_delay: Epoch::new(4096),
@@ -1902,6 +1930,14 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_fork_epoch")]
     pub gloas_fork_epoch: Option<MaybeQuoted<Epoch>>,
 
+    #[serde(default = "default_heze_fork_version")]
+    #[serde(with = "serde_utils::bytes_4_hex")]
+    heze_fork_version: [u8; 4],
+    #[serde(default)]
+    #[serde(serialize_with = "serialize_fork_epoch")]
+    #[serde(deserialize_with = "deserialize_fork_epoch")]
+    pub heze_fork_epoch: Option<MaybeQuoted<Epoch>>,
+
     #[serde(with = "serde_utils::quoted_u64")]
     seconds_per_slot: u64,
     #[serde(default)]
@@ -2085,6 +2121,11 @@ fn default_fulu_fork_version() -> [u8; 4] {
 }
 
 fn default_gloas_fork_version() -> [u8; 4] {
+    // This value shouldn't be used.
+    [0xff, 0xff, 0xff, 0xff]
+}
+
+fn default_heze_fork_version() -> [u8; 4] {
     // This value shouldn't be used.
     [0xff, 0xff, 0xff, 0xff]
 }
@@ -2445,6 +2486,11 @@ impl Config {
                 .gloas_fork_epoch
                 .map(|epoch| MaybeQuoted { value: epoch }),
 
+            heze_fork_version: spec.heze_fork_version,
+            heze_fork_epoch: spec
+                .heze_fork_epoch
+                .map(|epoch| MaybeQuoted { value: epoch }),
+
             seconds_per_slot: spec.seconds_per_slot,
             slot_duration_ms: Some(MaybeQuoted {
                 value: spec.slot_duration_ms,
@@ -2547,6 +2593,8 @@ impl Config {
             fulu_fork_version,
             gloas_fork_version,
             gloas_fork_epoch,
+            heze_fork_version,
+            heze_fork_epoch,
             seconds_per_slot,
             slot_duration_ms,
             seconds_per_eth1_block,
@@ -2628,6 +2676,8 @@ impl Config {
             fulu_fork_version,
             gloas_fork_version,
             gloas_fork_epoch: gloas_fork_epoch.map(|q| q.value),
+            heze_fork_version,
+            heze_fork_epoch: heze_fork_epoch.map(|q| q.value),
             seconds_per_slot,
             slot_duration_ms: slot_duration_ms
                 .map(|q| q.value)

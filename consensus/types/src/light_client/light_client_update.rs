@@ -141,7 +141,7 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for LightClientUpdate<E>
         };
         Ok(match context {
             // TODO(gloas): implement Gloas light client
-            ForkName::Base | ForkName::Gloas => {
+            ForkName::Base | ForkName::Gloas | ForkName::Heze => {
                 return Err(serde::de::Error::custom(format!(
                     "LightClientUpdate failed to deserialize: unsupported fork '{}'",
                     context
@@ -327,7 +327,7 @@ impl<E: EthSpec> LightClientUpdate<E> {
             // have a distinct execution header will need a new LightClientUpdate variant only
             // if you need to test or support lightclient usages
             // TODO(gloas): implement Gloas light client
-            ForkName::Gloas => return Err(LightClientError::GloasNotImplemented),
+            ForkName::Gloas | ForkName::Heze => return Err(LightClientError::GloasNotImplemented),
         };
 
         Ok(light_client_update)
@@ -343,7 +343,7 @@ impl<E: EthSpec> LightClientUpdate<E> {
             ForkName::Electra => Self::Electra(LightClientUpdateElectra::from_ssz_bytes(bytes)?),
             ForkName::Fulu => Self::Fulu(LightClientUpdateFulu::from_ssz_bytes(bytes)?),
             // TODO(gloas): implement Gloas light client
-            ForkName::Base | ForkName::Gloas => {
+            ForkName::Base | ForkName::Gloas | ForkName::Heze => {
                 return Err(ssz::DecodeError::BytesInvalid(format!(
                     "LightClientUpdate decoding for {fork_name} not implemented"
                 )));
@@ -500,7 +500,7 @@ impl<E: EthSpec> LightClientUpdate<E> {
             ForkName::Electra => <LightClientUpdateElectra<E> as Encode>::ssz_fixed_len(),
             ForkName::Fulu => <LightClientUpdateFulu<E> as Encode>::ssz_fixed_len(),
             // TODO(gloas): implement Gloas light client
-            ForkName::Gloas => 0,
+            ForkName::Gloas | ForkName::Heze => 0,
         };
         fixed_len + 2 * LightClientHeader::<E>::ssz_max_var_len_for_fork(fork_name)
     }

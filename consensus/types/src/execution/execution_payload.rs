@@ -136,6 +136,9 @@ impl<E: EthSpec> ForkVersionDecode for ExecutionPayload<E> {
             ForkName::Electra => ExecutionPayloadElectra::from_ssz_bytes(bytes).map(Self::Electra),
             ForkName::Fulu => ExecutionPayloadFulu::from_ssz_bytes(bytes).map(Self::Fulu),
             ForkName::Gloas => ExecutionPayloadGloas::from_ssz_bytes(bytes).map(Self::Gloas),
+            ForkName::Heze => Err(ssz::DecodeError::BytesInvalid(format!(
+                "unsupported fork for ExecutionPayload: {fork_name}",
+            ))),
         }
     }
 }
@@ -186,6 +189,12 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for ExecutionPayload<E> 
             }
             ForkName::Gloas => {
                 Self::Gloas(Deserialize::deserialize(deserializer).map_err(convert_err)?)
+            }
+            ForkName::Heze => {
+                return Err(serde::de::Error::custom(format!(
+                    "ExecutionPayload failed to deserialize: unsupported fork '{}'",
+                    context
+                )));
             }
         })
     }

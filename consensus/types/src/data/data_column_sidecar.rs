@@ -127,7 +127,8 @@ impl<E: EthSpec> DataColumnSidecar<E> {
             | ForkName::Bellatrix
             | ForkName::Capella
             | ForkName::Deneb
-            | ForkName::Electra => Err(ssz::DecodeError::NoMatchingVariant),
+            | ForkName::Electra
+            | ForkName::Heze => Err(ssz::DecodeError::NoMatchingVariant),
             ForkName::Fulu => Ok(DataColumnSidecar::Fulu(
                 DataColumnSidecarFulu::from_ssz_bytes(bytes)?,
             )),

@@ -19,7 +19,7 @@ use crate::{
         BLOB_KZG_COMMITMENTS_INDEX, BeaconBlock, BeaconBlockAltair, BeaconBlockBase,
         BeaconBlockBellatrix, BeaconBlockBodyBellatrix, BeaconBlockBodyCapella,
         BeaconBlockBodyDeneb, BeaconBlockBodyElectra, BeaconBlockBodyFulu, BeaconBlockCapella,
-        BeaconBlockDeneb, BeaconBlockElectra, BeaconBlockFulu, BeaconBlockGloas, BeaconBlockHeader,
+        BeaconBlockDeneb, BeaconBlockElectra, BeaconBlockFulu, BeaconBlockGloas, BeaconBlockHeze, BeaconBlockHeader,
         BeaconBlockRef, BeaconBlockRefMut, SignedBeaconBlockHeader,
     },
     core::{ChainSpec, Domain, Epoch, EthSpec, Hash256, SignedRoot, SigningData, Slot},
@@ -66,7 +66,7 @@ impl From<SignedBeaconBlockHash> for Hash256 {
 
 /// A `BeaconBlock` and a signature from its proposer.
 #[superstruct(
-    variants(Base, Altair, Bellatrix, Capella, Deneb, Electra, Fulu, Gloas),
+    variants(Base, Altair, Bellatrix, Capella, Deneb, Electra, Fulu, Gloas, Heze),
     variant_attributes(
         derive(
             Debug,
@@ -119,6 +119,8 @@ pub struct SignedBeaconBlock<E: EthSpec, Payload: AbstractExecPayload<E> = FullP
     pub message: BeaconBlockFulu<E, Payload>,
     #[superstruct(only(Gloas), partial_getter(rename = "message_gloas"))]
     pub message: BeaconBlockGloas<E, Payload>,
+    #[superstruct(only(Heze), partial_getter(rename = "message_heze"))]
+    pub message: BeaconBlockHeze<E, Payload>,
     pub signature: Signature,
 }
 
@@ -207,6 +209,9 @@ impl<E: EthSpec, Payload: AbstractExecPayload<E>> SignedBeaconBlock<E, Payload> 
             }
             BeaconBlock::Gloas(message) => {
                 SignedBeaconBlock::Gloas(SignedBeaconBlockGloas { message, signature })
+            }
+            BeaconBlock::Heze(message) => {
+                SignedBeaconBlock::Heze(SignedBeaconBlockHeze { message, signature })
             }
         }
     }
@@ -714,6 +719,19 @@ impl<E: EthSpec> From<SignedBeaconBlockGloas<E, BlindedPayload<E>>>
     }
 }
 
+// Heze uses the same block structure as Gloas
+impl<E: EthSpec> From<SignedBeaconBlockHeze<E, BlindedPayload<E>>>
+    for SignedBeaconBlockHeze<E, FullPayload<E>>
+{
+    fn from(signed_block: SignedBeaconBlockHeze<E, BlindedPayload<E>>) -> Self {
+        let SignedBeaconBlockHeze { message, signature } = signed_block;
+        SignedBeaconBlockHeze {
+            message: message.into(),
+            signature,
+        }
+    }
+}
+
 impl<E: EthSpec> SignedBeaconBlock<E, BlindedPayload<E>> {
     pub fn try_into_full_block(
         self,
@@ -738,6 +756,7 @@ impl<E: EthSpec> SignedBeaconBlock<E, BlindedPayload<E>> {
                 SignedBeaconBlock::Fulu(block.into_full_block(payload))
             }
             (SignedBeaconBlock::Gloas(block), _) => SignedBeaconBlock::Gloas(block.into()),
+            (SignedBeaconBlock::Heze(block), _) => SignedBeaconBlock::Heze(block.into()),
             // avoid wildcard matching forks so that compiler will
             // direct us here when a new fork has been added
             (SignedBeaconBlock::Bellatrix(_), _) => return None,
@@ -745,7 +764,6 @@ impl<E: EthSpec> SignedBeaconBlock<E, BlindedPayload<E>> {
             (SignedBeaconBlock::Deneb(_), _) => return None,
             (SignedBeaconBlock::Electra(_), _) => return None,
             (SignedBeaconBlock::Fulu(_), _) => return None,
-            // TODO(EIP-7732) Determine if need a match arm for gloas here
         };
         Some(full_block)
     }
@@ -894,6 +912,9 @@ pub mod ssz_tagged_signed_beacon_block {
                 ForkName::Gloas => Ok(SignedBeaconBlock::Gloas(
                     SignedBeaconBlockGloas::from_ssz_bytes(body)?,
                 )),
+                ForkName::Heze => Err(ssz::DecodeError::BytesInvalid(format!(
+                    "unsupported fork for SignedBeaconBlock: Heze"
+                ))),
             }
         }
     }
