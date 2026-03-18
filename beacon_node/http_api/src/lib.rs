@@ -655,6 +655,37 @@ pub fn serve<T: BeaconChainTypes>(
     let get_beacon_state_proposer_lookahead =
         states::get_beacon_state_proposer_lookahead(beacon_states_path.clone());
 
+    // GET beacon/states/{state_id}/inclusion_list_committee
+    let get_beacon_state_inclusion_list_committee = beacon_states_path
+        .clone()
+        .and(warp::path("inclusion_list_committee"))
+        .and(warp::query::<api_types::InclusionListCommitteeQuery>())
+        .and(warp::path::end())
+        .then(
+            |state_id: StateId,
+             task_spawner: TaskSpawner<T::EthSpec>,
+             chain: Arc<BeaconChain<T>>,
+             query: api_types::InclusionListCommitteeQuery| {
+                task_spawner.blocking_json_task(Priority::P1, move || {
+                    let (state, execution_optimistic, finalized) = state_id.state(&chain)?;
+                    
+                    // Get the slot for which to compute the committee
+                    let _slot = query.slot.unwrap_or(state.slot());
+                    
+                    // TODO: Implement inclusion list committee computation
+                    // For now, return empty committee
+                    let response = inclusion_list::GetInclusionListCommitteeResponse {
+                        validators: vec![],
+                        committee_root: Hash256::default(),
+                    };
+                    
+                    Ok(api_types::GenericResponse::from(response)
+                        .add_execution_optimistic_finalized(execution_optimistic, finalized))
+                })
+            },
+        )
+        .boxed();
+
     // GET beacon/headers
     //
     // Note: this endpoint only returns information about blocks in the canonical chain. Given that
@@ -1495,6 +1526,89 @@ pub fn serve<T: BeaconChainTypes>(
     // POST beacon/pool/bls_to_execution_changes
     let post_beacon_pool_bls_to_execution_changes =
         post_beacon_pool_bls_to_execution_changes(&network_tx_filter, &beacon_pool_path);
+
+    // POST beacon/pool/inclusion_lists
+    let post_beacon_pool_inclusion_lists = beacon_pool_path
+        .clone()
+        .and(warp::path("inclusion_lists"))
+        .and(warp::path::end())
+        .and(warp_utils::json::json())
+        .and(network_tx_filter.clone())
+        .then(
+            |task_spawner: TaskSpawner<T::EthSpec>,
+             _chain: Arc<BeaconChain<T>>,
+             _signed_inclusion_list: eth2::types::SignedInclusionList<T::EthSpec>,
+             _network_tx: UnboundedSender<NetworkMessage<T::EthSpec>>| {
+                task_spawner.blocking_json_task(Priority::P0, move || {
+                    // Stub implementation - accept but don't process
+                    // TODO: Implement full validation and gossip broadcast
+                    Ok(())
+                })
+            },
+        )
+        .boxed();
+
+    // GET beacon/blocks/{block_id}/inclusion_lists
+    let get_beacon_blocks_inclusion_lists = beacon_blocks_path_v1
+        .clone()
+        .and(warp::path("inclusion_lists"))
+        .and(warp::path::end())
+        .then(
+            |block_id: BlockId, task_spawner: TaskSpawner<T::EthSpec>, chain: Arc<BeaconChain<T>>| {
+                task_spawner.blocking_json_task(Priority::P1, move || {
+                    // Get the block root from the store
+                    let (block_root, _execution_optimistic, _finalized) = 
+                        block_id.root(&chain).map_err(|e| {
+                            warp_utils::reject::custom_bad_request(format!(
+                                "Invalid block ID: {:?}",
+                                e
+                            ))
+                        })?;
+                    
+                    let blinded_block = chain
+                        .store
+                        .get_blinded_block(&block_root)
+                        .map_err(|e| {
+                            warp_utils::reject::custom_not_found(format!(
+                                "Unable to read block: {:?}",
+                                e
+                            ))
+                        })?
+                        .ok_or_else(|| {
+                            warp_utils::reject::custom_not_found(format!(
+                                "Block not found: {:?}",
+                                block_root
+                            ))
+                        })?;
+
+                    // Check if this is a Heze block
+                    let fork_name = blinded_block.fork_name(&chain.spec).map_err(|e| {
+                        warp_utils::reject::custom_server_error(format!(
+                            "Failed to determine fork: {:?}",
+                            e
+                        ))
+                    })?;
+                    
+                    if fork_name != ForkName::Heze {
+                        // For non-Heze blocks, return empty inclusion lists
+                        return Ok(api_types::GenericResponse::from(
+                            inclusion_list::GetInclusionListsResponse::<T::EthSpec> {
+                                inclusion_lists: vec![],
+                            },
+                        ));
+                    }
+
+                    // For Heze blocks, return empty for now
+                    // TODO: implement inclusion list retrieval from store
+                    Ok(api_types::GenericResponse::from(
+                        inclusion_list::GetInclusionListsResponse::<T::EthSpec> {
+                            inclusion_lists: vec![],
+                        },
+                    ))
+                })
+            },
+        )
+        .boxed();
 
     // POST beacon/execution_payload_envelope
     let post_beacon_execution_payload_envelope = post_beacon_execution_payload_envelope(
@@ -3311,6 +3425,7 @@ pub fn serve<T: BeaconChainTypes>(
                 .uor(get_beacon_state_pending_partial_withdrawals)
                 .uor(get_beacon_state_pending_consolidations)
                 .uor(get_beacon_state_proposer_lookahead)
+                .uor(get_beacon_state_inclusion_list_committee)
                 .uor(get_beacon_headers)
                 .uor(get_beacon_headers_block_id)
                 .uor(get_beacon_block)
@@ -3324,6 +3439,7 @@ pub fn serve<T: BeaconChainTypes>(
                 .uor(get_beacon_pool_proposer_slashings)
                 .uor(get_beacon_pool_voluntary_exits)
                 .uor(get_beacon_pool_bls_to_execution_changes)
+                .uor(get_beacon_blocks_inclusion_lists)
                 .uor(get_beacon_rewards_blocks)
                 .uor(get_config_fork_schedule)
                 .uor(get_config_spec)
@@ -3393,6 +3509,7 @@ pub fn serve<T: BeaconChainTypes>(
                     .uor(post_beacon_pool_voluntary_exits)
                     .uor(post_beacon_pool_sync_committees)
                     .uor(post_beacon_pool_bls_to_execution_changes)
+                    .uor(post_beacon_pool_inclusion_lists)
                     .uor(post_beacon_execution_payload_envelope)
                     .uor(post_beacon_state_validators)
                     .uor(post_beacon_state_validator_balances)

@@ -2,91 +2,27 @@
 //!
 //! Implements the Beacon API endpoints for Inclusion Lists:
 //! - GET /v1/beacon/blocks/{block_id}/inclusion_lists
+//! - GET /v1/beacon/states/{state_id}/inclusion_list_committee
 //! - POST /v1/beacon/pool/inclusion_lists
+//!
+//! Route definitions are in lib.rs, this module provides the response types.
 
-use beacon_chain::{BeaconChain, BeaconChainTypes};
 use eth2::types::SignedInclusionList as ApiSignedInclusionList;
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use types::{EthSpec, Hash256, Slot};
-use warp::Reply;
+use types::{EthSpec, Hash256};
 
 /// Response for GET /v1/beacon/blocks/{block_id}/inclusion_lists
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(bound = "E: EthSpec")]
 pub struct GetInclusionListsResponse<E: EthSpec> {
     pub inclusion_lists: Vec<ApiSignedInclusionList<E>>,
 }
 
 /// Response for GET /v1/beacon/states/{state_id}/inclusion_list_committee
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct GetInclusionListCommitteeResponse {
     #[serde(with = "serde_utils::quoted_u64_vec")]
     pub validators: Vec<u64>,
     pub committee_root: Hash256,
-}
-
-/// Get inclusion lists for a block.
-///
-/// GET /v1/beacon/blocks/{block_id}/inclusion_lists
-pub fn get_inclusion_lists<T: BeaconChainTypes>(
-    block_id: String,
-    _chain: Arc<BeaconChain<T>>,
-) -> Result<impl Reply, warp::reject::Rejection> {
-    // Parse block_id
-    let _block_id = block_id;
-    
-    // In production, this would fetch the inclusion lists from:
-    // 1. The InclusionListStore for pending ILs
-    // 2. The block's IL bits for finalized blocks
-    // For now, return empty list as this is a stub implementation
-    
-    let response = GetInclusionListsResponse::<T::EthSpec> {
-        inclusion_lists: vec![],
-    };
-    
-    Ok(warp::reply::json(&response))
-}
-
-/// Get inclusion list committee for a state.
-///
-/// GET /v1/beacon/states/{state_id}/inclusion_list_committee
-pub fn get_inclusion_list_committee<T: BeaconChainTypes>(
-    state_id: String,
-    slot: Option<Slot>,
-    chain: Arc<BeaconChain<T>>,
-) -> Result<impl Reply, warp::reject::Rejection> {
-    let _state_id = state_id;
-    let _slot = slot.unwrap_or_else(|| chain.slot().unwrap_or_default());
-    
-    // In production, this would:
-    // 1. Get the state at state_id
-    // 2. Compute the inclusion list committee for the slot
-    // 3. Return the committee and root
-    
-    // For now, return a stub response
-    let response = GetInclusionListCommitteeResponse {
-        validators: vec![],
-        committee_root: Hash256::default(),
-    };
-    
-    Ok(warp::reply::json(&response))
-}
-
-/// Submit an inclusion list.
-///
-/// POST /v1/beacon/pool/inclusion_lists
-pub fn submit_inclusion_list<T: BeaconChainTypes>(
-    _signed_inclusion_list: ApiSignedInclusionList<T::EthSpec>,
-    _chain: Arc<BeaconChain<T>>,
-) -> Result<impl Reply, warp::reject::Rejection> {
-    // In production, this would:
-    // 1. Verify the inclusion list
-    // 2. Add it to the InclusionListStore
-    // 3. Broadcast it to the gossip network
-    
-    // For now, just accept it (stub)
-    Ok(warp::reply())
 }
 
 #[cfg(test)]
@@ -100,5 +36,16 @@ mod tests {
         };
         let json = serde_json::to_string(&response).unwrap();
         assert!(json.contains("inclusion_lists"));
+    }
+
+    #[test]
+    fn test_get_inclusion_list_committee_response_serialization() {
+        let response = GetInclusionListCommitteeResponse {
+            validators: vec![1, 2, 3],
+            committee_root: Hash256::default(),
+        };
+        let json = serde_json::to_string(&response).unwrap();
+        assert!(json.contains("validators"));
+        assert!(json.contains("committee_root"));
     }
 }

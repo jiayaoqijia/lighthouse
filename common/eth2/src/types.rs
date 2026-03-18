@@ -531,6 +531,13 @@ pub struct HeadersQuery {
     pub parent_root: Option<Hash256>,
 }
 
+/// Query parameters for GET /beacon/states/{state_id}/inclusion_list_committee
+#[derive(Serialize, Deserialize)]
+pub struct InclusionListCommitteeQuery {
+    #[serde(default)]
+    pub slot: Option<Slot>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BlockHeaderAndSignature {
     pub message: BeaconBlockHeader,
