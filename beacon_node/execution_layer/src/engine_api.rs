@@ -9,7 +9,7 @@ use crate::http::{
 };
 use eth2::types::{
     BlobsBundle, SsePayloadAttributes, SsePayloadAttributesV1, SsePayloadAttributesV2,
-    SsePayloadAttributesV3,
+    SsePayloadAttributesV3, SsePayloadAttributesV4,
 };
 use http::deposit_methods::RpcError;
 pub use json_structures::{JsonWithdrawal, TransitionConfigurationV1};
@@ -158,7 +158,7 @@ impl ExecutionBlock {
 }
 
 #[superstruct(
-    variants(V1, V2, V3),
+    variants(V1, V2, V3, V4),
     variant_attributes(derive(Clone, Debug, Eq, Hash, PartialEq),),
     cast_error(ty = "Error", expr = "Error::IncorrectStateVariant"),
     partial_getter_error(ty = "Error", expr = "Error::IncorrectStateVariant")
@@ -171,10 +171,13 @@ pub struct PayloadAttributes {
     pub prev_randao: Hash256,
     #[superstruct(getter(copy))]
     pub suggested_fee_recipient: Address,
-    #[superstruct(only(V2, V3))]
+    #[superstruct(only(V2, V3, V4))]
     pub withdrawals: Vec<Withdrawal>,
-    #[superstruct(only(V3), partial_getter(copy))]
+    #[superstruct(only(V3, V4), partial_getter(copy))]
     pub parent_beacon_block_root: Hash256,
+    /// [New in Heze:EIP7805] Transactions from inclusion lists that must be included in the payload.
+    #[superstruct(only(V4))]
+    pub inclusion_list_transactions: Vec<Vec<u8>>,
 }
 
 impl PayloadAttributes {
@@ -240,6 +243,21 @@ impl From<PayloadAttributes> for SsePayloadAttributes {
                 withdrawals,
                 parent_beacon_block_root,
             }) => Self::V3(SsePayloadAttributesV3 {
+                timestamp,
+                prev_randao,
+                suggested_fee_recipient,
+                withdrawals,
+                parent_beacon_block_root,
+            }),
+            // [New in Heze:EIP7805] V4 variant with inclusion_list_transactions
+            PayloadAttributes::V4(PayloadAttributesV4 {
+                timestamp,
+                prev_randao,
+                suggested_fee_recipient,
+                withdrawals,
+                parent_beacon_block_root,
+                inclusion_list_transactions: _,
+            }) => Self::V4(SsePayloadAttributesV4 {
                 timestamp,
                 prev_randao,
                 suggested_fee_recipient,

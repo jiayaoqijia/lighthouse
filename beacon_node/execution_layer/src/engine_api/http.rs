@@ -1505,6 +1505,18 @@ impl HttpJsonRpc {
                         ))
                     }
                 }
+                // [New in Heze:EIP7805] V4 uses forkchoice_updated_v3 for now
+                // TODO(heze): Add forkchoice_updated_v4 when EL supports it
+                PayloadAttributes::V4(_) => {
+                    if engine_capabilities.forkchoice_updated_v3 {
+                        self.forkchoice_updated_v3(forkchoice_state, maybe_payload_attributes)
+                            .await
+                    } else {
+                        Err(Error::RequiredMethodUnsupported(
+                            "engine_forkchoiceUpdatedV3",
+                        ))
+                    }
+                }
             }
         } else if engine_capabilities.forkchoice_updated_v3 {
             self.forkchoice_updated_v3(forkchoice_state, maybe_payload_attributes)

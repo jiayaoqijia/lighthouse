@@ -716,7 +716,7 @@ impl<'a> From<&'a JsonWithdrawal> for EncodableJsonWithdrawal<'a> {
 }
 
 #[superstruct(
-    variants(V1, V2, V3),
+    variants(V1, V2, V3, V4),
     variant_attributes(
         derive(Debug, Clone, PartialEq, Serialize, Deserialize),
         serde(rename_all = "camelCase")
@@ -732,10 +732,13 @@ pub struct JsonPayloadAttributes {
     pub prev_randao: Hash256,
     #[serde(with = "serde_utils::address_hex")]
     pub suggested_fee_recipient: Address,
-    #[superstruct(only(V2, V3))]
+    #[superstruct(only(V2, V3, V4))]
     pub withdrawals: Vec<JsonWithdrawal>,
-    #[superstruct(only(V3))]
+    #[superstruct(only(V3, V4))]
     pub parent_beacon_block_root: Hash256,
+    /// [New in Heze:EIP7805] Transactions from inclusion lists as hex strings.
+    #[superstruct(only(V4))]
+    pub inclusion_list_transactions: Vec<String>,
 }
 
 impl From<PayloadAttributes> for JsonPayloadAttributes {
@@ -758,6 +761,19 @@ impl From<PayloadAttributes> for JsonPayloadAttributes {
                 suggested_fee_recipient: pa.suggested_fee_recipient,
                 withdrawals: pa.withdrawals.into_iter().map(Into::into).collect(),
                 parent_beacon_block_root: pa.parent_beacon_block_root,
+            }),
+            // [New in Heze:EIP7805]
+            PayloadAttributes::V4(pa) => Self::V4(JsonPayloadAttributesV4 {
+                timestamp: pa.timestamp,
+                prev_randao: pa.prev_randao,
+                suggested_fee_recipient: pa.suggested_fee_recipient,
+                withdrawals: pa.withdrawals.into_iter().map(Into::into).collect(),
+                parent_beacon_block_root: pa.parent_beacon_block_root,
+                inclusion_list_transactions: pa
+                    .inclusion_list_transactions
+                    .into_iter()
+                    .map(|tx| format!("0x{}", serde_utils::hex::encode(&tx)))
+                    .collect(),
             }),
         }
     }
@@ -783,6 +799,19 @@ impl From<JsonPayloadAttributes> for PayloadAttributes {
                 suggested_fee_recipient: jpa.suggested_fee_recipient,
                 withdrawals: jpa.withdrawals.into_iter().map(Into::into).collect(),
                 parent_beacon_block_root: jpa.parent_beacon_block_root,
+            }),
+            // [New in Heze:EIP7805]
+            JsonPayloadAttributes::V4(jpa) => Self::V4(PayloadAttributesV4 {
+                timestamp: jpa.timestamp,
+                prev_randao: jpa.prev_randao,
+                suggested_fee_recipient: jpa.suggested_fee_recipient,
+                withdrawals: jpa.withdrawals.into_iter().map(Into::into).collect(),
+                parent_beacon_block_root: jpa.parent_beacon_block_root,
+                inclusion_list_transactions: jpa
+                    .inclusion_list_transactions
+                    .into_iter()
+                    .filter_map(|hex| serde_utils::hex::decode(hex.as_ref()).ok())
+                    .collect(),
             }),
         }
     }

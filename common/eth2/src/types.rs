@@ -1106,7 +1106,7 @@ pub struct SseLateHead {
 }
 
 #[superstruct(
-    variants(V1, V2, V3),
+    variants(V1, V2, V3, V4),
     variant_attributes(derive(Clone, Debug, Eq, Hash, PartialEq, Serialize, Deserialize))
 )]
 #[derive(Clone, Debug, Eq, Hash, PartialEq, Deserialize, Serialize)]
@@ -1120,9 +1120,9 @@ pub struct SsePayloadAttributes {
     #[superstruct(getter(copy))]
     #[serde(with = "serde_utils::address_hex")]
     pub suggested_fee_recipient: Address,
-    #[superstruct(only(V2, V3))]
+    #[superstruct(only(V2, V3, V4))]
     pub withdrawals: Vec<Withdrawal>,
-    #[superstruct(only(V3), partial_getter(copy))]
+    #[superstruct(only(V3, V4), partial_getter(copy))]
     pub parent_beacon_block_root: Hash256,
 }
 
@@ -1166,8 +1166,12 @@ impl<'de> ContextDeserialize<'de, ForkName> for SsePayloadAttributes {
             ForkName::Capella => {
                 Self::V2(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
-            ForkName::Deneb | ForkName::Electra | ForkName::Fulu | ForkName::Gloas | ForkName::Heze => {
+            ForkName::Deneb | ForkName::Electra | ForkName::Fulu | ForkName::Gloas => {
                 Self::V3(Deserialize::deserialize(deserializer).map_err(convert_err)?)
+            }
+            // [New in Heze:EIP7805] Use V4 for Heze fork
+            ForkName::Heze => {
+                Self::V4(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
         })
     }
