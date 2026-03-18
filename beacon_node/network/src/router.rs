@@ -272,7 +272,20 @@ impl<T: BeaconChainTypes> Router<T> {
                             request,
                         ),
                 ),
-            _ => {}
+            // [New in Heze:EIP7805] Handle InclusionListByCommitteeIndices requests
+            RequestType::InclusionListByCommitteeIndices(request) => self
+                .handle_beacon_processor_send_result(
+                    self.network_beacon_processor
+                        .send_inclusion_list_by_committee_indices_request(
+                            peer_id,
+                            inbound_request_id,
+                            request,
+                        ),
+                ),
+            // These requests are handled at the lighthouse_network layer and should not reach here.
+            RequestType::Goodbye(_) | RequestType::Ping(_) | RequestType::MetaData(_) => {
+                unreachable!("Goodbye, Ping, and MetaData are handled at the network layer")
+            }
         }
     }
 

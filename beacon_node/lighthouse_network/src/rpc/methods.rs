@@ -692,6 +692,8 @@ pub struct LightClientBootstrapRequest {
 /// [New in Heze:EIP7805]
 #[derive(Encode, Decode, Clone, Debug, PartialEq)]
 pub struct InclusionListByCommitteeIndicesRequest {
+    /// The slot for which to request inclusion lists.
+    pub slot: Slot,
     /// Bitvector indicating which committee members' inclusion lists to request.
     pub committee_indices: ssz_types::BitVector<typenum::U16>,
 }

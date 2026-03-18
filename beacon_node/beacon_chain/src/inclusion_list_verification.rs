@@ -6,6 +6,7 @@
 
 use std::collections::{HashMap, HashSet};
 
+use bls::Signature;
 use parking_lot::RwLock;
 use slot_clock::SlotClock;
 use types::{
@@ -392,6 +393,56 @@ impl<E: EthSpec> InclusionListStore<E> {
                     .collect()
             })
             .unwrap_or_default()
+    }
+
+    /// [New in Heze:EIP7805] Get inclusion lists for a given slot and list of validator indices.
+    /// Returns signed inclusion lists for the specified indices.
+    /// 
+    /// Note: Currently returns SignedInclusionList with empty signature since
+    /// the store only keeps the InclusionList message. This should be updated
+    /// if signature preservation is needed for RPC responses.
+    pub fn get_inclusion_lists_by_indices(
+        &self,
+        slot: Slot,
+        committee_indices: &BitVector<U16>,
+    ) -> Vec<SignedInclusionList<E>> {
+        // Extract indices from the bitvector (bits that are set to true)
+        let indices_set: HashSet<u64> = committee_indices
+            .iter()
+            .enumerate()
+            .filter_map(|(i, is_set)| if is_set { Some(i as u64) } else { None })
+            .collect();
+        
+        // We need to check all possible committee roots for this slot
+        // For now, we iterate through all stored keys with this slot
+        let inclusion_lists = self.inclusion_lists.read();
+        let equivocators = self.equivocators.read();
+        
+        let mut result = Vec::new();
+        
+        for ((key_slot, committee_root), ils) in inclusion_lists.iter() {
+            if *key_slot == slot {
+                for il in ils {
+                    // Skip if this validator is an equivocator
+                    if equivocators.get(&(*key_slot, *committee_root))
+                        .map(|e| e.contains(&il.validator_index))
+                        .unwrap_or(false)
+                    {
+                        continue;
+                    }
+                    
+                    // Add if the validator index is in our requested set
+                    if indices_set.contains(&il.validator_index) {
+                        result.push(SignedInclusionList {
+                            message: il.clone(),
+                            signature: Signature::empty(),
+                        });
+                    }
+                }
+            }
+        }
+        
+        result
     }
 
     /// Get the inclusion list bits for a given key.

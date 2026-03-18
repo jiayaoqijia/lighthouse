@@ -269,6 +269,8 @@ pub struct WorkQueues<E: EthSpec> {
     pub gossip_payload_attestation_queue: FifoQueue<Work<E>>,
     pub gossip_proposer_preferences_queue: FifoQueue<Work<E>>,
     pub gossip_signed_inclusion_list_queue: FifoQueue<Work<E>>,
+    /// [New in Heze:EIP7805] Queue for InclusionListByCommitteeIndices RPC requests
+    pub inclusion_list_by_committee_indices_queue: FifoQueue<Work<E>>,
     pub lc_gossip_finality_update_queue: FifoQueue<Work<E>>,
     pub lc_gossip_optimistic_update_queue: FifoQueue<Work<E>>,
     pub lc_bootstrap_queue: FifoQueue<Work<E>>,
@@ -345,6 +347,9 @@ impl<E: EthSpec> WorkQueues<E> {
             FifoQueue::new(queue_lengths.gossip_proposer_preferences_queue);
         let gossip_signed_inclusion_list_queue =
             FifoQueue::new(queue_lengths.gossip_signed_inclusion_list_queue);
+        // [New in Heze:EIP7805] InclusionListByCommitteeIndices RPC request queue
+        let inclusion_list_by_committee_indices_queue =
+            FifoQueue::new(queue_lengths.gossip_signed_inclusion_list_queue);
 
         let lc_gossip_optimistic_update_queue =
             FifoQueue::new(queue_lengths.lc_gossip_optimistic_update_queue);
@@ -399,6 +404,7 @@ impl<E: EthSpec> WorkQueues<E> {
             gossip_payload_attestation_queue,
             gossip_proposer_preferences_queue,
             gossip_signed_inclusion_list_queue,
+            inclusion_list_by_committee_indices_queue,
             lc_gossip_optimistic_update_queue,
             lc_gossip_finality_update_queue,
             lc_bootstrap_queue,

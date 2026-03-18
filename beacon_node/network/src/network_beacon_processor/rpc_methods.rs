@@ -7,6 +7,7 @@ use beacon_chain::{BeaconChainError, BeaconChainTypes, BlockProcessStatus, WhenS
 use itertools::{Itertools, process_results};
 use lighthouse_network::rpc::methods::{
     BlobsByRangeRequest, BlobsByRootRequest, DataColumnsByRangeRequest, DataColumnsByRootRequest,
+    InclusionListByCommitteeIndicesRequest,
 };
 use lighthouse_network::rpc::*;
 use lighthouse_network::{PeerId, ReportSource, Response, SyncInfo};
@@ -1386,5 +1387,67 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
 
         let client = self.network_globals.client(peer_id);
         span.record("client", field::display(client.kind));
+    }
+
+    /// [New in Heze:EIP7805] Handle an `InclusionListByCommitteeIndices` request from a peer.
+    #[instrument(
+        name = "lh_handle_inclusion_list_by_committee_indices",
+        parent = None,
+        level = "debug",
+        skip_all,
+        fields(peer_id = %peer_id, client = tracing::field::Empty)
+    )]
+    pub fn handle_inclusion_list_by_committee_indices(
+        self: &Arc<Self>,
+        peer_id: PeerId,
+        inbound_request_id: InboundRequestId,
+        request: InclusionListByCommitteeIndicesRequest,
+    ) {
+        let client = self.network_globals.client(&peer_id);
+        Span::current().record("client", field::display(client.kind));
+
+        self.terminate_response_stream(
+            peer_id,
+            inbound_request_id,
+            self.clone()
+                .handle_inclusion_list_by_committee_indices_inner(
+                    peer_id,
+                    inbound_request_id,
+                    request,
+                ),
+            Response::InclusionListByCommitteeIndices,
+        );
+    }
+
+    /// Handle an `InclusionListByCommitteeIndices` request from the peer.
+    fn handle_inclusion_list_by_committee_indices_inner(
+        self: Arc<Self>,
+        peer_id: PeerId,
+        inbound_request_id: InboundRequestId,
+        request: InclusionListByCommitteeIndicesRequest,
+    ) -> Result<(), (RpcErrorResponse, &'static str)> {
+        debug!(
+            %peer_id,
+            slot = ?request.slot,
+            committee_indices = ?request.committee_indices,
+            "Received InclusionListByCommitteeIndices Request"
+        );
+
+        // Get inclusion lists from the store
+        let inclusion_lists = self.chain.inclusion_list_store.get_inclusion_lists_by_indices(
+            request.slot,
+            &request.committee_indices,
+        );
+
+        // Send each inclusion list as a separate response
+        for signed_il in inclusion_lists {
+            self.send_network_message(NetworkMessage::SendResponse {
+                peer_id,
+                inbound_request_id,
+                response: Response::InclusionListByCommitteeIndices(Some(Arc::new(signed_il))),
+            });
+        }
+
+        Ok(())
     }
 }

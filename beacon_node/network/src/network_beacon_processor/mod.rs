@@ -15,7 +15,7 @@ use beacon_processor::{
 use lighthouse_network::rpc::InboundRequestId;
 use lighthouse_network::rpc::methods::{
     BlobsByRangeRequest, BlobsByRootRequest, DataColumnsByRangeRequest, DataColumnsByRootRequest,
-    LightClientUpdatesByRangeRequest,
+    InclusionListByCommitteeIndicesRequest, LightClientUpdatesByRangeRequest,
 };
 use lighthouse_network::service::api_types::CustodyBackfillBatchId;
 use lighthouse_network::{
@@ -849,6 +849,24 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         self.try_send(BeaconWorkEvent {
             drop_during_sync: true,
             work: Work::LightClientUpdatesByRangeRequest(Box::new(process_fn)),
+        })
+    }
+
+    /// [New in Heze:EIP7805] Create a work event to process an InclusionListByCommitteeIndices request.
+    pub fn send_inclusion_list_by_committee_indices_request(
+        self: &Arc<Self>,
+        peer_id: PeerId,
+        inbound_request_id: InboundRequestId,
+        request: InclusionListByCommitteeIndicesRequest,
+    ) -> Result<(), Error<T::EthSpec>> {
+        let processor = self.clone();
+        let process_fn = move || {
+            processor.handle_inclusion_list_by_committee_indices(peer_id, inbound_request_id, request)
+        };
+
+        self.try_send(BeaconWorkEvent {
+            drop_during_sync: true,
+            work: Work::InclusionListByCommitteeIndicesRequest(Box::new(process_fn)),
         })
     }
 

@@ -440,6 +440,8 @@ pub enum Work<E: EthSpec> {
     LightClientOptimisticUpdateRequest(BlockingFn),
     LightClientFinalityUpdateRequest(BlockingFn),
     LightClientUpdatesByRangeRequest(BlockingFn),
+    /// [New in Heze:EIP7805] InclusionListByCommitteeIndices RPC request
+    InclusionListByCommitteeIndicesRequest(BlockingFn),
     ApiRequestP0(BlockingOrAsync),
     ApiRequestP1(BlockingOrAsync),
     Reprocess(ReprocessQueueMessage),
@@ -498,6 +500,8 @@ pub enum WorkType {
     LightClientOptimisticUpdateRequest,
     LightClientFinalityUpdateRequest,
     LightClientUpdatesByRangeRequest,
+    /// [New in Heze:EIP7805]
+    InclusionListByCommitteeIndicesRequest,
     ApiRequestP0,
     ApiRequestP1,
     Reprocess,
@@ -555,6 +559,10 @@ impl<E: EthSpec> Work<E> {
             }
             Work::LightClientFinalityUpdateRequest(_) => WorkType::LightClientFinalityUpdateRequest,
             Work::LightClientUpdatesByRangeRequest(_) => WorkType::LightClientUpdatesByRangeRequest,
+            // [New in Heze:EIP7805]
+            Work::InclusionListByCommitteeIndicesRequest(_) => {
+                WorkType::InclusionListByCommitteeIndicesRequest
+            }
             Work::UnknownBlockAttestation { .. } => WorkType::UnknownBlockAttestation,
             Work::UnknownBlockAggregate { .. } => WorkType::UnknownBlockAggregate,
             Work::UnknownLightClientOptimisticUpdate { .. } => {
@@ -1048,6 +1056,9 @@ impl<E: EthSpec> BeaconProcessor<E> {
                             Some(item)
                         } else if let Some(item) = work_queues.lc_update_range_queue.pop() {
                             Some(item)
+                            // [New in Heze:EIP7805]
+                        } else if let Some(item) = work_queues.inclusion_list_by_committee_indices_queue.pop() {
+                            Some(item)
                             // This statement should always be the final else statement.
                         } else {
                             // Let the journal know that a worker is freed and there's nothing else
@@ -1203,6 +1214,10 @@ impl<E: EthSpec> BeaconProcessor<E> {
                             Work::LightClientUpdatesByRangeRequest { .. } => {
                                 work_queues.lc_update_range_queue.push(work, work_id)
                             }
+                            // [New in Heze:EIP7805]
+                            Work::InclusionListByCommitteeIndicesRequest { .. } => work_queues
+                                .inclusion_list_by_committee_indices_queue
+                                .push(work, work_id),
                             Work::UnknownBlockAttestation { .. } => {
                                 work_queues.unknown_block_attestation_queue.push(work)
                             }
@@ -1340,6 +1355,10 @@ impl<E: EthSpec> BeaconProcessor<E> {
                         }
                         WorkType::LightClientUpdatesByRangeRequest => {
                             work_queues.lc_update_range_queue.len()
+                        }
+                        // [New in Heze:EIP7805]
+                        WorkType::InclusionListByCommitteeIndicesRequest => {
+                            work_queues.inclusion_list_by_committee_indices_queue.len()
                         }
                         WorkType::ApiRequestP0 => work_queues.api_request_p0_queue.len(),
                         WorkType::ApiRequestP1 => work_queues.api_request_p1_queue.len(),
@@ -1532,7 +1551,8 @@ impl<E: EthSpec> BeaconProcessor<E> {
             | Work::LightClientBootstrapRequest(process_fn)
             | Work::LightClientOptimisticUpdateRequest(process_fn)
             | Work::LightClientFinalityUpdateRequest(process_fn)
-            | Work::LightClientUpdatesByRangeRequest(process_fn) => {
+            | Work::LightClientUpdatesByRangeRequest(process_fn)
+            | Work::InclusionListByCommitteeIndicesRequest(process_fn) => {
                 task_spawner.spawn_blocking(process_fn)
             }
             Work::Reprocess(_) => {}
