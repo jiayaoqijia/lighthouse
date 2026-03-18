@@ -736,7 +736,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         // we'll need to implement builder signature for the trustless path
         Ok((
             SignedExecutionPayloadBid::Gloas(SignedExecutionPayloadBidGloas {
-                message: ExecutionPayloadBid::Gloas(bid),
+                message_gloas: bid,
                 signature: Signature::infinity().map_err(BlockProductionError::BlsError)?,
             }),
             state,

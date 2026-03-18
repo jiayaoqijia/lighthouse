@@ -103,11 +103,13 @@ impl<E: EthSpec> Decode for ExecutionPayloadBid<E> {
     }
 
     fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
-        // Try Gloas first (shorter encoding without inclusion_list_bits)
-        // If that fails, try Heze
-        ExecutionPayloadBidGloas::from_ssz_bytes(bytes)
-            .map(Self::Gloas)
-            .or_else(|_| ExecutionPayloadBidHeze::from_ssz_bytes(bytes).map(Self::Heze))
+        // Try Heze first (longer encoding with inclusion_list_bits)
+        // If that fails (missing inclusion_list_bits), try Gloas
+        // This order is critical because Gloas's blob_kzg_commitments (VariableList)
+        // could consume the inclusion_list_bits bytes from Heze data, causing data corruption.
+        ExecutionPayloadBidHeze::from_ssz_bytes(bytes)
+            .map(Self::Heze)
+            .or_else(|_| ExecutionPayloadBidGloas::from_ssz_bytes(bytes).map(Self::Gloas))
     }
 }
 
@@ -163,6 +165,13 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for ExecutionPayloadBid<
     }
 }
 
+impl<E: EthSpec> Default for ExecutionPayloadBid<E> {
+    fn default() -> Self {
+        // Default to Gloas variant since Heze is not yet active.
+        Self::Gloas(ExecutionPayloadBidGloas::default())
+    }
+}
+
 impl<E: EthSpec> SignedRoot for ExecutionPayloadBid<E> {}
 impl<E: EthSpec> SignedRoot for ExecutionPayloadBidGloas<E> {}
 impl<E: EthSpec> SignedRoot for ExecutionPayloadBidHeze<E> {}
@@ -171,6 +180,7 @@ impl<E: EthSpec> SignedRoot for ExecutionPayloadBidHeze<E> {}
 mod tests {
     use super::*;
     use crate::MainnetEthSpec;
+    use ssz::{Decode, Encode};
 
     mod execution_payload_bid_gloas {
         use super::*;
@@ -180,5 +190,49 @@ mod tests {
     mod execution_payload_bid_heze {
         use super::*;
         ssz_and_tree_hash_tests!(ExecutionPayloadBidHeze<MainnetEthSpec>);
+    }
+
+    /// Test that Heze data cannot be incorrectly decoded as Gloas
+    #[test]
+    fn test_heze_cannot_decode_as_gloas() {
+        // Create a Heze bid with default values
+        let heze_bid = ExecutionPayloadBidHeze::<MainnetEthSpec>::default();
+        let heze_bytes = heze_bid.as_ssz_bytes();
+
+        // Heze has inclusion_list_bits, so it should be longer than Gloas
+        // Attempting to decode Heze bytes as Gloas should fail
+        let result = ExecutionPayloadBidGloas::<MainnetEthSpec>::from_ssz_bytes(&heze_bytes);
+        assert!(
+            result.is_err(),
+            "Heze data should NOT be decodable as Gloas - this would cause data corruption!"
+        );
+    }
+
+    /// Test that Gloas data can be decoded correctly using the enum decoder
+    #[test]
+    fn test_gloas_decode_via_enum() {
+        let gloas_bid = ExecutionPayloadBidGloas::<MainnetEthSpec>::default();
+        let gloas_bytes = gloas_bid.as_ssz_bytes();
+
+        // Decode via the enum's Decode implementation
+        let decoded: ExecutionPayloadBid<MainnetEthSpec> =
+            ExecutionPayloadBid::from_ssz_bytes(&gloas_bytes).expect("should decode");
+
+        // Should be Gloas variant
+        assert!(matches!(decoded, ExecutionPayloadBid::Gloas(_)));
+    }
+
+    /// Test that Heze data can be decoded correctly using the enum decoder
+    #[test]
+    fn test_heze_decode_via_enum() {
+        let heze_bid = ExecutionPayloadBidHeze::<MainnetEthSpec>::default();
+        let heze_bytes = heze_bid.as_ssz_bytes();
+
+        // Decode via the enum's Decode implementation
+        let decoded: ExecutionPayloadBid<MainnetEthSpec> =
+            ExecutionPayloadBid::from_ssz_bytes(&heze_bytes).expect("should decode");
+
+        // Should be Heze variant
+        assert!(matches!(decoded, ExecutionPayloadBid::Heze(_)));
     }
 }
