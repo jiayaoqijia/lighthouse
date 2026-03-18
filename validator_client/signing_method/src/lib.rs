@@ -50,6 +50,8 @@ pub enum SignableMessage<'a, E: EthSpec, Payload: AbstractExecPayload<E> = FullP
     ValidatorRegistration(&'a ValidatorRegistrationData),
     VoluntaryExit(&'a VoluntaryExit),
     ExecutionPayloadEnvelope(&'a ExecutionPayloadEnvelope<E>),
+    /// Inclusion list for FOCIL (EIP-7805).
+    InclusionList(&'a InclusionList<E>),
 }
 
 impl<E: EthSpec, Payload: AbstractExecPayload<E>> SignableMessage<'_, E, Payload> {
@@ -72,6 +74,7 @@ impl<E: EthSpec, Payload: AbstractExecPayload<E>> SignableMessage<'_, E, Payload
             SignableMessage::ValidatorRegistration(v) => v.signing_root(domain),
             SignableMessage::VoluntaryExit(exit) => exit.signing_root(domain),
             SignableMessage::ExecutionPayloadEnvelope(e) => e.signing_root(domain),
+            SignableMessage::InclusionList(il) => il.signing_root(domain),
         }
     }
 }
@@ -238,6 +241,7 @@ impl SigningMethod {
                     SignableMessage::ExecutionPayloadEnvelope(e) => {
                         Web3SignerObject::ExecutionPayloadEnvelope(e)
                     }
+                    SignableMessage::InclusionList(il) => Web3SignerObject::InclusionList(il),
                 };
 
                 // Determine the Web3Signer message type.

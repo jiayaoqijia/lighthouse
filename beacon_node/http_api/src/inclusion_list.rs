@@ -4,15 +4,16 @@
 //! - GET /v1/beacon/blocks/{block_id}/inclusion_lists
 //! - POST /v1/beacon/pool/inclusion_lists
 
-use crate::{ApiError, ApiResult, Path, Query, Version};
 use beacon_chain::{BeaconChain, BeaconChainTypes};
-use eth2::types::{InclusionList as ApiInclusionList, SignedInclusionList as ApiSignedInclusionList};
+use eth2::types::SignedInclusionList as ApiSignedInclusionList;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use types::{EthSpec, Hash256, Slot};
+use warp::Reply;
 
 /// Response for GET /v1/beacon/blocks/{block_id}/inclusion_lists
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(bound = "E: EthSpec")]
 pub struct GetInclusionListsResponse<E: EthSpec> {
     pub inclusion_lists: Vec<ApiSignedInclusionList<E>>,
 }
@@ -29,34 +30,34 @@ pub struct GetInclusionListCommitteeResponse {
 ///
 /// GET /v1/beacon/blocks/{block_id}/inclusion_lists
 pub fn get_inclusion_lists<T: BeaconChainTypes>(
-    block_id: Path<String>,
-    chain: Arc<BeaconChain<T>>,
-) -> ApiResult<Version::V1<GetInclusionListsResponse<T::EthSpec>>> {
+    block_id: String,
+    _chain: Arc<BeaconChain<T>>,
+) -> Result<impl Reply, warp::reject::Rejection> {
     // Parse block_id
-    let block_id = block_id.into_inner();
+    let _block_id = block_id;
     
     // In production, this would fetch the inclusion lists from:
     // 1. The InclusionListStore for pending ILs
     // 2. The block's IL bits for finalized blocks
     // For now, return empty list as this is a stub implementation
     
-    let response = GetInclusionListsResponse {
+    let response = GetInclusionListsResponse::<T::EthSpec> {
         inclusion_lists: vec![],
     };
     
-    Ok(Version::V1(response))
+    Ok(warp::reply::json(&response))
 }
 
 /// Get inclusion list committee for a state.
 ///
 /// GET /v1/beacon/states/{state_id}/inclusion_list_committee
 pub fn get_inclusion_list_committee<T: BeaconChainTypes>(
-    state_id: Path<String>,
-    slot: Query<Option<Slot>>,
+    state_id: String,
+    slot: Option<Slot>,
     chain: Arc<BeaconChain<T>>,
-) -> ApiResult<Version::V1<GetInclusionListCommitteeResponse>> {
-    let state_id = state_id.into_inner();
-    let slot = slot.into_inner().unwrap_or_else(|| chain.slot().unwrap_or_default());
+) -> Result<impl Reply, warp::reject::Rejection> {
+    let _state_id = state_id;
+    let _slot = slot.unwrap_or_else(|| chain.slot().unwrap_or_default());
     
     // In production, this would:
     // 1. Get the state at state_id
@@ -66,26 +67,26 @@ pub fn get_inclusion_list_committee<T: BeaconChainTypes>(
     // For now, return a stub response
     let response = GetInclusionListCommitteeResponse {
         validators: vec![],
-        committee_root: Hash256::zero(),
+        committee_root: Hash256::default(),
     };
     
-    Ok(Version::V1(response))
+    Ok(warp::reply::json(&response))
 }
 
 /// Submit an inclusion list.
 ///
 /// POST /v1/beacon/pool/inclusion_lists
 pub fn submit_inclusion_list<T: BeaconChainTypes>(
-    signed_inclusion_list: ApiSignedInclusionList<T::EthSpec>,
-    chain: Arc<BeaconChain<T>>,
-) -> ApiResult<()> {
+    _signed_inclusion_list: ApiSignedInclusionList<T::EthSpec>,
+    _chain: Arc<BeaconChain<T>>,
+) -> Result<impl Reply, warp::reject::Rejection> {
     // In production, this would:
     // 1. Verify the inclusion list
     // 2. Add it to the InclusionListStore
     // 3. Broadcast it to the gossip network
     
     // For now, just accept it (stub)
-    Ok(())
+    Ok(warp::reply())
 }
 
 #[cfg(test)]
@@ -97,7 +98,6 @@ mod tests {
         let response = GetInclusionListsResponse::<types::MainnetEthSpec> {
             inclusion_lists: vec![],
         };
-        
         let json = serde_json::to_string(&response).unwrap();
         assert!(json.contains("inclusion_lists"));
     }

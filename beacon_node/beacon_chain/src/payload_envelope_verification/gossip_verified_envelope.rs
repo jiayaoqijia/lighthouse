@@ -56,17 +56,17 @@ pub(crate) fn verify_envelope_consistency<E: EthSpec>(
     }
 
     // Builder index matches committed bid.
-    if envelope.builder_index != execution_bid.builder_index {
+    if envelope.builder_index != execution_bid.builder_index() {
         return Err(EnvelopeError::BuilderIndexMismatch {
-            committed_bid: execution_bid.builder_index,
+            committed_bid: execution_bid.builder_index(),
             envelope: envelope.builder_index,
         });
     }
 
     // The block hash should match the block hash of the execution bid.
-    if envelope.payload.block_hash != execution_bid.block_hash {
+    if envelope.payload.block_hash != execution_bid.block_hash() {
         return Err(EnvelopeError::BlockHashMismatch {
-            committed_bid: execution_bid.block_hash,
+            committed_bid: execution_bid.block_hash(),
             envelope: envelope.payload.block_hash,
         });
     }
@@ -132,7 +132,7 @@ impl<T: BeaconChainTypes> GossipVerifiedEnvelope<T> {
             .message()
             .body()
             .signed_execution_payload_bid()?
-            .message;
+            .message();
 
         verify_envelope_consistency(envelope, &block, execution_bid, latest_finalized_slot)?;
 

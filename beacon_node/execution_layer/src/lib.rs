@@ -1679,7 +1679,7 @@ impl<E: EthSpec> ExecutionLayer<E> {
                 ForkName::Base | ForkName::Altair => {
                     return Err(Error::InvalidForkForPayload);
                 }
-                ForkName::Gloas => {
+                ForkName::Gloas | ForkName::Heze => {
                     return Err(Error::InvalidForkForPayload);
                 }
             };

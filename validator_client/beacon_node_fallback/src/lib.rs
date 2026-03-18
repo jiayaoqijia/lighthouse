@@ -837,12 +837,13 @@ pub enum ApiTopic {
     Blocks,
     Subscriptions,
     SyncCommittee,
+    InclusionList,
 }
 
 impl ApiTopic {
     pub fn all() -> Vec<ApiTopic> {
         use ApiTopic::*;
-        vec![Attestations, Blocks, Subscriptions, SyncCommittee]
+        vec![Attestations, Blocks, Subscriptions, SyncCommittee, InclusionList]
     }
 }
 

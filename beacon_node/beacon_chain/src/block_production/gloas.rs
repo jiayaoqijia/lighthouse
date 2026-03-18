@@ -26,10 +26,11 @@ use types::{
     Address, Attestation, AttestationElectra, AttesterSlashing, AttesterSlashingElectra,
     BeaconBlock, BeaconBlockBodyGloas, BeaconBlockGloas, BeaconState, BeaconStateError,
     BuilderIndex, Deposit, Eth1Data, EthSpec, ExecutionBlockHash, ExecutionPayloadBid,
-    ExecutionPayloadEnvelope, ExecutionPayloadGloas, ExecutionRequests, FullPayload, Graffiti,
-    Hash256, PayloadAttestation, ProposerSlashing, RelativeEpoch, SignedBeaconBlock,
-    SignedBlsToExecutionChange, SignedExecutionPayloadBid, SignedExecutionPayloadEnvelope,
-    SignedVoluntaryExit, Slot, SyncAggregate, Withdrawal, Withdrawals,
+    ExecutionPayloadBidGloas, ExecutionPayloadEnvelope, ExecutionPayloadGloas, ExecutionRequests,
+    FullPayload, Graffiti, Hash256, PayloadAttestation, ProposerSlashing, RelativeEpoch,
+    SignedBeaconBlock, SignedBlsToExecutionChange, SignedExecutionPayloadBid,
+    SignedExecutionPayloadBidGloas, SignedExecutionPayloadEnvelope, SignedVoluntaryExit, Slot,
+    SyncAggregate, Withdrawal, Withdrawals,
 };
 
 use crate::{
@@ -504,6 +505,13 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                     _phantom: PhantomData::<FullPayload<T::EthSpec>>,
                 },
             }),
+            BeaconState::Heze(_) => {
+                // TODO(heze): Heze block production should handle inclusion_list_bits
+                // For now, return an error indicating Heze block production is not implemented
+                return Err(BlockProductionError::GloasNotImplemented(
+                    "Heze block production not yet implemented".to_owned(),
+                ));
+            }
         };
 
         let signed_beacon_block = SignedBeaconBlock::from_block(
@@ -702,7 +710,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
 
         // TODO(gloas) since we are defaulting to local building, execution payment is 0
         // execution payment should only be set to > 0 for trusted building.
-        let bid = ExecutionPayloadBid::<T::EthSpec> {
+        let bid = ExecutionPayloadBidGloas::<T::EthSpec> {
             parent_block_hash: state.latest_block_hash()?.to_owned(),
             parent_block_root: state.get_latest_block_root(state_root),
             block_hash: payload.block_hash,
@@ -727,10 +735,10 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         // TODO(gloas) this is only local building
         // we'll need to implement builder signature for the trustless path
         Ok((
-            SignedExecutionPayloadBid {
-                message: bid,
+            SignedExecutionPayloadBid::Gloas(SignedExecutionPayloadBidGloas {
+                message: ExecutionPayloadBid::Gloas(bid),
                 signature: Signature::infinity().map_err(BlockProductionError::BlsError)?,
-            },
+            }),
             state,
             // Local building always returns payload data.
             // Trustless building would return None here.
@@ -761,7 +769,7 @@ fn get_execution_payload_gloas<T: BeaconChainTypes>(
     let random = *state.get_randao_mix(current_epoch)?;
 
     let latest_execution_block_hash = *state.latest_block_hash()?;
-    let latest_gas_limit = state.latest_execution_payload_bid()?.gas_limit;
+    let latest_gas_limit = state.latest_execution_payload_bid()?.gas_limit();
 
     let withdrawals =
         Withdrawals::<T::EthSpec>::from(get_expected_withdrawals(state, spec)?).into();

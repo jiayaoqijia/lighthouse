@@ -76,10 +76,10 @@ impl<T: BeaconChainTypes> PayloadNotifier<T> {
             .body()
             .signed_execution_payload_bid()
             .map_err(|e| BlockError::BeaconChainError(Box::new(e.into())))?
-            .message;
+            .message();
 
         let versioned_hashes = bid
-            .blob_kzg_commitments
+            .blob_kzg_commitments()
             .iter()
             .map(kzg_commitment_to_versioned_hash)
             .collect();

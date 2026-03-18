@@ -1101,11 +1101,33 @@ impl TryFrom<JsonClientVersionV1> for ClientVersionV1 {
 // FOCIL (EIP-7805) JSON Structures
 // =============================================================================
 
+/// Helper module for hex-encoding Vec<u8>.
+mod hex_vec {
+    use serde::{Deserializer, Serializer};
+    use serde_utils::hex::PrefixedHexVisitor;
+
+    pub fn serialize<S>(bytes: &Vec<u8>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let mut hex_string: String = "0x".to_string();
+        hex_string.push_str(&hex::encode(bytes));
+        serializer.serialize_str(&hex_string)
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Vec<u8>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        deserializer.deserialize_string(PrefixedHexVisitor)
+    }
+}
+
 /// JSON structure for an Inclusion List transaction.
 /// Each transaction is a hex-encoded byte array.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(transparent)]
-pub struct JsonInclusionListTransaction(#[serde(with = "serde_utils::hex_u8_vec")] pub Vec<u8>);
+pub struct JsonInclusionListTransaction(#[serde(with = "hex_vec")] pub Vec<u8>);
 
 impl From<Vec<u8>> for JsonInclusionListTransaction {
     fn from(tx: Vec<u8>) -> Self {

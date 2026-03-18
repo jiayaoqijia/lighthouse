@@ -43,7 +43,7 @@ use types::{
     LightClientOptimisticUpdate, PayloadAttestationMessage, ProposerSlashing,
     SignedAggregateAndProof, SignedBeaconBlock, SignedBlsToExecutionChange,
     SignedContributionAndProof, SignedExecutionPayloadBid, SignedExecutionPayloadEnvelope,
-    SignedProposerPreferences, SignedVoluntaryExit, SingleAttestation, Slot, SubnetId,
+    SignedInclusionList, SignedProposerPreferences, SignedVoluntaryExit, SingleAttestation, Slot, SubnetId,
     SyncCommitteeMessage, SyncSubnetId, block::BlockImportSource,
 };
 
@@ -3481,8 +3481,8 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
 
         trace!(
             %peer_id,
-            slot = %payload_bid.message.slot,
-            value = %payload_bid.message.value,
+            slot = %payload_bid.message().slot(),
+            value = %payload_bid.message().value(),
             "Processing execution payload bid"
         );
 
@@ -3527,6 +3527,24 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         );
 
         // For now, ignore all proposer preferences since verification is not implemented
+        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
+    }
+
+    pub fn process_gossip_signed_inclusion_list(
+        self: &Arc<Self>,
+        message_id: MessageId,
+        peer_id: PeerId,
+        signed_inclusion_list: SignedInclusionList<T::EthSpec>,
+    ) {
+        // TODO(EIP-7805): Implement proper signed inclusion list gossip processing.
+
+        trace!(
+            %peer_id,
+            slot = %signed_inclusion_list.message.slot,
+            "Processing signed inclusion list"
+        );
+
+        // For now, ignore all signed inclusion lists since verification is not implemented
         self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
     }
 }

@@ -5667,9 +5667,9 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                     execution_payload_value,
                 )
             }
-            BeaconState::Gloas(_) => {
+            BeaconState::Gloas(_) | BeaconState::Heze(_) => {
                 return Err(BlockProductionError::GloasNotImplemented(
-                    "Attempting to produce gloas beacon block via non gloas code path".to_owned(),
+                    "Attempting to produce gloas/heze beacon block via non gloas code path".to_owned(),
                 ));
             }
         };

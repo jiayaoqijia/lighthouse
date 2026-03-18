@@ -5,16 +5,14 @@
 //! tracking observed ILs and equivocation.
 
 use std::collections::{HashMap, HashSet};
-use std::sync::Arc;
 
 use parking_lot::RwLock;
-use safe_arith::SafeArith;
 use slot_clock::SlotClock;
 use types::{
     ChainSpec, EthSpec, Hash256, Slot,
     inclusion_list::{InclusionList, SignedInclusionList, MAX_BYTES_PER_INCLUSION_LIST, INCLUSION_LIST_COMMITTEE_SIZE},
 };
-use ssz_types::Bitvector;
+use ssz_types::BitVector;
 use typenum::U16;
 use tree_hash::TreeHash;
 
@@ -22,6 +20,7 @@ use tree_hash::TreeHash;
 const MAXIMUM_GOSSIP_CLOCK_DISPARITY: u64 = 500;
 
 /// Maximum number of ILs that can be stored per (slot, committee_root) pair.
+#[allow(dead_code)]
 const MAX_ILS_PER_SLOT: usize = INCLUSION_LIST_COMMITTEE_SIZE;
 
 /// Returned when an inclusion list passes verification.
@@ -223,10 +222,18 @@ pub fn verify_propagation_slot_range(
         });
     }
 
-    // Allow 500ms clock disparity
+    // Check if we're in the last 500ms of the slot (too late for IL propagation)
+    // This is a simplified check compared to the original
+    let slot_duration = slot_clock.slot_duration();
     let tolerance = std::time::Duration::from_millis(MAXIMUM_GOSSIP_CLOCK_DISPARITY);
-    if !slot_clock.is_prior_to_slot_end(tolerance) {
-        return Err(Error::ReceivedTooLate { slot: message.slot });
+    
+    if let Some(slot_start) = slot_clock.start_of(message.slot) {
+        if let Some(now) = slot_clock.now_duration() {
+            let elapsed = now.saturating_sub(slot_start);
+            if elapsed + tolerance > slot_duration {
+                return Err(Error::ReceivedTooLate { slot: message.slot });
+            }
+        }
     }
 
     Ok(())
@@ -244,9 +251,9 @@ type StoreKey = (Slot, Hash256);
 #[derive(Debug, Default)]
 pub struct InclusionListStore<E: EthSpec> {
     /// Store of valid inclusion lists by (slot, committee_root).
-    /// Each entry contains the set of ILs for that key.
+    /// Each entry contains the list of ILs for that key.
     /// Spec: `inclusion_lists: DefaultDict[Tuple[Slot, Root], Set[InclusionList]]`
-    inclusion_lists: RwLock<HashMap<StoreKey, HashSet<InclusionList<E>>>>,
+    inclusion_lists: RwLock<HashMap<StoreKey, Vec<InclusionList<E>>>>,
     
     /// Track equivocators: (slot, committee_root) -> Set of validator indices that have equivocated.
     /// Spec: `equivocators: DefaultDict[Tuple[Slot, Root], Set[ValidatorIndex]]`
@@ -361,7 +368,7 @@ impl<E: EthSpec> InclusionListStore<E> {
             .write()
             .entry(key)
             .or_default()
-            .insert(inclusion_list);
+            .push(inclusion_list);
     }
 
     /// Remove an inclusion list for a specific validator.
@@ -395,7 +402,7 @@ impl<E: EthSpec> InclusionListStore<E> {
         &self,
         key: StoreKey,
         committee: &[u64],
-    ) -> Bitvector<U16> {
+    ) -> BitVector<U16> {
         let equivocators = self.equivocators.read().get(&key).cloned().unwrap_or_default();
         let validator_indices: HashSet<u64> = self.inclusion_lists
             .read()
@@ -409,14 +416,14 @@ impl<E: EthSpec> InclusionListStore<E> {
             .unwrap_or_default();
         
         // Create bitvector
-        let mut bits = vec![false; INCLUSION_LIST_COMMITTEE_SIZE];
+        let mut bits = BitVector::<U16>::default();
         for (i, &validator_index) in committee.iter().enumerate() {
             if i < INCLUSION_LIST_COMMITTEE_SIZE && validator_indices.contains(&validator_index) {
-                bits[i] = true;
+                bits.set(i, true).expect("index within bounds");
             }
         }
         
-        Bitvector::new(bits).unwrap_or_default()
+        bits
     }
 
     /// Get all unique transactions from inclusion lists for a given key.
@@ -430,7 +437,7 @@ impl<E: EthSpec> InclusionListStore<E> {
             .map(|ils| {
                 ils.iter()
                     .filter(|il| !equivocators.contains(&il.validator_index))
-                    .flat_map(|il| il.transactions.iter().cloned())
+                    .flat_map(|il| il.transactions.iter().map(|tx| tx.to_vec()))
                     .collect()
             })
             .unwrap_or_default();
@@ -449,11 +456,11 @@ impl<E: EthSpec> InclusionListStore<E> {
         &self,
         key: StoreKey,
         committee: &[u64],
-        inclusion_list_bits: &Bitvector<U16>,
+        inclusion_list_bits: &BitVector<U16>,
     ) -> bool {
         let local_bits = self.get_inclusion_list_bits(key, committee);
         
-        for (i, (bit, local_bit)) in inclusion_list_bits.iter().zip(local_bits.iter()).enumerate() {
+        for (_i, (bit, local_bit)) in inclusion_list_bits.iter().zip(local_bits.iter()).enumerate() {
             // If local has a bit set, the incoming must also have it set
             if local_bit && !bit {
                 return false;
@@ -464,7 +471,7 @@ impl<E: EthSpec> InclusionListStore<E> {
 
     /// Prune old inclusion lists from the store.
     pub fn prune(&self, current_slot: Slot) {
-        let prune_slot = current_slot.saturating_sub(2);
+        let prune_slot = current_slot.saturating_sub(Slot::new(2));
         
         self.inclusion_lists.write().retain(|(slot, _), _| *slot >= prune_slot);
         self.equivocators.write().retain(|(slot, _), _| *slot >= prune_slot);
