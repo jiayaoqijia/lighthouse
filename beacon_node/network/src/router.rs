@@ -314,6 +314,9 @@ impl<T: BeaconChainTypes> Router<T> {
             | Response::LightClientOptimisticUpdate(_)
             | Response::LightClientFinalityUpdate(_)
             | Response::LightClientUpdatesByRange(_) => unreachable!(),
+            // InclusionListByCommitteeIndices responses should not be received by the router
+            // as they are handled by the network beacon processor directly
+            Response::InclusionListByCommitteeIndices(_) => unreachable!(),
         }
     }
 

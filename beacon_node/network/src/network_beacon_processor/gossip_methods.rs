@@ -3623,8 +3623,22 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         );
 
         // Add to InclusionListStore for tracking
-        // TODO(EIP-7805): Determine is_before_view_freeze_cutoff based on slot timing
-        let is_before_view_freeze_cutoff = true; // Simplified for now
+        // Determine is_before_view_freeze_cutoff based on slot timing
+        let is_before_view_freeze_cutoff = {
+            let slot_start = self.chain.slot_clock.start_of(signed_il.message.slot);
+            let now = self.chain.slot_clock.now_duration();
+            
+            match (slot_start, now) {
+                (Some(start), Some(now_duration)) => {
+                    let elapsed = now_duration.saturating_sub(start);
+                    let view_freeze_cutoff = self.chain.spec.get_view_freeze_cutoff();
+                    elapsed < view_freeze_cutoff
+                }
+                // If we can't determine timing, default to false (after cutoff)
+                // This is the safer option as it won't incorrectly mark equivocating ILs
+                _ => false,
+            }
+        };
         
         let processed = self.chain.inclusion_list_store.process_signed_inclusion_list(
             signed_il.clone(),
