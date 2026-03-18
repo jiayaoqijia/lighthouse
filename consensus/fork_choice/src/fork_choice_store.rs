@@ -101,4 +101,32 @@ pub trait ForkChoiceStore<E: EthSpec>: Sized {
 
     /// Get a reference to the entire payload_inclusion_list_satisfaction map.
     fn payload_inclusion_list_satisfaction(&self) -> &HashMap<Hash256, bool>;
+
+    // ===== [New in Gloas:EIP7732] PTC (Payload Timeliness Committee) methods =====
+
+    /// Get the PTC timeliness votes for a block root.
+    /// Returns `None` if no votes have been recorded for this block.
+    fn payload_timeliness_vote(&self, block_root: Hash256) -> Option<&Vec<bool>>;
+
+    /// Record a PTC timeliness vote from a committee member.
+    /// `index` is the PTC committee index (0 to PTC_SIZE-1).
+    /// `vote` is true if the payload was present (timely), false otherwise.
+    fn set_payload_timeliness_vote(&mut self, block_root: Hash256, index: usize, vote: bool);
+
+    /// Get the PTC data availability votes for a block root.
+    /// Returns `None` if no votes have been recorded for this block.
+    fn payload_data_availability_vote(&self, block_root: Hash256) -> Option<&Vec<bool>>;
+
+    /// Record a PTC data availability vote from a committee member.
+    /// `index` is the PTC committee index (0 to PTC_SIZE-1).
+    /// `vote` is true if the data was available, false otherwise.
+    fn set_payload_data_availability_vote(&mut self, block_root: Hash256, index: usize, vote: bool);
+
+    /// Check if payload is timely based on PTC votes.
+    /// Returns true if >= 2/3 of PTC voted for timeliness.
+    fn is_payload_timely(&self, ptc_size: usize, block_root: Hash256) -> bool;
+
+    /// Check if payload data is available based on PTC votes.
+    /// Returns true if >= 2/3 of PTC voted for data availability.
+    fn is_payload_data_available(&self, ptc_size: usize, block_root: Hash256) -> bool;
 }

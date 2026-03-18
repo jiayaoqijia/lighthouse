@@ -147,6 +147,12 @@ pub struct BeaconForkChoiceStore<E: EthSpec, Hot: ItemStore<E>, Cold: ItemStore<
     /// [New in Heze:EIP7805] Tracks whether execution payloads satisfy inclusion list constraints.
     /// Maps block root -> satisfaction status.
     payload_inclusion_list_satisfaction: HashMap<Hash256, bool>,
+    /// [New in Gloas:EIP7732] PTC votes for payload timeliness.
+    /// Maps block root -> bitvector of PTC votes (true = payload present vote).
+    payload_timeliness_vote: HashMap<Hash256, Vec<bool>>,
+    /// [New in Gloas:EIP7732] PTC votes for data availability.
+    /// Maps block root -> bitvector of PTC votes (true = data available vote).
+    payload_data_availability_vote: HashMap<Hash256, Vec<bool>>,
     _phantom: PhantomData<E>,
 }
 
@@ -216,6 +222,19 @@ where
             equivocating_indices: BTreeSet::new(),
             // [New in Heze:EIP7805] Initialize with anchor block root as satisfied
             payload_inclusion_list_satisfaction: [(anchor_block_root, true)].into_iter().collect(),
+            // [New in Gloas:EIP7732] Initialize anchor block with all PTC votes as true
+            payload_timeliness_vote: [(
+                anchor_block_root,
+                vec![true; E::ptc_size()],
+            )]
+            .into_iter()
+            .collect(),
+            payload_data_availability_vote: [(
+                anchor_block_root,
+                vec![true; E::ptc_size()],
+            )]
+            .into_iter()
+            .collect(),
             _phantom: PhantomData,
         })
     }
@@ -230,6 +249,19 @@ where
             .map(|(&k, &v)| (k, v))
             .collect();
         
+        // [New in Gloas:EIP7732] Convert PTC votes to Vec for SSZ serialization
+        let ptc_timeliness: Vec<(Hash256, Vec<bool>)> = self
+            .payload_timeliness_vote
+            .iter()
+            .map(|(&k, v)| (k, v.clone()))
+            .collect();
+        
+        let ptc_data_availability: Vec<(Hash256, Vec<bool>)> = self
+            .payload_data_availability_vote
+            .iter()
+            .map(|(&k, v)| (k, v.clone()))
+            .collect();
+        
         PersistedForkChoiceStore {
             time: self.time,
             finalized_checkpoint: self.finalized_checkpoint,
@@ -242,6 +274,9 @@ where
             equivocating_indices: self.equivocating_indices.clone(),
             // [New in Heze:EIP7805]
             payload_inclusion_list_satisfaction: il_satisfaction,
+            // [New in Gloas:EIP7732]
+            payload_timeliness_vote: ptc_timeliness,
+            payload_data_availability_vote: ptc_data_availability,
         }
     }
 
@@ -272,6 +307,9 @@ where
             equivocating_indices: persisted.equivocating_indices,
             // [New in Heze:EIP7805] Default to empty for migrated stores
             payload_inclusion_list_satisfaction: HashMap::new(),
+            // [New in Gloas:EIP7732] Default to empty for migrated stores
+            payload_timeliness_vote: HashMap::new(),
+            payload_data_availability_vote: HashMap::new(),
             _phantom: PhantomData,
         })
     }
@@ -298,6 +336,17 @@ where
             .into_iter()
             .collect();
         
+        // [New in Gloas:EIP7732] Convert PTC votes back to HashMap
+        let ptc_timeliness: HashMap<Hash256, Vec<bool>> = persisted
+            .payload_timeliness_vote
+            .into_iter()
+            .collect();
+        
+        let ptc_data_availability: HashMap<Hash256, Vec<bool>> = persisted
+            .payload_data_availability_vote
+            .into_iter()
+            .collect();
+        
         Ok(Self {
             store,
             balances_cache: <_>::default(),
@@ -313,6 +362,9 @@ where
             equivocating_indices: persisted.equivocating_indices,
             // [New in Heze:EIP7805]
             payload_inclusion_list_satisfaction: il_satisfaction,
+            // [New in Gloas:EIP7732]
+            payload_timeliness_vote: ptc_timeliness,
+            payload_data_availability_vote: ptc_data_availability,
             _phantom: PhantomData,
         })
     }
@@ -446,6 +498,66 @@ where
     fn payload_inclusion_list_satisfaction(&self) -> &HashMap<Hash256, bool> {
         &self.payload_inclusion_list_satisfaction
     }
+
+    // ===== [New in Gloas:EIP7732] PTC (Payload Timeliness Committee) methods =====
+
+    /// [New in Gloas:EIP7732] Get the PTC timeliness votes for a block root.
+    fn payload_timeliness_vote(&self, block_root: Hash256) -> Option<&Vec<bool>> {
+        self.payload_timeliness_vote.get(&block_root)
+    }
+
+    /// [New in Gloas:EIP7732] Record a PTC timeliness vote from a committee member.
+    fn set_payload_timeliness_vote(&mut self, block_root: Hash256, index: usize, vote: bool) {
+        let votes = self
+            .payload_timeliness_vote
+            .entry(block_root)
+            .or_insert_with(|| vec![false; E::ptc_size()]);
+        if index < votes.len() {
+            votes[index] = vote;
+        }
+    }
+
+    /// [New in Gloas:EIP7732] Get the PTC data availability votes for a block root.
+    fn payload_data_availability_vote(&self, block_root: Hash256) -> Option<&Vec<bool>> {
+        self.payload_data_availability_vote.get(&block_root)
+    }
+
+    /// [New in Gloas:EIP7732] Record a PTC data availability vote from a committee member.
+    fn set_payload_data_availability_vote(&mut self, block_root: Hash256, index: usize, vote: bool) {
+        let votes = self
+            .payload_data_availability_vote
+            .entry(block_root)
+            .or_insert_with(|| vec![false; E::ptc_size()]);
+        if index < votes.len() {
+            votes[index] = vote;
+        }
+    }
+
+    /// [New in Gloas:EIP7732] Check if payload is timely based on PTC votes.
+    /// Returns true if >= 2/3 of PTC voted for timeliness.
+    fn is_payload_timely(&self, ptc_size: usize, block_root: Hash256) -> bool {
+        match self.payload_timeliness_vote.get(&block_root) {
+            Some(votes) => {
+                let true_count = votes.iter().filter(|&&v| v).count();
+                let threshold = (2 * ptc_size) / 3;
+                true_count > threshold
+            }
+            None => false,
+        }
+    }
+
+    /// [New in Gloas:EIP7732] Check if payload data is available based on PTC votes.
+    /// Returns true if >= 2/3 of PTC voted for data availability.
+    fn is_payload_data_available(&self, ptc_size: usize, block_root: Hash256) -> bool {
+        match self.payload_data_availability_vote.get(&block_root) {
+            Some(votes) => {
+                let true_count = votes.iter().filter(|&&v| v).count();
+                let threshold = (2 * ptc_size) / 3;
+                true_count > threshold
+            }
+            None => false,
+        }
+    }
 }
 
 pub type PersistedForkChoiceStore = PersistedForkChoiceStoreV28;
@@ -479,6 +591,16 @@ pub struct PersistedForkChoiceStore {
     /// Stored as a vector of (root, satisfied) pairs for SSZ compatibility.
     #[superstruct(only(V28))]
     pub payload_inclusion_list_satisfaction: Vec<(Hash256, bool)>,
+    /// [New in Gloas:EIP7732] PTC votes for payload timeliness.
+    /// Stored as a vector of (root, votes) pairs for SSZ compatibility.
+    /// votes is a vector of booleans representing PTC votes.
+    #[superstruct(only(V28))]
+    pub payload_timeliness_vote: Vec<(Hash256, Vec<bool>)>,
+    /// [New in Gloas:EIP7732] PTC votes for data availability.
+    /// Stored as a vector of (root, votes) pairs for SSZ compatibility.
+    /// votes is a vector of booleans representing PTC votes.
+    #[superstruct(only(V28))]
+    pub payload_data_availability_vote: Vec<(Hash256, Vec<bool>)>,
 }
 
 // Convert V28 to V17 by adding balances and removing justified state roots.
