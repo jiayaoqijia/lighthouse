@@ -8,7 +8,9 @@ use types::{SignedBeaconBlock, SignedExecutionPayloadEnvelope};
 
 use crate::{
     BeaconChain, BeaconChainTypes, BlockError, NotifyExecutionLayer,
-    execution_payload::notify_new_payload, payload_envelope_verification::EnvelopeError,
+    block_verification::PayloadVerificationOutcome,
+    execution_payload::notify_new_payload,
+    payload_envelope_verification::EnvelopeError,
 };
 
 /// Used to await the result of executing payload with a remote EE.
@@ -57,13 +59,20 @@ impl<T: BeaconChainTypes> PayloadNotifier<T> {
         })
     }
 
-    pub async fn notify_new_payload(self) -> Result<PayloadVerificationStatus, BlockError> {
+    pub async fn notify_new_payload(self) -> Result<PayloadVerificationOutcome, BlockError> {
         if let Some(precomputed_status) = self.payload_verification_status {
-            Ok(precomputed_status)
+            Ok(PayloadVerificationOutcome {
+                payload_verification_status: precomputed_status,
+                is_inclusion_list_satisfied: None, // Unknown during optimistic sync
+            })
         } else {
             let parent_root = self.block.message().parent_root();
             let request = Self::build_new_payload_request(&self.envelope, &self.block)?;
-            notify_new_payload(&self.chain, self.envelope.slot(), parent_root, request).await
+            let result = notify_new_payload(&self.chain, self.envelope.slot(), parent_root, request).await?;
+            Ok(PayloadVerificationOutcome {
+                payload_verification_status: result.verification_status,
+                is_inclusion_list_satisfied: result.is_inclusion_list_satisfied,
+            })
         }
     }
 

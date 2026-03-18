@@ -500,6 +500,9 @@ impl From<ArithError> for BlockError {
 #[derive(Debug, PartialEq, Clone, Encode, Decode)]
 pub struct PayloadVerificationOutcome {
     pub payload_verification_status: PayloadVerificationStatus,
+    /// [New in Heze:EIP7805] Whether the payload satisfies inclusion list constraints.
+    /// None means the check was not performed (pre-Heze or optimistic sync).
+    pub is_inclusion_list_satisfied: Option<bool>,
 }
 
 /// Information about invalid blocks which might still be slashable despite being invalid.
@@ -1463,11 +1466,7 @@ impl<T: BeaconChainTypes> ExecutionPendingBlock<T> {
                     started_execution,
                 );
             }
-            let payload_verification_status = payload_notifier.notify_new_payload().await?;
-
-            Ok(PayloadVerificationOutcome {
-                payload_verification_status,
-            })
+            payload_notifier.notify_new_payload().await
         };
         // Spawn the payload verification future as a new task, but don't wait for it to complete.
         // The `payload_verification_future` will be awaited later to ensure verification completed

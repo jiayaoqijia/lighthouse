@@ -1,7 +1,6 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use fork_choice::PayloadVerificationStatus;
 use slot_clock::SlotClock;
 use store::StoreOp;
 use tracing::{debug, error, info, info_span, instrument, warn};
@@ -13,7 +12,8 @@ use super::{
 };
 use crate::{
     AvailabilityProcessingStatus, BeaconChain, BeaconChainError, BeaconChainTypes,
-    NotifyExecutionLayer, block_verification_types::AvailableBlockData, metrics,
+    NotifyExecutionLayer, block_verification::PayloadVerificationOutcome,
+    block_verification_types::AvailableBlockData, metrics,
     payload_envelope_verification::ExecutionPendingEnvelope, validator_monitor::get_slot_delay_ms,
 };
 
@@ -202,7 +202,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                         envelope,
                         block_root,
                         *post_state,
-                        payload_verification_outcome.payload_verification_status,
+                        payload_verification_outcome,
                     )
                 },
                 "payload_verification_handle",
@@ -225,7 +225,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         signed_envelope: AvailableEnvelope<T::EthSpec>,
         block_root: Hash256,
         state: BeaconState<T::EthSpec>,
-        _payload_verification_status: PayloadVerificationStatus,
+        payload_verification_outcome: PayloadVerificationOutcome,
     ) -> Result<Hash256, EnvelopeError> {
         // Everything in this initial section is on the hot path for processing the envelope.
         // Take an upgradable read lock on fork choice so we can check if this block has already
@@ -243,17 +243,16 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         drop(fork_choice_reader);
 
         // [New in Heze:EIP7805] Record inclusion list satisfaction
-        // This is a placeholder for the actual IL satisfaction check
-        // The full implementation requires:
-        // 1. Getting inclusion list transactions from the IL store
-        // 2. Calling execution engine's is_inclusion_list_satisfied
-        // 3. Recording the result to fork choice
+        // The IL satisfaction status is determined by the execution layer during
+        // engine_newPayload. If the EL returns INCLUSION_LIST_UNSATISFIED, we mark
+        // the payload as not satisfying IL constraints.
         //
-        // For now, we assume IL is satisfied (satisfied = true)
-        // This should be updated when the execution layer supports IL verification
+        // For pre-Heze blocks or optimistic sync, is_inclusion_list_satisfied will be None,
+        // and we default to true (optimistic assumption).
+        let il_satisfied = payload_verification_outcome.is_inclusion_list_satisfied.unwrap_or(true);
         {
             let mut fork_choice = self.canonical_head.fork_choice_write_lock();
-            fork_choice.set_payload_inclusion_list_satisfaction(block_root, true);
+            fork_choice.set_payload_inclusion_list_satisfaction(block_root, il_satisfied);
         }
 
         // TODO(gloas) no fork choice logic yet

@@ -20,6 +20,10 @@ pub enum PayloadStatus {
     InvalidBlockHash {
         validation_error: Option<String>,
     },
+    /// [New in Heze:EIP7805] Payload does not satisfy inclusion list constraints.
+    InclusionListUnsatisfied {
+        validation_error: Option<String>,
+    },
 }
 
 /// Processes the response from the execution engine.
@@ -95,6 +99,22 @@ pub fn process_payload_status(
                 }
 
                 Ok(PayloadStatus::Accepted)
+            }
+            PayloadStatusV1Status::InclusionListUnsatisfied => {
+                // [New in Heze:EIP7805] Payload does not satisfy inclusion list constraints.
+                // This is not a terminal error - the payload is structurally valid but
+                // doesn't include required transactions from the inclusion list.
+                if response.latest_valid_hash.is_some() {
+                    warn!(
+                        msg = "expected a null latest_valid_hash",
+                        status = ?response.status,
+                    "Malformed response from execution engine"
+                    )
+                }
+
+                Ok(PayloadStatus::InclusionListUnsatisfied {
+                    validation_error: response.validation_error.clone(),
+                })
             }
         },
     }

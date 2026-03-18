@@ -6252,6 +6252,39 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
 
                     Err(BeaconChainError::ExecutionForkChoiceUpdateInvalid { status })
                 }
+                // [New in Heze:EIP7805] Payload is valid but doesn't satisfy IL constraints.
+                // This is not a fork choice error - the payload is structurally valid.
+                // The IL satisfaction is tracked separately via payload_inclusion_list_satisfaction.
+                PayloadStatus::InclusionListUnsatisfied { ref validation_error } => {
+                    warn!(
+                        ?validation_error,
+                        ?head_hash,
+                        ?head_block_root,
+                        method = "fcU",
+                        "Payload does not satisfy inclusion list constraints"
+                    );
+                    // Treat as valid for fork choice purposes
+                    // Ensure that fork choice knows that the block is no longer optimistic.
+                    let chain = self.clone();
+                    let fork_choice_update_result = self
+                        .spawn_blocking_handle(
+                            move || {
+                                chain
+                                    .canonical_head
+                                    .fork_choice_write_lock()
+                                    .on_valid_execution_payload(head_block_root)
+                            },
+                            "update_execution_engine_valid_payload",
+                        )
+                        .await?;
+                    if let Err(e) = fork_choice_update_result {
+                        error!(
+                            error= ?e,
+                            "Failed to validate payload"
+                        )
+                    };
+                    Ok(())
+                }
             },
             Err(e) => Err(e),
         }

@@ -118,6 +118,8 @@ pub enum PayloadStatusV1Status {
     Syncing,
     Accepted,
     InvalidBlockHash,
+    /// [New in Heze:EIP7805] Payload does not satisfy inclusion list constraints.
+    InclusionListUnsatisfied,
 }
 
 #[derive(Clone, Debug, PartialEq)]

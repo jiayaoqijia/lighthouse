@@ -9,7 +9,7 @@
 
 use crate::{
     BeaconChain, BeaconChainError, BeaconChainTypes, BlockError, BlockProductionError,
-    ExecutionPayloadError,
+    ExecutionPayloadError, PayloadVerificationOutcome,
 };
 use execution_layer::{
     BlockProposalContentsType, BuilderParams, NewPayloadRequest, PayloadAttributes,
@@ -104,19 +104,36 @@ impl<T: BeaconChainTypes> PayloadNotifier<T> {
         })
     }
 
-    pub async fn notify_new_payload(self) -> Result<PayloadVerificationStatus, BlockError> {
+    pub async fn notify_new_payload(self) -> Result<PayloadVerificationOutcome, BlockError> {
         if let Some(precomputed_status) = self.payload_verification_status {
-            Ok(precomputed_status)
+            Ok(PayloadVerificationOutcome {
+                payload_verification_status: precomputed_status,
+                is_inclusion_list_satisfied: None, // Unknown during optimistic sync or irrelevant
+            })
         } else {
-            notify_new_payload(
+            let result = notify_new_payload(
                 &self.chain,
                 self.block.message().slot(),
                 self.block.message().parent_root(),
                 self.block.message().try_into()?,
             )
-            .await
+            .await?;
+            Ok(PayloadVerificationOutcome {
+                payload_verification_status: result.verification_status,
+                is_inclusion_list_satisfied: result.is_inclusion_list_satisfied,
+            })
         }
     }
+}
+
+/// Result of notifying the execution layer about a new payload.
+/// Contains both the verification status and IL satisfaction info.
+#[derive(Debug, Clone, PartialEq)]
+pub struct NewPayloadResult {
+    pub verification_status: PayloadVerificationStatus,
+    /// [New in Heze:EIP7805] Whether the payload satisfies inclusion list constraints.
+    /// None means the check was not performed (pre-Heze or optimistic sync).
+    pub is_inclusion_list_satisfied: Option<bool>,
 }
 
 /// Verify that `execution_payload` is considered valid by an execution
@@ -133,7 +150,7 @@ pub async fn notify_new_payload<T: BeaconChainTypes>(
     slot: Slot,
     parent_beacon_block_root: Hash256,
     new_payload_request: NewPayloadRequest<'_, T::EthSpec>,
-) -> Result<PayloadVerificationStatus, BlockError> {
+) -> Result<NewPayloadResult, BlockError> {
     let execution_layer = chain
         .execution_layer
         .as_ref()
@@ -146,10 +163,14 @@ pub async fn notify_new_payload<T: BeaconChainTypes>(
 
     match new_payload_response {
         Ok(status) => match status {
-            PayloadStatus::Valid => Ok(PayloadVerificationStatus::Verified),
-            PayloadStatus::Syncing | PayloadStatus::Accepted => {
-                Ok(PayloadVerificationStatus::Optimistic)
-            }
+            PayloadStatus::Valid => Ok(NewPayloadResult {
+                verification_status: PayloadVerificationStatus::Verified,
+                is_inclusion_list_satisfied: Some(true),
+            }),
+            PayloadStatus::Syncing | PayloadStatus::Accepted => Ok(NewPayloadResult {
+                verification_status: PayloadVerificationStatus::Optimistic,
+                is_inclusion_list_satisfied: None, // Unknown during optimistic sync
+            }),
             PayloadStatus::Invalid {
                 latest_valid_hash,
                 ref validation_error,
@@ -207,6 +228,24 @@ pub async fn notify_new_payload<T: BeaconChainTypes>(
                 // information to indicate its parent is invalid, so no need to run
                 // `BeaconChain::process_invalid_execution_payload`.
                 Err(ExecutionPayloadError::RejectedByExecutionEngine { status }.into())
+            }
+            // [New in Heze:EIP7805] Payload is structurally valid but doesn't satisfy IL constraints.
+            // This is NOT an error - the payload is accepted but marked as IL unsatisfied.
+            PayloadStatus::InclusionListUnsatisfied { ref validation_error } => {
+                warn!(
+                    ?validation_error,
+                    ?execution_block_hash,
+                    %slot,
+                    method = "new_payload",
+                    "Payload does not satisfy inclusion list constraints"
+                );
+
+                // The payload is valid but IL unsatisfied.
+                // Return Verified status but indicate IL is not satisfied.
+                Ok(NewPayloadResult {
+                    verification_status: PayloadVerificationStatus::Verified,
+                    is_inclusion_list_satisfied: Some(false),
+                })
             }
         },
         Err(e) => Err(ExecutionPayloadError::RequestFailed(e).into()),
