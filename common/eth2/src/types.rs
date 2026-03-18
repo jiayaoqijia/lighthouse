@@ -2487,7 +2487,9 @@ mod test {
                 rng,
             )),
         ];
-        let merged_forks = &ForkName::list_all()[2..];
+        // Note: Heze uses ExecutionPayloadGloas (same as Gloas) wrapped in ExecutionPayloadEnvelope
+        // So we only test up to Gloas for ExecutionPayload
+        let merged_forks = &ForkName::list_all()[2..ForkName::list_all().len() - 1];
         assert_eq!(
             payloads.len(),
             merged_forks.len(),
@@ -2552,7 +2554,9 @@ mod test {
                 }
             },
         ];
-        let blob_forks = &ForkName::list_all()[4..];
+        // Note: Heze uses ExecutionPayloadGloas (same as Gloas) wrapped in ExecutionPayloadEnvelope
+        // So we only test up to Gloas for ExecutionPayloadAndBlobs
+        let blob_forks = &ForkName::list_all()[4..ForkName::list_all().len() - 1];
 
         assert_eq!(
             payloads.len(),

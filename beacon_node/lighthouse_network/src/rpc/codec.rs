@@ -1307,6 +1307,12 @@ mod tests {
                     RequestType::LightClientUpdatesByRange(light_client_updates_by_range)
                 )
             }
+            RequestType::InclusionListByCommitteeIndices(il_request) => {
+                assert_eq!(
+                    decoded,
+                    RequestType::InclusionListByCommitteeIndices(il_request)
+                )
+            }
         }
     }
 
