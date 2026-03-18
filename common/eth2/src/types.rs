@@ -538,6 +538,14 @@ pub struct InclusionListCommitteeQuery {
     pub slot: Option<Slot>,
 }
 
+/// Response for GET /beacon/states/{state_id}/inclusion_list_committee
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GetInclusionListCommitteeResponse {
+    #[serde(with = "serde_utils::quoted_u64_vec")]
+    pub validators: Vec<u64>,
+    pub committee_root: Hash256,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BlockHeaderAndSignature {
     pub message: BeaconBlockHeader,

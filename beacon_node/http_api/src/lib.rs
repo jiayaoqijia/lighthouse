@@ -670,13 +670,29 @@ pub fn serve<T: BeaconChainTypes>(
                     let (state, execution_optimistic, finalized) = state_id.state(&chain)?;
                     
                     // Get the slot for which to compute the committee
-                    let _slot = query.slot.unwrap_or(state.slot());
+                    let slot = query.slot.unwrap_or(state.slot());
                     
-                    // TODO: Implement inclusion list committee computation
-                    // For now, return empty committee
+                    // Compute the inclusion list committee using the helper function
+                    let committee = types::inclusion_list::get_inclusion_list_committee(&state, slot)
+                        .map_err(|e| {
+                            warp_utils::reject::custom_not_found(format!(
+                                "Failed to compute inclusion list committee: {:?}",
+                                e
+                            ))
+                        })?;
+                    
+                    // Compute the committee root
+                    let committee_root = types::inclusion_list::get_inclusion_list_committee_root(&state, slot)
+                        .map_err(|e| {
+                            warp_utils::reject::custom_not_found(format!(
+                                "Failed to compute inclusion list committee root: {:?}",
+                                e
+                            ))
+                        })?;
+                    
                     let response = inclusion_list::GetInclusionListCommitteeResponse {
-                        validators: vec![],
-                        committee_root: Hash256::default(),
+                        validators: committee.into_iter().map(|v| v as u64).collect(),
+                        committee_root,
                     };
                     
                     Ok(api_types::GenericResponse::from(response)

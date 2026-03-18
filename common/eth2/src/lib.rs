@@ -786,6 +786,31 @@ impl BeaconNodeHttpClient {
         self.get(path).await
     }
 
+    /// `GET beacon/states/{state_id}/inclusion_list_committee?slot`
+    ///
+    /// Returns the inclusion list committee for the given slot.
+    pub async fn get_beacon_states_inclusion_list_committee(
+        &self,
+        state_id: StateId,
+        slot: Option<Slot>,
+    ) -> Result<ExecutionOptimisticFinalizedResponse<GetInclusionListCommitteeResponse>, Error> {
+        let mut path = self.eth_path(V1)?;
+
+        path.path_segments_mut()
+            .map_err(|()| Error::InvalidUrl(self.server.clone()))?
+            .push("beacon")
+            .push("states")
+            .push(&state_id.to_string())
+            .push("inclusion_list_committee");
+
+        if let Some(slot) = slot {
+            path.query_pairs_mut()
+                .append_pair("slot", &slot.to_string());
+        }
+
+        self.get(path).await
+    }
+
     /// `GET beacon/states/{state_id}/randao?epoch`
     pub async fn get_beacon_states_randao(
         &self,

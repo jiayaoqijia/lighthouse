@@ -6,6 +6,7 @@
 use crate::duties_service::DutiesService;
 use beacon_node_fallback::{ApiTopic, BeaconNodeFallback};
 use bls::PublicKeyBytes;
+use eth2::types::StateId;
 use slot_clock::SlotClock;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -200,13 +201,47 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
         &self,
         slot: Slot,
     ) -> Vec<(u64, PublicKeyBytes)> {
-        // Query beacon node for inclusion list committee assignments
-        // This would use the beacon API to get the committee for the slot
-        // and check which validators in our store are members
+        use validator_store::DoppelgangerStatus;
         
-        // For now, return empty as the beacon API endpoint needs to be implemented
-        let _ = slot;
-        Vec::new()
+        // Query beacon node for inclusion list committee assignments
+        let committee_response = self.beacon_nodes
+            .first_success(|beacon_node| {
+                let slot = slot;
+                async move {
+                    beacon_node
+                        .get_beacon_states_inclusion_list_committee(StateId::Head, Some(slot))
+                        .await
+                        .map_err(|e| format!("Failed to get IL committee: {}", e))
+                }
+            })
+            .await;
+        
+        match committee_response {
+            Ok(response) => {
+                let committee_indices: std::collections::HashSet<u64> = 
+                    response.data.validators.into_iter().collect();
+                let mut assignments = Vec::new();
+                
+                // Get all our voting pubkeys
+                let our_pubkeys: Vec<PublicKeyBytes> = self.validator_store
+                    .voting_pubkeys(DoppelgangerStatus::ignored);
+                
+                // Check which of our validators are in the committee
+                for pubkey in our_pubkeys {
+                    if let Some(index) = self.validator_store.validator_index(&pubkey) {
+                        if committee_indices.contains(&index) {
+                            assignments.push((index, pubkey));
+                        }
+                    }
+                }
+                
+                assignments
+            }
+            Err(e) => {
+                warn!(%slot, error = %e, "Failed to get inclusion list committee");
+                Vec::new()
+            }
+        }
     }
 
     /// Produce and broadcast an inclusion list for the given validator.
@@ -253,17 +288,20 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
     /// Get the inclusion list committee root for the given slot.
     async fn get_inclusion_list_committee_root(&self, slot: Slot) -> Result<Hash256, String> {
         // Query beacon node for the committee root
-        let _result = self.beacon_nodes
-            .request(ApiTopic::InclusionList, |beacon_node| async move {
-                // TODO: Implement proper beacon API call
-                // GET /eth/v1/beacon/states/{state_id}/inclusion_list_committee?slot={slot}
-                let _ = (beacon_node, slot);
-                Err("Inclusion list committee root endpoint not implemented".to_string())
+        let response = self.beacon_nodes
+            .first_success(|beacon_node| {
+                let slot = slot;
+                async move {
+                    beacon_node
+                        .get_beacon_states_inclusion_list_committee(StateId::Head, Some(slot))
+                        .await
+                        .map_err(|e| format!("Failed to get IL committee: {}", e))
+                }
             })
-            .await;
+            .await
+            .map_err(|e| format!("Failed to query beacon node: {}", e))?;
         
-        // For now, return a placeholder
-        Ok(Hash256::default())
+        Ok(response.data.committee_root)
     }
 
     /// Get inclusion list transactions from the execution engine.
