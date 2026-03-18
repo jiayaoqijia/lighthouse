@@ -1607,6 +1607,17 @@ impl<E: EthSpec> Network<E> {
                             request_type,
                         })
                     }
+                    RequestType::InclusionListByCommitteeIndices(_) => {
+                        metrics::inc_counter_vec(
+                            &metrics::TOTAL_RPC_REQUESTS,
+                            &["inclusion_list_by_committee_indices"],
+                        );
+                        Some(NetworkEvent::RequestReceived {
+                            peer_id,
+                            inbound_request_id,
+                            request_type,
+                        })
+                    }
                 }
             }
             Ok(RPCReceived::Response(id, resp)) => {
@@ -1667,6 +1678,11 @@ impl<E: EthSpec> Network<E> {
                         peer_id,
                         Response::LightClientUpdatesByRange(Some(update)),
                     ),
+                    RpcSuccessResponse::InclusionListByCommitteeIndices(il) => self.build_response(
+                        id,
+                        peer_id,
+                        Response::InclusionListByCommitteeIndices(Some(il)),
+                    ),
                 }
             }
             Ok(RPCReceived::EndOfStream(id, termination)) => {
@@ -1679,6 +1695,9 @@ impl<E: EthSpec> Network<E> {
                     ResponseTermination::DataColumnsByRange => Response::DataColumnsByRange(None),
                     ResponseTermination::LightClientUpdatesByRange => {
                         Response::LightClientUpdatesByRange(None)
+                    }
+                    ResponseTermination::InclusionListByCommitteeIndices => {
+                        Response::InclusionListByCommitteeIndices(None)
                     }
                 };
                 self.build_response(id, peer_id, response)

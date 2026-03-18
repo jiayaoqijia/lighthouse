@@ -602,6 +602,7 @@ impl<E: EthSpec> PeerManager<E> {
                     Protocol::Goodbye => PeerAction::LowToleranceError,
                     Protocol::MetaData => PeerAction::LowToleranceError,
                     Protocol::Status => PeerAction::LowToleranceError,
+                    Protocol::InclusionListByCommitteeIndices => PeerAction::MidToleranceError,
                 },
                 RpcErrorResponse::BlobsNotFoundForBlock => PeerAction::LowToleranceError,
             },
@@ -626,6 +627,7 @@ impl<E: EthSpec> PeerManager<E> {
                     Protocol::LightClientUpdatesByRange => return,
                     Protocol::MetaData => PeerAction::Fatal,
                     Protocol::Status => PeerAction::Fatal,
+                    Protocol::InclusionListByCommitteeIndices => return,
                 }
             }
             RPCError::StreamTimeout => match direction {
@@ -649,6 +651,7 @@ impl<E: EthSpec> PeerManager<E> {
                     Protocol::Goodbye => return,
                     Protocol::MetaData => return,
                     Protocol::Status => return,
+                    Protocol::InclusionListByCommitteeIndices => PeerAction::MidToleranceError,
                 },
             },
             RPCError::NegotiationTimeout => PeerAction::LowToleranceError,

@@ -5,6 +5,7 @@ use std::sync::Arc;
 use types::{
     BlobSidecar, DataColumnSidecar, Epoch, EthSpec, LightClientBootstrap,
     LightClientFinalityUpdate, LightClientOptimisticUpdate, LightClientUpdate, SignedBeaconBlock,
+    SignedInclusionList,
 };
 
 pub type Id = u32;
@@ -172,6 +173,9 @@ pub enum Response<E: EthSpec> {
     LightClientFinalityUpdate(Arc<LightClientFinalityUpdate<E>>),
     /// A response to a LightClientUpdatesByRange request.
     LightClientUpdatesByRange(Option<Arc<LightClientUpdate<E>>>),
+    /// A response to a get INCLUSION_LIST_BY_COMMITTEE_INDICES request.
+    /// [New in Heze:EIP7805]
+    InclusionListByCommitteeIndices(Option<Arc<SignedInclusionList<E>>>),
 }
 
 impl<E: EthSpec> std::convert::From<Response<E>> for RpcResponse<E> {
@@ -216,6 +220,10 @@ impl<E: EthSpec> std::convert::From<Response<E>> for RpcResponse<E> {
                 None => {
                     RpcResponse::StreamTermination(ResponseTermination::LightClientUpdatesByRange)
                 }
+            },
+            Response::InclusionListByCommitteeIndices(il) => match il {
+                Some(il) => RpcResponse::Success(RpcSuccessResponse::InclusionListByCommitteeIndices(il)),
+                None => RpcResponse::StreamTermination(ResponseTermination::InclusionListByCommitteeIndices),
             },
         }
     }

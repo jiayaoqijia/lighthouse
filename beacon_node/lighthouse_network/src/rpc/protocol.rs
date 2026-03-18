@@ -225,6 +225,31 @@ fn rpc_light_client_bootstrap_limits_by_fork(current_fork: ForkName) -> RpcLimit
     }
 }
 
+/// Returns the RpcLimits for an InclusionList response.
+/// InclusionList is only available from Heze fork onwards.
+fn rpc_inclusion_list_limits_by_fork(current_fork: ForkName) -> RpcLimits {
+    // InclusionList is only supported in Heze and later
+    // MAX_BYTES_PER_INCLUSION_LIST = 8192 bytes per inclusion list
+    // Plus the overhead for slot (8 bytes), validator_index (8 bytes),
+    // inclusion_list_committee_root (32 bytes), signature (96 bytes)
+    // So minimum ~144 bytes, maximum ~8336 bytes
+    match &current_fork {
+        ForkName::Base
+        | ForkName::Altair
+        | ForkName::Bellatrix
+        | ForkName::Capella
+        | ForkName::Deneb
+        | ForkName::Electra
+        | ForkName::Fulu
+        | ForkName::Gloas => RpcLimits::new(0, 0),
+        ForkName::Heze => {
+            // Fixed fields: slot(8) + validator_index(8) + root(32) + signature(96) = 144 bytes
+            // Plus variable transactions up to 8 KiB
+            RpcLimits::new(144, 8336)
+        }
+    }
+}
+
 /// Protocol names to be used.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumString, AsRefStr, Display)]
 #[strum(serialize_all = "snake_case")]
@@ -268,6 +293,10 @@ pub enum Protocol {
     /// The `LightClientUpdatesByRange` protocol name
     #[strum(serialize = "light_client_updates_by_range")]
     LightClientUpdatesByRange,
+    /// The `InclusionListByCommitteeIndices` protocol name.
+    /// [New in Heze:EIP7805]
+    #[strum(serialize = "inclusion_list_by_committee_indices")]
+    InclusionListByCommitteeIndices,
 }
 
 impl Protocol {
@@ -287,6 +316,9 @@ impl Protocol {
             Protocol::LightClientOptimisticUpdate => None,
             Protocol::LightClientFinalityUpdate => None,
             Protocol::LightClientUpdatesByRange => None,
+            Protocol::InclusionListByCommitteeIndices => {
+                Some(ResponseTermination::InclusionListByCommitteeIndices)
+            }
         }
     }
 }
@@ -319,6 +351,8 @@ pub enum SupportedProtocol {
     LightClientOptimisticUpdateV1,
     LightClientFinalityUpdateV1,
     LightClientUpdatesByRangeV1,
+    /// [New in Heze:EIP7805]
+    InclusionListByCommitteeIndicesV1,
 }
 
 impl SupportedProtocol {
@@ -343,6 +377,7 @@ impl SupportedProtocol {
             SupportedProtocol::LightClientOptimisticUpdateV1 => "1",
             SupportedProtocol::LightClientFinalityUpdateV1 => "1",
             SupportedProtocol::LightClientUpdatesByRangeV1 => "1",
+            SupportedProtocol::InclusionListByCommitteeIndicesV1 => "1",
         }
     }
 
@@ -369,6 +404,9 @@ impl SupportedProtocol {
             }
             SupportedProtocol::LightClientFinalityUpdateV1 => Protocol::LightClientFinalityUpdate,
             SupportedProtocol::LightClientUpdatesByRangeV1 => Protocol::LightClientUpdatesByRange,
+            SupportedProtocol::InclusionListByCommitteeIndicesV1 => {
+                Protocol::InclusionListByCommitteeIndices
+            }
         }
     }
 
@@ -536,6 +574,10 @@ impl ProtocolId {
                 LightClientUpdatesByRangeRequest::ssz_max_len(),
             ),
             Protocol::MetaData => RpcLimits::new(0, 0), // Metadata requests are empty
+            Protocol::InclusionListByCommitteeIndices => RpcLimits::new(
+                <InclusionListByCommitteeIndicesRequest as Encode>::ssz_fixed_len(),
+                <InclusionListByCommitteeIndicesRequest as Encode>::ssz_fixed_len(),
+            ),
         }
     }
 
@@ -577,6 +619,9 @@ impl ProtocolId {
             Protocol::LightClientUpdatesByRange => {
                 rpc_light_client_updates_by_range_limits_by_fork(fork_context.current_fork_name())
             }
+            Protocol::InclusionListByCommitteeIndices => {
+                rpc_inclusion_list_limits_by_fork(fork_context.current_fork_name())
+            }
         }
     }
 
@@ -593,7 +638,8 @@ impl ProtocolId {
             | SupportedProtocol::LightClientBootstrapV1
             | SupportedProtocol::LightClientOptimisticUpdateV1
             | SupportedProtocol::LightClientFinalityUpdateV1
-            | SupportedProtocol::LightClientUpdatesByRangeV1 => true,
+            | SupportedProtocol::LightClientUpdatesByRangeV1
+            | SupportedProtocol::InclusionListByCommitteeIndicesV1 => true,
             SupportedProtocol::StatusV1
             | SupportedProtocol::StatusV2
             | SupportedProtocol::BlocksByRootV1
@@ -747,6 +793,7 @@ pub enum RequestType<E: EthSpec> {
     LightClientUpdatesByRange(LightClientUpdatesByRangeRequest),
     Ping(Ping),
     MetaData(MetadataRequest<E>),
+    InclusionListByCommitteeIndices(InclusionListByCommitteeIndicesRequest),
 }
 
 /// Implements the encoding per supported protocol for `RPCRequest`.
@@ -770,6 +817,9 @@ impl<E: EthSpec> RequestType<E> {
             RequestType::LightClientOptimisticUpdate => 1,
             RequestType::LightClientFinalityUpdate => 1,
             RequestType::LightClientUpdatesByRange(req) => req.count,
+            // InclusionListByCommitteeIndices returns at most 16 inclusion lists
+            // (MAX_IL_COMMITTEE_SIZE)
+            RequestType::InclusionListByCommitteeIndices(_) => 16,
         }
     }
 
@@ -809,6 +859,9 @@ impl<E: EthSpec> RequestType<E> {
             RequestType::LightClientUpdatesByRange(_) => {
                 SupportedProtocol::LightClientUpdatesByRangeV1
             }
+            RequestType::InclusionListByCommitteeIndices(_) => {
+                SupportedProtocol::InclusionListByCommitteeIndicesV1
+            }
         }
     }
 
@@ -832,6 +885,9 @@ impl<E: EthSpec> RequestType<E> {
             RequestType::LightClientFinalityUpdate => unreachable!(),
             RequestType::LightClientOptimisticUpdate => unreachable!(),
             RequestType::LightClientUpdatesByRange(_) => unreachable!(),
+            RequestType::InclusionListByCommitteeIndices(_) => {
+                ResponseTermination::InclusionListByCommitteeIndices
+            }
         }
     }
 
@@ -895,6 +951,10 @@ impl<E: EthSpec> RequestType<E> {
                 SupportedProtocol::LightClientUpdatesByRangeV1,
                 Encoding::SSZSnappy,
             )],
+            RequestType::InclusionListByCommitteeIndices(_) => vec![ProtocolId::new(
+                SupportedProtocol::InclusionListByCommitteeIndicesV1,
+                Encoding::SSZSnappy,
+            )],
         }
     }
 
@@ -914,6 +974,7 @@ impl<E: EthSpec> RequestType<E> {
             RequestType::LightClientOptimisticUpdate => true,
             RequestType::LightClientFinalityUpdate => true,
             RequestType::LightClientUpdatesByRange(_) => true,
+            RequestType::InclusionListByCommitteeIndices(_) => false,
         }
     }
 }
@@ -1034,6 +1095,9 @@ impl<E: EthSpec> std::fmt::Display for RequestType<E> {
             }
             RequestType::LightClientUpdatesByRange(_) => {
                 write!(f, "Light client updates by range request")
+            }
+            RequestType::InclusionListByCommitteeIndices(req) => {
+                write!(f, "Inclusion list by committee indices: {:?}", req)
             }
         }
     }

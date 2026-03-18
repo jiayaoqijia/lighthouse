@@ -21,7 +21,7 @@ use types::{
     LightClientOptimisticUpdate, LightClientUpdate, SignedBeaconBlock, SignedBeaconBlockAltair,
     SignedBeaconBlockBase, SignedBeaconBlockBellatrix, SignedBeaconBlockCapella,
     SignedBeaconBlockDeneb, SignedBeaconBlockElectra, SignedBeaconBlockFulu,
-    SignedBeaconBlockGloas, SignedBeaconBlockHeze,
+    SignedBeaconBlockGloas, SignedBeaconBlockHeze, SignedInclusionList,
 };
 use unsigned_varint::codec::Uvi;
 
@@ -85,6 +85,7 @@ impl<E: EthSpec> SSZSnappyInboundCodec<E> {
                 RpcSuccessResponse::LightClientFinalityUpdate(res) => res.as_ssz_bytes(),
                 RpcSuccessResponse::LightClientUpdatesByRange(res) => res.as_ssz_bytes(),
                 RpcSuccessResponse::Pong(res) => res.data.as_ssz_bytes(),
+                RpcSuccessResponse::InclusionListByCommitteeIndices(res) => res.as_ssz_bytes(),
                 RpcSuccessResponse::MetaData(res) =>
                 // Encode the correct version of the MetaData response based on the negotiated version.
                 {
@@ -367,6 +368,7 @@ impl<E: EthSpec> Encoder<RequestType<E>> for SSZSnappyOutboundCodec<E> {
             RequestType::MetaData(_)
             | RequestType::LightClientOptimisticUpdate
             | RequestType::LightClientFinalityUpdate => return Ok(()),
+            RequestType::InclusionListByCommitteeIndices(req) => req.as_ssz_bytes(),
         };
 
         // SSZ encoded bytes should be within `max_packet_size`
@@ -616,6 +618,11 @@ fn handle_rpc_request<E: EthSpec>(
             } else {
                 Ok(Some(RequestType::MetaData(MetadataRequest::new_v1())))
             }
+        }
+        SupportedProtocol::InclusionListByCommitteeIndicesV1 => {
+            Ok(Some(RequestType::InclusionListByCommitteeIndices(
+                InclusionListByCommitteeIndicesRequest::from_ssz_bytes(decoded_buffer)?,
+            )))
         }
     }
 }
@@ -889,6 +896,11 @@ fn handle_rpc_response<E: EthSpec>(
                 ),
             )),
         },
+        SupportedProtocol::InclusionListByCommitteeIndicesV1 => {
+            Ok(Some(RpcSuccessResponse::InclusionListByCommitteeIndices(
+                Arc::new(SignedInclusionList::from_ssz_bytes(decoded_buffer)?),
+            )))
+        }
     }
 }
 

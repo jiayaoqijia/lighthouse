@@ -17,7 +17,7 @@ use types::light_client::consts::MAX_REQUEST_LIGHT_CLIENT_UPDATES;
 use types::{
     BlobSidecar, ChainSpec, ColumnIndex, DataColumnSidecar, DataColumnsByRootIdentifier, Epoch,
     EthSpec, ForkContext, Hash256, LightClientBootstrap, LightClientFinalityUpdate,
-    LightClientOptimisticUpdate, LightClientUpdate, SignedBeaconBlock, Slot,
+    LightClientOptimisticUpdate, LightClientUpdate, SignedBeaconBlock, SignedInclusionList, Slot,
 };
 
 /// Maximum length of error message.
@@ -617,6 +617,10 @@ pub enum RpcSuccessResponse<E: EthSpec> {
 
     /// A response to a META_DATA request.
     MetaData(Arc<MetaData<E>>),
+
+    /// A response to a get INCLUSION_LIST_BY_COMMITTEE_INDICES request.
+    /// [New in Heze:EIP7805]
+    InclusionListByCommitteeIndices(Arc<SignedInclusionList<E>>),
 }
 
 /// Indicates which response is being terminated by a stream termination response.
@@ -642,6 +646,10 @@ pub enum ResponseTermination {
 
     /// Light client updates by range stream termination.
     LightClientUpdatesByRange,
+
+    /// Inclusion list by committee indices stream termination.
+    /// [New in Heze:EIP7805]
+    InclusionListByCommitteeIndices,
 }
 
 impl ResponseTermination {
@@ -654,6 +662,9 @@ impl ResponseTermination {
             ResponseTermination::DataColumnsByRoot => Protocol::DataColumnsByRoot,
             ResponseTermination::DataColumnsByRange => Protocol::DataColumnsByRange,
             ResponseTermination::LightClientUpdatesByRange => Protocol::LightClientUpdatesByRange,
+            ResponseTermination::InclusionListByCommitteeIndices => {
+                Protocol::InclusionListByCommitteeIndices
+            }
         }
     }
 }
@@ -675,6 +686,14 @@ pub enum RpcResponse<E: EthSpec> {
 #[derive(Encode, Decode, Clone, Debug, PartialEq)]
 pub struct LightClientBootstrapRequest {
     pub root: Hash256,
+}
+
+/// Request for InclusionListByCommitteeIndices RPC.
+/// [New in Heze:EIP7805]
+#[derive(Encode, Decode, Clone, Debug, PartialEq)]
+pub struct InclusionListByCommitteeIndicesRequest {
+    /// Bitvector indicating which committee members' inclusion lists to request.
+    pub committee_indices: ssz_types::BitVector<typenum::U16>,
 }
 
 /// The code assigned to an erroneous `RPCResponse`.
@@ -756,6 +775,9 @@ impl<E: EthSpec> RpcSuccessResponse<E> {
             }
             RpcSuccessResponse::LightClientFinalityUpdate(_) => Protocol::LightClientFinalityUpdate,
             RpcSuccessResponse::LightClientUpdatesByRange(_) => Protocol::LightClientUpdatesByRange,
+            RpcSuccessResponse::InclusionListByCommitteeIndices(_) => {
+                Protocol::InclusionListByCommitteeIndices
+            }
         }
     }
 
@@ -768,6 +790,7 @@ impl<E: EthSpec> RpcSuccessResponse<E> {
             Self::LightClientFinalityUpdate(r) => Some(r.get_attested_header_slot()),
             Self::LightClientOptimisticUpdate(r) => Some(r.get_slot()),
             Self::LightClientUpdatesByRange(r) => Some(r.attested_header_slot()),
+            Self::InclusionListByCommitteeIndices(r) => Some(r.message.slot),
             Self::MetaData(_) | Self::Status(_) | Self::Pong(_) => None,
         }
     }
@@ -854,6 +877,13 @@ impl<E: EthSpec> std::fmt::Display for RpcSuccessResponse<E> {
                     f,
                     "LightClientUpdatesByRange Slot: {}",
                     update.signature_slot(),
+                )
+            }
+            RpcSuccessResponse::InclusionListByCommitteeIndices(il) => {
+                write!(
+                    f,
+                    "InclusionListByCommitteeIndices Slot: {}",
+                    il.message.slot
                 )
             }
         }

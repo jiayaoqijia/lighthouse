@@ -121,6 +121,8 @@ pub struct RPCRateLimiter {
     lc_finality_update_rl: Limiter<PeerId>,
     /// LightClientUpdatesByRange rate limiter.
     lc_updates_by_range_rl: Limiter<PeerId>,
+    /// InclusionListByCommitteeIndices rate limiter.
+    il_by_committee_indices_rl: Limiter<PeerId>,
     fork_context: Arc<ForkContext>,
 }
 
@@ -164,6 +166,8 @@ pub struct RPCRateLimiterBuilder {
     lc_finality_update_quota: Option<Quota>,
     /// Quota for the LightClientUpdatesByRange protocol.
     lc_updates_by_range_quota: Option<Quota>,
+    /// Quota for the InclusionListByCommitteeIndices protocol.
+    il_by_committee_indices_quota: Option<Quota>,
 }
 
 impl RPCRateLimiterBuilder {
@@ -185,6 +189,7 @@ impl RPCRateLimiterBuilder {
             Protocol::LightClientOptimisticUpdate => self.lc_optimistic_update_quota = q,
             Protocol::LightClientFinalityUpdate => self.lc_finality_update_quota = q,
             Protocol::LightClientUpdatesByRange => self.lc_updates_by_range_quota = q,
+            Protocol::InclusionListByCommitteeIndices => self.il_by_committee_indices_quota = q,
         }
         self
     }
@@ -213,6 +218,10 @@ impl RPCRateLimiterBuilder {
         let lc_updates_by_range_quota = self
             .lc_updates_by_range_quota
             .ok_or("LightClientUpdatesByRange quota not specified")?;
+
+        let il_by_committee_indices_quota = self
+            .il_by_committee_indices_quota
+            .ok_or("InclusionListByCommitteeIndices quota not specified")?;
 
         let blbrange_quota = self
             .blbrange_quota
@@ -244,6 +253,7 @@ impl RPCRateLimiterBuilder {
         let lc_optimistic_update_rl = Limiter::from_quota(lc_optimistic_update_quota)?;
         let lc_finality_update_rl = Limiter::from_quota(lc_finality_update_quota)?;
         let lc_updates_by_range_rl = Limiter::from_quota(lc_updates_by_range_quota)?;
+        let il_by_committee_indices_rl = Limiter::from_quota(il_by_committee_indices_quota)?;
 
         // check for peers to prune every 30 seconds, starting in 30 seconds
         let prune_every = tokio::time::Duration::from_secs(30);
@@ -267,6 +277,7 @@ impl RPCRateLimiterBuilder {
             lc_optimistic_update_rl,
             lc_finality_update_rl,
             lc_updates_by_range_rl,
+            il_by_committee_indices_rl,
             init_time: Instant::now(),
             fork_context,
         })
@@ -320,6 +331,7 @@ impl RPCRateLimiter {
             light_client_optimistic_update_quota,
             light_client_finality_update_quota,
             light_client_updates_by_range_quota,
+            inclusion_list_by_committee_indices_quota,
         } = config;
 
         Self::builder()
@@ -345,6 +357,10 @@ impl RPCRateLimiter {
             .set_quota(
                 Protocol::LightClientUpdatesByRange,
                 light_client_updates_by_range_quota,
+            )
+            .set_quota(
+                Protocol::InclusionListByCommitteeIndices,
+                inclusion_list_by_committee_indices_quota,
             )
             .build(fork_context)
     }
@@ -384,6 +400,7 @@ impl RPCRateLimiter {
             Protocol::LightClientOptimisticUpdate => &mut self.lc_optimistic_update_rl,
             Protocol::LightClientFinalityUpdate => &mut self.lc_finality_update_rl,
             Protocol::LightClientUpdatesByRange => &mut self.lc_updates_by_range_rl,
+            Protocol::InclusionListByCommitteeIndices => &mut self.il_by_committee_indices_rl,
         };
         check(limiter)
     }
@@ -408,6 +425,7 @@ impl RPCRateLimiter {
             lc_optimistic_update_rl,
             lc_finality_update_rl,
             lc_updates_by_range_rl,
+            il_by_committee_indices_rl,
             fork_context: _,
         } = self;
 
@@ -425,6 +443,7 @@ impl RPCRateLimiter {
         lc_optimistic_update_rl.prune(time_since_start);
         lc_finality_update_rl.prune(time_since_start);
         lc_updates_by_range_rl.prune(time_since_start);
+        il_by_committee_indices_rl.prune(time_since_start);
     }
 }
 
