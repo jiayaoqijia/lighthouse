@@ -538,6 +538,38 @@ impl<E: EthSpec> InclusionListStore<E> {
     pub fn is_empty(&self) -> bool {
         self.inclusion_lists.read().is_empty()
     }
+
+    /// Get all SignedInclusionLists for a given slot.
+    /// Used by the Beacon API to return ILs for a block.
+    ///
+    /// Note: Currently returns SignedInclusionList with empty signature since
+    /// the store only keeps the InclusionList message.
+    pub fn get_all_for_slot(&self, slot: Slot) -> Vec<SignedInclusionList<E>> {
+        let inclusion_lists = self.inclusion_lists.read();
+        let equivocators = self.equivocators.read();
+        
+        let mut result = Vec::new();
+        
+        for ((key_slot, committee_root), ils) in inclusion_lists.iter() {
+            if *key_slot == slot {
+                let equiv_set = equivocators.get(&(*key_slot, *committee_root)).cloned().unwrap_or_default();
+                
+                for il in ils {
+                    // Skip equivocators
+                    if equiv_set.contains(&il.validator_index) {
+                        continue;
+                    }
+                    
+                    result.push(SignedInclusionList {
+                        message: il.clone(),
+                        signature: Signature::empty(),
+                    });
+                }
+            }
+        }
+        
+        result
+    }
 }
 
 #[cfg(test)]

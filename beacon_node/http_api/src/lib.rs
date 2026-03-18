@@ -94,7 +94,7 @@ use tokio_stream::{
 use tracing::{debug, info, warn};
 use types::{
     BeaconStateError, Checkpoint, ConfigAndPreset, Epoch, EthSpec, ForkName, Hash256,
-    SignedBlindedBeaconBlock,
+    SignedBlindedBeaconBlock, Slot,
 };
 use validator::execution_payload_envelope::get_validator_execution_payload_envelope;
 use version::{
@@ -1599,11 +1599,21 @@ pub fn serve<T: BeaconChainTypes>(
                         ));
                     }
 
-                    // For Heze blocks, return empty for now
-                    // TODO: implement inclusion list retrieval from store
+                    // For Heze blocks, get the slot and retrieve ILs from the previous slot
+                    // ILs at slot N-1 are included in block at slot N
+                    let block_slot = blinded_block.slot();
+                    let il_slot = block_slot.saturating_sub(Slot::new(1));
+                    
+                    // Get all inclusion lists for this slot from the store
+                    let signed_ils = chain.inclusion_list_store.get_all_for_slot(il_slot);
+                    
+                    // Convert to API response format
+                    // Convert to API format - types::SignedInclusionList is the same as eth2::types::SignedInclusionList
+                    // since eth2::types re-exports all types from the types crate
+                    
                     Ok(api_types::GenericResponse::from(
                         inclusion_list::GetInclusionListsResponse::<T::EthSpec> {
-                            inclusion_lists: vec![],
+                            inclusion_lists: signed_ils,
                         },
                     ))
                 })
