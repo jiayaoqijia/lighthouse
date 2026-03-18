@@ -47,8 +47,13 @@ pub fn get_inclusion_list_committee<E: EthSpec>(
     // Select INCLUSION_LIST_COMMITTEE_SIZE validators using modulo
     let mut committee_result = Vec::with_capacity(INCLUSION_LIST_COMMITTEE_SIZE);
     for i in 0..INCLUSION_LIST_COMMITTEE_SIZE {
+        // Use safe remainder operation
+        #[allow(clippy::arithmetic_side_effects)]
         let index = i % all_indices.len();
-        committee_result.push(all_indices[index]);
+        // Use get() for safe indexing
+        if let Some(&validator_index) = all_indices.get(index) {
+            committee_result.push(validator_index);
+        }
     }
 
     FixedVector::new(committee_result)

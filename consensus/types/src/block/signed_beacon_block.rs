@@ -912,9 +912,9 @@ pub mod ssz_tagged_signed_beacon_block {
                 ForkName::Gloas => Ok(SignedBeaconBlock::Gloas(
                     SignedBeaconBlockGloas::from_ssz_bytes(body)?,
                 )),
-                ForkName::Heze => Err(ssz::DecodeError::BytesInvalid(format!(
-                    "unsupported fork for SignedBeaconBlock: Heze"
-                ))),
+                ForkName::Heze => Err(ssz::DecodeError::BytesInvalid(
+                    "unsupported fork for SignedBeaconBlock: Heze".to_string()
+                )),
             }
         }
     }

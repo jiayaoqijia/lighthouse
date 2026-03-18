@@ -55,7 +55,7 @@ pub struct InclusionList<E: EthSpec> {
 impl<E: EthSpec> InclusionList<E> {
     /// Returns the total byte size of all transactions in the IL.
     pub fn total_bytes(&self) -> usize {
-        self.transactions.iter().map(|tx| tx.len()).sum()
+        self.transactions.iter().fold(0usize, |acc, tx| acc.saturating_add(tx.len()))
     }
 
     /// Returns the number of transactions in the IL.
