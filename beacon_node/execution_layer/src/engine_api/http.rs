@@ -63,6 +63,11 @@ pub const ENGINE_GET_BLOBS_V1: &str = "engine_getBlobsV1";
 pub const ENGINE_GET_BLOBS_V2: &str = "engine_getBlobsV2";
 pub const ENGINE_GET_BLOBS_TIMEOUT: Duration = Duration::from_secs(1);
 
+// FOCIL (EIP-7805) Engine API methods
+pub const ENGINE_GET_INCLUSION_LIST_V1: &str = "engine_getInclusionListV1";
+pub const ENGINE_NEW_INCLUSION_LIST_V1: &str = "engine_newInclusionListV1";
+pub const ENGINE_INCLUSION_LIST_TIMEOUT: Duration = Duration::from_secs(1);
+
 /// This error is returned during a `chainId` call by Geth.
 pub const EIP155_ERROR_STR: &str = "chain not synced beyond EIP-155 replay-protection fork block";
 /// This code is returned by all clients when a method is not supported
@@ -87,6 +92,9 @@ pub static LIGHTHOUSE_CAPABILITIES: &[&str] = &[
     ENGINE_GET_CLIENT_VERSION_V1,
     ENGINE_GET_BLOBS_V1,
     ENGINE_GET_BLOBS_V2,
+    // FOCIL (EIP-7805)
+    ENGINE_GET_INCLUSION_LIST_V1,
+    ENGINE_NEW_INCLUSION_LIST_V1,
 ];
 
 /// We opt to initialize the JsonClientVersionV1 rather than the ClientVersionV1

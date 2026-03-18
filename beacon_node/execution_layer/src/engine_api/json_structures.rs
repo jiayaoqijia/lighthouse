@@ -1097,6 +1097,69 @@ impl TryFrom<JsonClientVersionV1> for ClientVersionV1 {
     }
 }
 
+// =============================================================================
+// FOCIL (EIP-7805) JSON Structures
+// =============================================================================
+
+/// JSON structure for an Inclusion List transaction.
+/// Each transaction is a hex-encoded byte array.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct JsonInclusionListTransaction(#[serde(with = "serde_utils::hex_u8_vec")] pub Vec<u8>);
+
+impl From<Vec<u8>> for JsonInclusionListTransaction {
+    fn from(tx: Vec<u8>) -> Self {
+        Self(tx)
+    }
+}
+
+impl From<JsonInclusionListTransaction> for Vec<u8> {
+    fn from(tx: JsonInclusionListTransaction) -> Self {
+        tx.0
+    }
+}
+
+/// JSON structure for engine_getInclusionListV1 response.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JsonGetInclusionListV1Response {
+    /// List of transactions to include.
+    pub transactions: Vec<JsonInclusionListTransaction>,
+}
+
+/// JSON structure for engine_newInclusionListV1 request.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JsonInclusionListV1 {
+    /// The slot for which this IL is intended.
+    #[serde(with = "serde_utils::quoted_u64")]
+    pub slot: u64,
+    /// The validator index of the IL committee member.
+    #[serde(with = "serde_utils::quoted_u64")]
+    pub validator_index: u64,
+    /// The root of the IL committee for this slot.
+    pub inclusion_list_committee_root: Hash256,
+    /// The list of transactions to be included.
+    pub transactions: Vec<JsonInclusionListTransaction>,
+}
+
+/// JSON structure for engine_newInclusionListV1 response status.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum JsonInclusionListStatusV1 {
+    Accepted,
+    Invalid,
+}
+
+/// JSON structure for engine_newInclusionListV1 response.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JsonInclusionListStatusV1Response {
+    pub status: JsonInclusionListStatusV1,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use bls::{PublicKeyBytes, SignatureBytes};
