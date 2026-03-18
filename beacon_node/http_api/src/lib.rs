@@ -16,6 +16,7 @@ mod build_block_contents;
 mod builder_states;
 mod custody;
 mod database;
+mod inclusion_list;
 mod light_client;
 mod metrics;
 mod peer;
