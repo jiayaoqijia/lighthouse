@@ -44,6 +44,7 @@ use validator_services::{
     attestation_service::{AttestationService, AttestationServiceBuilder},
     block_service::{BlockService, BlockServiceBuilder},
     duties_service::{self, DutiesService, DutiesServiceBuilder},
+    inclusion_list_service::InclusionListService,
     latency_service,
     preparation_service::{PreparationService, PreparationServiceBuilder},
     sync_committee_service::SyncCommitteeService,
@@ -83,6 +84,7 @@ pub struct ProductionValidatorClient<E: EthSpec> {
     block_service: BlockService<ValidatorStore<E>, SystemTimeSlotClock>,
     attestation_service: AttestationService<ValidatorStore<E>, SystemTimeSlotClock>,
     sync_committee_service: SyncCommitteeService<ValidatorStore<E>, SystemTimeSlotClock>,
+    inclusion_list_service: InclusionListService<ValidatorStore<E>, SystemTimeSlotClock>,
     doppelganger_service: Option<Arc<DoppelgangerService>>,
     preparation_service: PreparationService<ValidatorStore<E>, SystemTimeSlotClock>,
     validator_store: Arc<ValidatorStore<E>>,
@@ -549,12 +551,22 @@ impl<E: EthSpec> ProductionValidatorClient<E> {
             context.executor.clone(),
         );
 
+        // [New in Heze:EIP7805] Initialize InclusionListService
+        let inclusion_list_service = InclusionListService::new(
+            duties_service.clone(),
+            validator_store.clone(),
+            slot_clock.clone(),
+            beacon_nodes.clone(),
+            context.executor.clone(),
+        );
+
         Ok(Self {
             context,
             duties_service,
             block_service,
             attestation_service,
             sync_committee_service,
+            inclusion_list_service,
             doppelganger_service,
             preparation_service,
             validator_store,
@@ -630,6 +642,12 @@ impl<E: EthSpec> ProductionValidatorClient<E> {
             .clone()
             .start_update_service(&self.context.eth2_config.spec)
             .map_err(|e| format!("Unable to start preparation service: {}", e))?;
+
+        // [New in Heze:EIP7805] Start InclusionListService
+        self.inclusion_list_service
+            .clone()
+            .start_update_service(&self.context.eth2_config.spec)
+            .map_err(|e| format!("Unable to start inclusion list service: {}", e))?;
 
         if let Some(doppelganger_service) = self.doppelganger_service.clone() {
             DoppelgangerService::start_update_service(
