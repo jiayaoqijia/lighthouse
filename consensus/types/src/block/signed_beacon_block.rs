@@ -996,6 +996,7 @@ mod test {
         chain_spec.electra_fork_epoch = Some(Epoch::new(5));
         chain_spec.fulu_fork_epoch = Some(Epoch::new(6));
         chain_spec.gloas_fork_epoch = Some(Epoch::new(7));
+    chain_spec.heze_fork_epoch = Some(Epoch::new(8));
         chain_spec.heze_fork_epoch = Some(Epoch::new(8));
 
         // check that we have all forks covered

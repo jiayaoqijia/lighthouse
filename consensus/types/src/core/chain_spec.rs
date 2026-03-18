@@ -1484,6 +1484,11 @@ impl ChainSpec {
             sync_message_due: Duration::from_millis(1999),
             contribution_and_proof_due: Duration::from_millis(4000),
 
+            // EIP-7805 (FOCIL) derived time values for minimal (6000ms slot)
+            view_freeze_cutoff: Duration::from_millis(4500),  // 75% of 6000ms
+            inclusion_list_submission_due: Duration::from_millis(4000),  // 66.67% of 6000ms
+            proposer_inclusion_list_cutoff: Duration::from_millis(5500),  // 91.67% of 6000ms
+
             // Other
             network_id: 2, // lighthouse testnet network id
             deposit_chain_id: 5,
