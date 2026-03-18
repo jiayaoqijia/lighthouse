@@ -31,6 +31,7 @@ use crate::execution_payload::{NotifyExecutionLayer, PreparePayloadHandle, get_e
 use crate::fetch_blobs::EngineGetBlobsOutput;
 use crate::fork_choice_signal::{ForkChoiceSignalRx, ForkChoiceSignalTx};
 use crate::graffiti_calculator::{GraffitiCalculator, GraffitiSettings};
+use crate::inclusion_list_verification::InclusionListStore;
 use crate::kzg_utils::reconstruct_blobs;
 use crate::light_client_finality_update_verification::{
     Error as LightClientFinalityUpdateError, VerifiedLightClientFinalityUpdate,
@@ -486,6 +487,8 @@ pub struct BeaconChain<T: BeaconChainTypes> {
     pub kzg: Arc<Kzg>,
     /// RNG instance used by the chain. Currently used for shuffling column sidecars in block publishing.
     pub rng: Arc<Mutex<Box<dyn RngCore + Send>>>,
+    /// Store for tracking inclusion lists received over gossip (FOCIL/EIP-7805).
+    pub inclusion_list_store: Arc<InclusionListStore<T::EthSpec>>,
 }
 
 pub enum BeaconBlockResponseWrapper<E: EthSpec> {

@@ -158,6 +158,21 @@ pub static BEACON_PROCESSOR_EXIT_IMPORTED_TOTAL: LazyLock<Result<IntCounter>> =
             "Total number of voluntary exits imported to the op pool.",
         )
     });
+// Gossip inclusion lists (FOCIL/EIP-7805).
+pub static BEACON_PROCESSOR_INCLUSION_LIST_VERIFIED_TOTAL: LazyLock<Result<IntCounter>> =
+    LazyLock::new(|| {
+        try_create_int_counter(
+            "beacon_processor_inclusion_list_verified_total",
+            "Total number of signed inclusion lists verified for propagation.",
+        )
+    });
+pub static BEACON_PROCESSOR_INCLUSION_LIST_IMPORTED_TOTAL: LazyLock<Result<IntCounter>> =
+    LazyLock::new(|| {
+        try_create_int_counter(
+            "beacon_processor_inclusion_list_imported_total",
+            "Total number of signed inclusion lists imported to the store.",
+        )
+    });
 // Gossip proposer slashings.
 pub static BEACON_PROCESSOR_PROPOSER_SLASHING_VERIFIED_TOTAL: LazyLock<Result<IntCounter>> =
     LazyLock::new(|| {

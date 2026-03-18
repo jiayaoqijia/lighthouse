@@ -497,7 +497,7 @@ mod tests {
     fn test_inclusion_list_store_basic() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
         let slot = Slot::new(1);
-        let root = Hash256::zero();
+        let root = Hash256::default();
         let key = (slot, root);
         
         // Initially empty

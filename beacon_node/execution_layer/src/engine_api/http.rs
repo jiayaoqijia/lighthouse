@@ -745,6 +745,45 @@ impl HttpJsonRpc {
         .await
     }
 
+    /// FOCIL (EIP-7805): Get inclusion list from the execution engine.
+    ///
+    /// Returns the list of transactions that should be included in the next block
+    /// based on the inclusion list committee's submissions.
+    ///
+    /// Spec: https://eips.ethereum.org/EIPS/eip-7805
+    pub async fn get_inclusion_list_v1(
+        &self,
+    ) -> Result<JsonGetInclusionListV1Response, Error> {
+        let params = json!([]);
+
+        self.rpc_request(
+            ENGINE_GET_INCLUSION_LIST_V1,
+            params,
+            ENGINE_INCLUSION_LIST_TIMEOUT * self.execution_timeout_multiplier,
+        )
+        .await
+    }
+
+    /// FOCIL (EIP-7805): Submit an inclusion list to the execution engine.
+    ///
+    /// This notifies the execution engine about transactions that must be included
+    /// in a subsequent block. The engine will validate the list and return a status.
+    ///
+    /// Spec: https://eips.ethereum.org/EIPS/eip-7805
+    pub async fn new_inclusion_list_v1(
+        &self,
+        inclusion_list: JsonInclusionListV1,
+    ) -> Result<JsonInclusionListStatusV1Response, Error> {
+        let params = json!([inclusion_list]);
+
+        self.rpc_request(
+            ENGINE_NEW_INCLUSION_LIST_V1,
+            params,
+            ENGINE_INCLUSION_LIST_TIMEOUT * self.execution_timeout_multiplier,
+        )
+        .await
+    }
+
     pub async fn get_block_by_number(
         &self,
         query: BlockByNumberQuery<'_>,
@@ -1221,6 +1260,9 @@ impl HttpJsonRpc {
             get_client_version_v1: capabilities.contains(ENGINE_GET_CLIENT_VERSION_V1),
             get_blobs_v1: capabilities.contains(ENGINE_GET_BLOBS_V1),
             get_blobs_v2: capabilities.contains(ENGINE_GET_BLOBS_V2),
+            // FOCIL (EIP-7805) capabilities
+            get_inclusion_list_v1: capabilities.contains(ENGINE_GET_INCLUSION_LIST_V1),
+            new_inclusion_list_v1: capabilities.contains(ENGINE_NEW_INCLUSION_LIST_V1),
         })
     }
 

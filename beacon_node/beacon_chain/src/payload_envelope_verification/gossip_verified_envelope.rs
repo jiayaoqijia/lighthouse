@@ -301,7 +301,7 @@ mod tests {
     use ssz_types::VariableList;
     use types::{
         BeaconBlock, BeaconBlockBodyGloas, BeaconBlockGloas, Eth1Data, ExecutionBlockHash,
-        ExecutionPayloadBid, ExecutionPayloadEnvelope, ExecutionPayloadGloas, ExecutionRequests,
+        ExecutionPayloadBid, ExecutionPayloadBidGloas, ExecutionPayloadEnvelope, ExecutionPayloadGloas, ExecutionRequests,
         Graffiti, Hash256, MinimalEthSpec, SignedBeaconBlock, SignedExecutionPayloadBid, Slot,
         SyncAggregate,
     };
@@ -350,7 +350,7 @@ mod tests {
                 voluntary_exits: VariableList::empty(),
                 sync_aggregate: SyncAggregate::empty(),
                 bls_to_execution_changes: VariableList::empty(),
-                signed_execution_payload_bid: SignedExecutionPayloadBid::empty(),
+                signed_execution_payload_bid: SignedExecutionPayloadBid::empty_gloas(),
                 payload_attestations: VariableList::empty(),
                 _phantom: PhantomData,
             },
@@ -359,11 +359,11 @@ mod tests {
     }
 
     fn make_bid(builder_index: u64, block_hash: ExecutionBlockHash) -> ExecutionPayloadBid<E> {
-        ExecutionPayloadBid {
+        ExecutionPayloadBid::Gloas(ExecutionPayloadBidGloas {
             builder_index,
             block_hash,
-            ..ExecutionPayloadBid::default()
-        }
+            ..ExecutionPayloadBidGloas::default()
+        })
     }
 
     #[test]

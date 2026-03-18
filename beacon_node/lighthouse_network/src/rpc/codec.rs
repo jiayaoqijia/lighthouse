@@ -954,6 +954,7 @@ mod tests {
             ForkName::Electra => spec.electra_fork_epoch,
             ForkName::Fulu => spec.fulu_fork_epoch,
             ForkName::Gloas => spec.gloas_fork_epoch,
+            ForkName::Heze => spec.heze_fork_epoch,
         };
         let current_slot = current_epoch.unwrap().start_slot(Spec::slots_per_epoch());
         ForkContext::new::<Spec>(current_slot, Hash256::zero(), spec)

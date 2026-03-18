@@ -45,6 +45,7 @@ pub fn fork_context(fork_name: ForkName, spec: &ChainSpec) -> ForkContext {
         ForkName::Electra => spec.electra_fork_epoch,
         ForkName::Fulu => spec.fulu_fork_epoch,
         ForkName::Gloas => spec.gloas_fork_epoch,
+        ForkName::Heze => spec.heze_fork_epoch,
     };
     let current_slot = current_epoch
         .unwrap_or_else(|| panic!("expect fork {fork_name} to be scheduled"))

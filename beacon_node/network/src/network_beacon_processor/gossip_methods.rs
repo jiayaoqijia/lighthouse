@@ -3536,15 +3536,167 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         peer_id: PeerId,
         signed_inclusion_list: SignedInclusionList<T::EthSpec>,
     ) {
-        // TODO(EIP-7805): Implement proper signed inclusion list gossip processing.
+        let slot = signed_inclusion_list.message.slot;
+        let validator_index = signed_inclusion_list.message.validator_index;
 
         trace!(
             %peer_id,
-            slot = %signed_inclusion_list.message.slot,
+            %slot,
+            %validator_index,
             "Processing signed inclusion list"
         );
 
-        // For now, ignore all signed inclusion lists since verification is not implemented
-        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
+        // Get current slot
+        let current_slot = match self.chain.slot_clock.now() {
+            Some(slot) => slot,
+            None => {
+                debug!(
+                    %peer_id,
+                    "Dropping signed inclusion list: unable to determine current slot"
+                );
+                self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
+                return;
+            }
+        };
+
+        // Perform basic P2P verification (size and slot checks)
+        use beacon_chain::inclusion_list_verification::VerifiedInclusionList;
+        
+        let signed_il = match VerifiedInclusionList::verify_basic(signed_inclusion_list, current_slot) {
+            Ok(verified) => verified.into_inner(),
+            Err(e) => {
+                match e {
+                    beacon_chain::inclusion_list_verification::Error::ExceedsMaxBytes { actual, max } => {
+                        debug!(
+                            %peer_id,
+                            %slot,
+                            %validator_index,
+                            actual_bytes = actual,
+                            max_bytes = max,
+                            "Rejected signed inclusion list: exceeds max bytes"
+                        );
+                        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Reject);
+                        self.gossip_penalize_peer(peer_id, PeerAction::LowToleranceError, "invalid_inclusion_list_size");
+                    }
+                    beacon_chain::inclusion_list_verification::Error::InvalidSlot { slot, current_slot } => {
+                        debug!(
+                            %peer_id,
+                            %slot,
+                            %current_slot,
+                            %validator_index,
+                            "Rejected signed inclusion list: invalid slot"
+                        );
+                        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Reject);
+                        self.gossip_penalize_peer(peer_id, PeerAction::MidToleranceError, "invalid_inclusion_list_slot");
+                    }
+                    beacon_chain::inclusion_list_verification::Error::ReceivedTooLate { slot } => {
+                        debug!(
+                            %peer_id,
+                            %slot,
+                            %validator_index,
+                            "Ignored signed inclusion list: received too late"
+                        );
+                        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
+                    }
+                    _ => {
+                        debug!(
+                            %peer_id,
+                            %slot,
+                            %validator_index,
+                            error = ?e,
+                            "Ignored signed inclusion list: verification error"
+                        );
+                        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
+                    }
+                }
+                return;
+            }
+        };
+
+        // Log successful basic verification
+        debug!(
+            %peer_id,
+            slot = %signed_il.message.slot,
+            validator_index = %signed_il.message.validator_index,
+            tx_count = %signed_il.message.transactions.len(),
+            "Signed inclusion list passed basic verification"
+        );
+
+        // Add to InclusionListStore for tracking
+        // TODO(EIP-7805): Determine is_before_view_freeze_cutoff based on slot timing
+        let is_before_view_freeze_cutoff = true; // Simplified for now
+        
+        let processed = self.chain.inclusion_list_store.process_signed_inclusion_list(
+            signed_il.clone(),
+            is_before_view_freeze_cutoff,
+        );
+
+        if processed {
+            debug!(
+                %peer_id,
+                slot = %signed_il.message.slot,
+                validator_index = %signed_il.message.validator_index,
+                "Signed inclusion list added to store"
+            );
+
+            // Forward to execution layer via engine_newInclusionListV1
+            if let Some(execution_layer) = self.chain.execution_layer.as_ref() {
+                let execution_layer = execution_layer.clone();
+                let slot = signed_il.message.slot;
+                let validator_index = signed_il.message.validator_index;
+                let committee_root = signed_il.message.inclusion_list_committee_root;
+                let transactions: Vec<Vec<u8>> = signed_il
+                    .message
+                    .transactions
+                    .iter()
+                    .map(|tx| tx.clone().into())
+                    .collect();
+                
+                self.executor.spawn(
+                    async move {
+                        use execution_layer::json_structures::JsonInclusionListV1;
+                        
+                        let json_il = JsonInclusionListV1 {
+                            slot: slot.into(),
+                            validator_index,
+                            inclusion_list_committee_root: committee_root,
+                            transactions: transactions.into_iter().map(Into::into).collect(),
+                        };
+                        
+                        match execution_layer.new_inclusion_list_v1(json_il).await {
+                            Ok(response) => {
+                                debug!(
+                                    %slot,
+                                    %validator_index,
+                                    status = ?response.status,
+                                    "Forwarded inclusion list to execution layer"
+                                );
+                            }
+                            Err(e) => {
+                                debug!(
+                                    %slot,
+                                    %validator_index,
+                                    error = ?e,
+                                    "Failed to forward inclusion list to execution layer"
+                                );
+                            }
+                        }
+                    },
+                    "forward_inclusion_list",
+                );
+            }
+
+            metrics::inc_counter(&metrics::BEACON_PROCESSOR_INCLUSION_LIST_VERIFIED_TOTAL);
+        } else {
+            debug!(
+                %peer_id,
+                slot = %signed_il.message.slot,
+                validator_index = %signed_il.message.validator_index,
+                "Signed inclusion list not added to store (equivocation or duplicate)"
+            );
+        }
+
+        // Accept and propagate the message
+        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Accept);
     }
 }

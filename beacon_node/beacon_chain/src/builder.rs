@@ -8,6 +8,7 @@ use crate::custody_context::NodeCustodyType;
 use crate::data_availability_checker::DataAvailabilityChecker;
 use crate::fork_choice_signal::ForkChoiceSignalTx;
 use crate::graffiti_calculator::{GraffitiCalculator, GraffitiOrigin};
+use crate::inclusion_list_verification::InclusionListStore;
 use crate::kzg_utils::{build_data_column_sidecars_fulu, build_data_column_sidecars_gloas};
 use crate::light_client_server_cache::LightClientServerCache;
 use crate::migrate::{BackgroundMigrator, MigratorConfig};
@@ -1060,6 +1061,7 @@ where
             ),
             kzg: self.kzg.clone(),
             rng: Arc::new(Mutex::new(rng)),
+            inclusion_list_store: Arc::new(InclusionListStore::new()),
         };
 
         let head = beacon_chain.head_snapshot();

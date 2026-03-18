@@ -15,6 +15,9 @@ pub use engine_api::EngineCapabilities;
 use engine_api::Error as ApiError;
 pub use engine_api::*;
 pub use engine_api::{http, http::HttpJsonRpc, http::deposit_methods};
+use engine_api::json_structures::{
+    JsonGetInclusionListV1Response, JsonInclusionListV1, JsonInclusionListStatusV1Response,
+};
 use engines::{Engine, EngineError};
 pub use engines::{EngineState, ForkchoiceState};
 use eth2::types::{BlobsBundle, FullPayloadContents};
@@ -153,6 +156,7 @@ pub enum Error {
     ZeroLengthTransaction,
     PayloadBodiesByRangeNotSupported,
     GetBlobsNotSupported,
+    InclusionListNotSupported,
     InvalidJWTSecret(String),
     InvalidForkForPayload,
     InvalidPayloadBody(String),
@@ -1738,6 +1742,50 @@ impl<E: EthSpec> ExecutionLayer<E> {
                 .map_err(Error::EngineError)
         } else {
             Err(Error::GetBlobsNotSupported)
+        }
+    }
+
+    // FOCIL (EIP-7805): Get inclusion list from execution engine.
+    /// Request the list of transactions that should be included in the next block
+    /// based on the inclusion list committee's submissions.
+    ///
+    /// Returns an error if the execution engine does not support the
+    /// `engine_getInclusionListV1` method.
+    pub async fn get_inclusion_list_v1(
+        &self,
+    ) -> Result<JsonGetInclusionListV1Response, Error> {
+        let capabilities = self.get_engine_capabilities(None).await?;
+
+        if capabilities.get_inclusion_list_v1 {
+            self.engine()
+                .request(|engine| async move { engine.api.get_inclusion_list_v1().await })
+                .await
+                .map_err(Box::new)
+                .map_err(Error::EngineError)
+        } else {
+            Err(Error::InclusionListNotSupported)
+        }
+    }
+
+    // FOCIL (EIP-7805): Submit an inclusion list to the execution engine.
+    /// Forward a signed inclusion list to the execution engine for validation
+    /// and inclusion in the block building process.
+    ///
+    /// Returns the status from the execution engine (Accepted or Invalid).
+    pub async fn new_inclusion_list_v1(
+        &self,
+        inclusion_list: JsonInclusionListV1,
+    ) -> Result<JsonInclusionListStatusV1Response, Error> {
+        let capabilities = self.get_engine_capabilities(None).await?;
+
+        if capabilities.new_inclusion_list_v1 {
+            self.engine()
+                .request(|engine| async move { engine.api.new_inclusion_list_v1(inclusion_list).await })
+                .await
+                .map_err(Box::new)
+                .map_err(Error::EngineError)
+        } else {
+            Err(Error::InclusionListNotSupported)
         }
     }
 
