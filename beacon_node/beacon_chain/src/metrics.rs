@@ -49,6 +49,29 @@ pub static ENVELOPE_PROCESSING_DB_WRITE: LazyLock<Result<Histogram>> = LazyLock:
         "Time spent writing a newly processed payload envelope and state to DB",
     )
 });
+
+/*
+ * Inclusion List Processing (FOCIL/EIP-7805)
+ */
+pub static INCLUSION_LIST_PROCESSED_TOTAL: LazyLock<Result<IntCounter>> = LazyLock::new(|| {
+    try_create_int_counter(
+        "inclusion_list_processed_total",
+        "Count of inclusion lists successfully processed",
+    )
+});
+pub static INCLUSION_LIST_EQUIVOCATION_TOTAL: LazyLock<Result<IntCounter>> = LazyLock::new(|| {
+    try_create_int_counter(
+        "inclusion_list_equivocation_total",
+        "Count of inclusion list equivocations detected",
+    )
+});
+pub static INCLUSION_LIST_STORE_SIZE: LazyLock<Result<IntGauge>> = LazyLock::new(|| {
+    try_create_int_gauge(
+        "inclusion_list_store_size",
+        "Number of inclusion lists currently stored",
+    )
+});
+
 /*
  * Block Processing
  */

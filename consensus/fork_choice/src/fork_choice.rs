@@ -1523,6 +1523,18 @@ where
     pub fn scrape_for_metrics(&self) {
         scrape_for_metrics(self);
     }
+
+    /// [New in Heze:EIP7805] Set whether the execution payload for a beacon block
+    /// satisfies the inclusion list constraints.
+    pub fn set_payload_inclusion_list_satisfaction(&mut self, block_root: Hash256, satisfied: bool) {
+        self.fc_store.set_payload_inclusion_list_satisfaction(block_root, satisfied);
+    }
+
+    /// [New in Heze:EIP7805] Check if the execution payload for a beacon block
+    /// satisfies the inclusion list constraints.
+    pub fn is_payload_inclusion_list_satisfied(&self, block_root: Hash256) -> Option<bool> {
+        self.fc_store.is_payload_inclusion_list_satisfied(block_root)
+    }
 }
 
 /// Helper struct that is used to encode/decode the state of the `ForkChoice` as SSZ bytes.

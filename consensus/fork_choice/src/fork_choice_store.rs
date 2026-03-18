@@ -1,5 +1,5 @@
 use proto_array::JustifiedBalances;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt::Debug;
 use types::{AbstractExecPayload, BeaconBlockRef, BeaconState, Checkpoint, EthSpec, Hash256, Slot};
 
@@ -89,4 +89,16 @@ pub trait ForkChoiceStore<E: EthSpec>: Sized {
 
     /// Adds to the set of equivocating indices.
     fn extend_equivocating_indices(&mut self, indices: impl IntoIterator<Item = u64>);
+
+    // ===== [New in Heze:EIP7805] Inclusion List satisfaction tracking methods =====
+
+    /// Check if the execution payload at the given block root satisfies inclusion list constraints.
+    /// Returns `None` if the block is unknown or not yet processed.
+    fn is_payload_inclusion_list_satisfied(&self, block_root: Hash256) -> Option<bool>;
+
+    /// Record the inclusion list satisfaction status for an execution payload.
+    fn set_payload_inclusion_list_satisfaction(&mut self, block_root: Hash256, satisfied: bool);
+
+    /// Get a reference to the entire payload_inclusion_list_satisfaction map.
+    fn payload_inclusion_list_satisfaction(&self) -> &HashMap<Hash256, bool>;
 }

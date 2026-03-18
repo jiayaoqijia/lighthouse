@@ -11,7 +11,7 @@ use fork_choice::ForkChoiceStore;
 use proto_array::JustifiedBalances;
 use safe_arith::ArithError;
 use ssz_derive::{Decode, Encode};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::marker::PhantomData;
 use std::sync::Arc;
 use store::{Error as StoreError, HotColdDB, ItemStore};
@@ -144,6 +144,9 @@ pub struct BeaconForkChoiceStore<E: EthSpec, Hot: ItemStore<E>, Cold: ItemStore<
     unrealized_finalized_checkpoint: Checkpoint,
     proposer_boost_root: Hash256,
     equivocating_indices: BTreeSet<u64>,
+    /// [New in Heze:EIP7805] Tracks whether execution payloads satisfy inclusion list constraints.
+    /// Maps block root -> satisfaction status.
+    payload_inclusion_list_satisfaction: HashMap<Hash256, bool>,
     _phantom: PhantomData<E>,
 }
 
@@ -211,6 +214,8 @@ where
             unrealized_finalized_checkpoint: finalized_checkpoint,
             proposer_boost_root: Hash256::zero(),
             equivocating_indices: BTreeSet::new(),
+            // [New in Heze:EIP7805] Initialize with anchor block root as satisfied
+            payload_inclusion_list_satisfaction: [(anchor_block_root, true)].into_iter().collect(),
             _phantom: PhantomData,
         })
     }
@@ -218,6 +223,13 @@ where
     /// Save the current state of `Self` to a `PersistedForkChoiceStore` which can be stored to the
     /// on-disk database.
     pub fn to_persisted(&self) -> PersistedForkChoiceStore {
+        // Convert HashMap to Vec for SSZ serialization
+        let il_satisfaction: Vec<(Hash256, bool)> = self
+            .payload_inclusion_list_satisfaction
+            .iter()
+            .map(|(&k, &v)| (k, v))
+            .collect();
+        
         PersistedForkChoiceStore {
             time: self.time,
             finalized_checkpoint: self.finalized_checkpoint,
@@ -228,6 +240,8 @@ where
             unrealized_finalized_checkpoint: self.unrealized_finalized_checkpoint,
             proposer_boost_root: self.proposer_boost_root,
             equivocating_indices: self.equivocating_indices.clone(),
+            // [New in Heze:EIP7805]
+            payload_inclusion_list_satisfaction: il_satisfaction,
         }
     }
 
@@ -256,6 +270,8 @@ where
             unrealized_finalized_checkpoint: persisted.unrealized_finalized_checkpoint,
             proposer_boost_root: persisted.proposer_boost_root,
             equivocating_indices: persisted.equivocating_indices,
+            // [New in Heze:EIP7805] Default to empty for migrated stores
+            payload_inclusion_list_satisfaction: HashMap::new(),
             _phantom: PhantomData,
         })
     }
@@ -275,6 +291,13 @@ where
             .ok_or(Error::MissingState(justified_state_root))?;
 
         let justified_balances = JustifiedBalances::from_justified_state(&justified_state)?;
+        
+        // Convert Vec back to HashMap
+        let il_satisfaction: HashMap<Hash256, bool> = persisted
+            .payload_inclusion_list_satisfaction
+            .into_iter()
+            .collect();
+        
         Ok(Self {
             store,
             balances_cache: <_>::default(),
@@ -288,6 +311,8 @@ where
             unrealized_finalized_checkpoint: persisted.unrealized_finalized_checkpoint,
             proposer_boost_root: persisted.proposer_boost_root,
             equivocating_indices: persisted.equivocating_indices,
+            // [New in Heze:EIP7805]
+            payload_inclusion_list_satisfaction: il_satisfaction,
             _phantom: PhantomData,
         })
     }
@@ -406,6 +431,21 @@ where
     fn extend_equivocating_indices(&mut self, indices: impl IntoIterator<Item = u64>) {
         self.equivocating_indices.extend(indices);
     }
+
+    /// [New in Heze:EIP7805] Check if the payload at the given root satisfies IL constraints.
+    fn is_payload_inclusion_list_satisfied(&self, block_root: Hash256) -> Option<bool> {
+        self.payload_inclusion_list_satisfaction.get(&block_root).copied()
+    }
+
+    /// [New in Heze:EIP7805] Record IL satisfaction status for a payload.
+    fn set_payload_inclusion_list_satisfaction(&mut self, block_root: Hash256, satisfied: bool) {
+        self.payload_inclusion_list_satisfaction.insert(block_root, satisfied);
+    }
+
+    /// [New in Heze:EIP7805] Get the entire payload_inclusion_list_satisfaction map.
+    fn payload_inclusion_list_satisfaction(&self) -> &HashMap<Hash256, bool> {
+        &self.payload_inclusion_list_satisfaction
+    }
 }
 
 pub type PersistedForkChoiceStore = PersistedForkChoiceStoreV28;
@@ -435,6 +475,10 @@ pub struct PersistedForkChoiceStore {
     pub unrealized_finalized_checkpoint: Checkpoint,
     pub proposer_boost_root: Hash256,
     pub equivocating_indices: BTreeSet<u64>,
+    /// [New in Heze:EIP7805] Tracks whether execution payloads satisfy inclusion list constraints.
+    /// Stored as a vector of (root, satisfied) pairs for SSZ compatibility.
+    #[superstruct(only(V28))]
+    pub payload_inclusion_list_satisfaction: Vec<(Hash256, bool)>,
 }
 
 // Convert V28 to V17 by adding balances and removing justified state roots.

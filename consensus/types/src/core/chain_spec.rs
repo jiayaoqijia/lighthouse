@@ -114,12 +114,31 @@ pub struct ChainSpec {
     pub contribution_due_bps: u64,
 
     /*
+     * EIP-7805 (FOCIL) Time parameters
+     */
+    /// View freeze cutoff in basis points (75% = 7500 bps).
+    /// After this time into the slot, validators stop storing new inclusion lists.
+    pub view_freeze_cutoff_bps: u64,
+    /// Inclusion list submission due in basis points (~67% = 6667 bps).
+    /// IL committee members must broadcast their ILs by this time.
+    pub inclusion_list_submission_due_bps: u64,
+    /// Proposer inclusion list cutoff in basis points (~92% = 9167 bps).
+    /// Proposers should collect ILs up to this time before building the block.
+    pub proposer_inclusion_list_cutoff_bps: u64,
+
+    /*
      * Derived time values (computed at startup via `compute_derived_values()`)
      */
     pub unaggregated_attestation_due: Duration,
     pub aggregate_attestation_due: Duration,
     pub sync_message_due: Duration,
     pub contribution_and_proof_due: Duration,
+    /// [EIP-7805] Duration into slot when view freeze occurs (derived from view_freeze_cutoff_bps).
+    pub view_freeze_cutoff: Duration,
+    /// [EIP-7805] Duration into slot when IL submission is due (derived from inclusion_list_submission_due_bps).
+    pub inclusion_list_submission_due: Duration,
+    /// [EIP-7805] Duration into slot when proposer should stop collecting ILs (derived from proposer_inclusion_list_cutoff_bps).
+    pub proposer_inclusion_list_cutoff: Duration,
 
     /*
      * Reward and penalty quotients
@@ -902,6 +921,27 @@ impl ChainSpec {
         self.sync_message_due
     }
 
+    /// [EIP-7805] Get the duration into a slot when view freeze occurs.
+    /// After this time, validators stop storing new inclusion lists.
+    /// Returns the pre-computed value from `compute_derived_values()`.
+    pub fn get_view_freeze_cutoff(&self) -> Duration {
+        self.view_freeze_cutoff
+    }
+
+    /// [EIP-7805] Get the duration into a slot when IL submission is due.
+    /// IL committee members must broadcast their ILs by this time.
+    /// Returns the pre-computed value from `compute_derived_values()`.
+    pub fn get_inclusion_list_submission_due(&self) -> Duration {
+        self.inclusion_list_submission_due
+    }
+
+    /// [EIP-7805] Get the duration into a slot when proposer should stop collecting ILs.
+    /// Proposers should gather ILs up to this time before building the block.
+    /// Returns the pre-computed value from `compute_derived_values()`.
+    pub fn get_proposer_inclusion_list_cutoff(&self) -> Duration {
+        self.proposer_inclusion_list_cutoff
+    }
+
     /// Calculate the duration into a slot for a given slot component
     fn compute_slot_component_duration(
         &self,
@@ -951,6 +991,22 @@ impl ChainSpec {
             "invalid chain spec: contribution_due_bps ({}) exceeds slot duration",
             self.contribution_due_bps
         );
+        // EIP-7805 (FOCIL) time parameter assertions
+        assert!(
+            self.view_freeze_cutoff_bps <= BASIS_POINTS,
+            "invalid chain spec: view_freeze_cutoff_bps ({}) exceeds slot duration",
+            self.view_freeze_cutoff_bps
+        );
+        assert!(
+            self.inclusion_list_submission_due_bps <= BASIS_POINTS,
+            "invalid chain spec: inclusion_list_submission_due_bps ({}) exceeds slot duration",
+            self.inclusion_list_submission_due_bps
+        );
+        assert!(
+            self.proposer_inclusion_list_cutoff_bps <= BASIS_POINTS,
+            "invalid chain spec: proposer_inclusion_list_cutoff_bps ({}) exceeds slot duration",
+            self.proposer_inclusion_list_cutoff_bps
+        );
 
         self.unaggregated_attestation_due = self
             .compute_slot_component_duration(self.attestation_due_bps)
@@ -964,6 +1020,17 @@ impl ChainSpec {
         self.contribution_and_proof_due = self
             .compute_slot_component_duration(self.contribution_due_bps)
             .expect("invalid chain spec: cannot compute contribution_and_proof_due");
+
+        // EIP-7805 (FOCIL) derived time values
+        self.view_freeze_cutoff = self
+            .compute_slot_component_duration(self.view_freeze_cutoff_bps)
+            .expect("invalid chain spec: cannot compute view_freeze_cutoff");
+        self.inclusion_list_submission_due = self
+            .compute_slot_component_duration(self.inclusion_list_submission_due_bps)
+            .expect("invalid chain spec: cannot compute inclusion_list_submission_due");
+        self.proposer_inclusion_list_cutoff = self
+            .compute_slot_component_duration(self.proposer_inclusion_list_cutoff_bps)
+            .expect("invalid chain spec: cannot compute proposer_inclusion_list_cutoff");
 
         self.attestation_subnet_prefix_bits = compute_attestation_subnet_prefix_bits(
             self.attestation_subnet_count,
@@ -1088,12 +1155,23 @@ impl ChainSpec {
             contribution_due_bps: 6667,
 
             /*
+             * EIP-7805 (FOCIL) Time parameters
+             */
+            view_freeze_cutoff_bps: 7500,  // 75% of slot duration
+            inclusion_list_submission_due_bps: 6667,  // ~67% of slot duration
+            proposer_inclusion_list_cutoff_bps: 9167,  // ~92% of slot duration
+
+            /*
              * Derived time values (set by `compute_derived_values()`)
              */
             unaggregated_attestation_due: Duration::from_millis(3999),
             aggregate_attestation_due: Duration::from_millis(8000),
             sync_message_due: Duration::from_millis(3999),
             contribution_and_proof_due: Duration::from_millis(8000),
+            // EIP-7805 (FOCIL) derived time values
+            view_freeze_cutoff: Duration::from_millis(9000),  // 75% of 12000ms
+            inclusion_list_submission_due: Duration::from_millis(8000),  // 66.67% of 12000ms
+            proposer_inclusion_list_cutoff: Duration::from_millis(11000),  // 91.67% of 12000ms
 
             /*
              * Reward and penalty quotients
@@ -1491,6 +1569,13 @@ impl ChainSpec {
             aggregate_due_bps: 6667,
 
             /*
+             * EIP-7805 (FOCIL) Time parameters
+             */
+            view_freeze_cutoff_bps: 7500,  // 75% of slot duration
+            inclusion_list_submission_due_bps: 6667,  // ~67% of slot duration
+            proposer_inclusion_list_cutoff_bps: 9167,  // ~92% of slot duration
+
+            /*
              * Derived time values (set by `compute_derived_values()`)
              * Precomputed for 5000ms slot: 3333 bps = 1666ms, 6667 bps = 3333ms
              */
@@ -1498,6 +1583,10 @@ impl ChainSpec {
             aggregate_attestation_due: Duration::from_millis(3333),
             sync_message_due: Duration::from_millis(1666),
             contribution_and_proof_due: Duration::from_millis(3333),
+            // EIP-7805 (FOCIL) derived time values for 5000ms slot
+            view_freeze_cutoff: Duration::from_millis(3750),  // 75% of 5000ms
+            inclusion_list_submission_due: Duration::from_millis(3333),  // 66.67% of 5000ms
+            proposer_inclusion_list_cutoff: Duration::from_millis(4583),  // 91.67% of 5000ms
 
             /*
              * Reward and penalty quotients
@@ -2094,6 +2183,17 @@ pub struct Config {
     #[serde(default = "default_contribution_due_bps")]
     #[serde(with = "serde_utils::quoted_u64")]
     contribution_due_bps: u64,
+
+    // EIP-7805 (FOCIL) time parameters
+    #[serde(default = "default_view_freeze_cutoff_bps")]
+    #[serde(with = "serde_utils::quoted_u64")]
+    view_freeze_cutoff_bps: u64,
+    #[serde(default = "default_inclusion_list_submission_due_bps")]
+    #[serde(with = "serde_utils::quoted_u64")]
+    inclusion_list_submission_due_bps: u64,
+    #[serde(default = "default_proposer_inclusion_list_cutoff_bps")]
+    #[serde(with = "serde_utils::quoted_u64")]
+    proposer_inclusion_list_cutoff_bps: u64,
 }
 
 fn default_bellatrix_fork_version() -> [u8; 4] {
@@ -2322,6 +2422,19 @@ const fn default_sync_message_due_bps() -> u64 {
 
 const fn default_contribution_due_bps() -> u64 {
     6667
+}
+
+// EIP-7805 (FOCIL) default time parameters
+const fn default_view_freeze_cutoff_bps() -> u64 {
+    7500  // 75% of slot duration
+}
+
+const fn default_inclusion_list_submission_due_bps() -> u64 {
+    6667  // ~67% of slot duration
+}
+
+const fn default_proposer_inclusion_list_cutoff_bps() -> u64 {
+    9167  // ~92% of slot duration
 }
 
 fn max_blocks_by_root_request_common(max_request_blocks: u64) -> usize {
@@ -2557,6 +2670,11 @@ impl Config {
             aggregate_due_bps: spec.aggregate_due_bps,
             sync_message_due_bps: spec.sync_message_due_bps,
             contribution_due_bps: spec.contribution_due_bps,
+
+            // EIP-7805 (FOCIL) time parameters
+            view_freeze_cutoff_bps: spec.view_freeze_cutoff_bps,
+            inclusion_list_submission_due_bps: spec.inclusion_list_submission_due_bps,
+            proposer_inclusion_list_cutoff_bps: spec.proposer_inclusion_list_cutoff_bps,
         }
     }
 
@@ -2650,6 +2768,11 @@ impl Config {
             aggregate_due_bps,
             sync_message_due_bps,
             contribution_due_bps,
+
+            // EIP-7805 (FOCIL) time parameters
+            view_freeze_cutoff_bps,
+            inclusion_list_submission_due_bps,
+            proposer_inclusion_list_cutoff_bps,
         } = self;
 
         if preset_base != E::spec_name().to_string().as_str() {
@@ -2740,6 +2863,11 @@ impl Config {
             aggregate_due_bps,
             sync_message_due_bps,
             contribution_due_bps,
+
+            // EIP-7805 (FOCIL) time parameters
+            view_freeze_cutoff_bps,
+            inclusion_list_submission_due_bps,
+            proposer_inclusion_list_cutoff_bps,
 
             ..chain_spec.clone()
         };

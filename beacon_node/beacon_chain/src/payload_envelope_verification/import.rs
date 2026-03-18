@@ -242,6 +242,20 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         // TODO(gloas) when the code below is implemented we can delete this drop
         drop(fork_choice_reader);
 
+        // [New in Heze:EIP7805] Record inclusion list satisfaction
+        // This is a placeholder for the actual IL satisfaction check
+        // The full implementation requires:
+        // 1. Getting inclusion list transactions from the IL store
+        // 2. Calling execution engine's is_inclusion_list_satisfied
+        // 3. Recording the result to fork choice
+        //
+        // For now, we assume IL is satisfied (satisfied = true)
+        // This should be updated when the execution layer supports IL verification
+        {
+            let mut fork_choice = self.canonical_head.fork_choice_write_lock();
+            fork_choice.set_payload_inclusion_list_satisfaction(block_root, true);
+        }
+
         // TODO(gloas) no fork choice logic yet
         // Take an exclusive write-lock on fork choice. It's very important to prevent deadlocks by
         // avoiding taking other locks whilst holding this lock.

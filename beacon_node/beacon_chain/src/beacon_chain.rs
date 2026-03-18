@@ -7238,6 +7238,60 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             .custody_context()
             .custody_columns_for_epoch(epoch_opt, &self.spec)
     }
+
+    /// Process an inclusion list received over gossip or RPC.
+    ///
+    /// Implements `on_inclusion_list` from the Heze specification:
+    /// - Verifies the inclusion list signature and structure
+    /// - Tracks equivocation
+    /// - Stores valid inclusion lists
+    ///
+    /// Returns `Ok(true)` if the IL was processed successfully,
+    /// `Ok(false)` if it was ignored (e.g., from equivocator),
+    /// or an error if verification failed.
+    pub fn process_inclusion_list(
+        &self,
+        signed_inclusion_list: crate::inclusion_list_verification::VerifiedInclusionList<T::EthSpec>,
+    ) -> Result<bool, Error> {
+        let message = &signed_inclusion_list.as_inner().message;
+        let slot = message.slot;
+        
+        // Check if we're before the view freeze cutoff
+        let is_before_view_freeze_cutoff = self.is_before_view_freeze_cutoff(slot)?;
+        
+        // Process the inclusion list through the store
+        let processed = self.inclusion_list_store.process_signed_inclusion_list(
+            signed_inclusion_list.into_inner(),
+            is_before_view_freeze_cutoff,
+        );
+        
+        if processed {
+            metrics::inc_counter(&metrics::INCLUSION_LIST_PROCESSED_TOTAL);
+        }
+        
+        Ok(processed)
+    }
+    
+    /// Check if the current time is before the view freeze cutoff for a given slot.
+    ///
+    /// The view freeze cutoff is defined as:
+    /// `view_freeze_cutoff = seconds_per_slot * view_freeze_cutoff_bps / 10000`
+    fn is_before_view_freeze_cutoff(&self, slot: Slot) -> Result<bool, Error> {
+        let slot_start = self
+            .slot_clock
+            .start_of(slot)
+            .ok_or_else(|| Error::from(BeaconStateError::SlotOutOfBounds))?;
+        
+        let now = self
+            .slot_clock
+            .now_duration()
+            .ok_or_else(|| Error::from(BeaconStateError::SlotOutOfBounds))?;
+        
+        let elapsed = now.saturating_sub(slot_start);
+        let view_freeze_cutoff = self.spec.get_view_freeze_cutoff();
+        
+        Ok(elapsed < view_freeze_cutoff)
+    }
 }
 
 impl<T: BeaconChainTypes> Drop for BeaconChain<T> {
