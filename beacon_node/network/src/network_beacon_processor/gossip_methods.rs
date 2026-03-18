@@ -3623,6 +3623,8 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
             "Signed inclusion list passed basic verification"
         );
 
+        metrics::inc_counter(&metrics::BEACON_PROCESSOR_INCLUSION_LIST_VERIFIED_TOTAL);
+
         // Add to InclusionListStore for tracking
         // Determine is_before_view_freeze_cutoff based on slot timing
         let is_before_view_freeze_cutoff = {
@@ -3701,7 +3703,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                 );
             }
 
-            metrics::inc_counter(&metrics::BEACON_PROCESSOR_INCLUSION_LIST_VERIFIED_TOTAL);
+            metrics::inc_counter(&metrics::BEACON_PROCESSOR_INCLUSION_LIST_IMPORTED_TOTAL);
         } else {
             debug!(
                 %peer_id,
