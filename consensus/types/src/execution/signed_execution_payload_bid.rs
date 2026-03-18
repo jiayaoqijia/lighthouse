@@ -60,23 +60,22 @@ impl<E: EthSpec> Decode for SignedExecutionPayloadBid<E> {
     }
 
     fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
-        // Try Heze first (longer encoding with inclusion_list_bits)
-        // If that fails, try Gloas
-        SignedExecutionPayloadBidHeze::from_ssz_bytes(bytes)
-            .map(Self::Heze)
-            .or_else(|_| SignedExecutionPayloadBidGloas::from_ssz_bytes(bytes).map(Self::Gloas))
+        // Try Gloas first (shorter encoding without inclusion_list_bits)
+        // If that fails, try Heze
+        SignedExecutionPayloadBidGloas::from_ssz_bytes(bytes)
+            .map(Self::Gloas)
+            .or_else(|_| SignedExecutionPayloadBidHeze::from_ssz_bytes(bytes).map(Self::Heze))
     }
 }
 
 // Manual implementation of TestRandom for the enum
 impl<E: EthSpec> TestRandom for SignedExecutionPayloadBid<E> {
     fn random_for_test(rng: &mut impl RngCore) -> Self {
-        // Randomly choose Gloas or Heze variant
-        if bool::random_for_test(rng) {
-            Self::Heze(SignedExecutionPayloadBidHeze::random_for_test(rng))
-        } else {
-            Self::Gloas(SignedExecutionPayloadBidGloas::random_for_test(rng))
-        }
+        // Always generate Gloas variant since Heze is not yet active.
+        // Gloas blocks should contain Gloas bids, and Heze blocks should contain Heze bids.
+        // When Heze becomes active, this can be updated to randomly choose variants
+        // based on the fork context.
+        Self::Gloas(SignedExecutionPayloadBidGloas::random_for_test(rng))
     }
 }
 
