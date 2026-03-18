@@ -92,6 +92,13 @@ mod tests {
     use super::*;
     use crate::MainnetEthSpec;
 
-    ssz_and_tree_hash_tests!(InclusionList<MainnetEthSpec>);
-    ssz_and_tree_hash_tests!(SignedInclusionList<MainnetEthSpec>);
+    mod inclusion_list {
+        use super::*;
+        ssz_and_tree_hash_tests!(InclusionList<MainnetEthSpec>);
+    }
+
+    mod signed_inclusion_list {
+        use super::*;
+        ssz_and_tree_hash_tests!(SignedInclusionList<MainnetEthSpec>);
+    }
 }
