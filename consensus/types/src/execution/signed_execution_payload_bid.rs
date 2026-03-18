@@ -1,35 +1,139 @@
 use crate::execution::ExecutionPayloadBid;
+use crate::state::BeaconStateError;
 use crate::test_utils::TestRandom;
 use crate::{EthSpec, ForkName};
 use bls::Signature;
-use context_deserialize::context_deserialize;
+use context_deserialize::{ContextDeserialize, context_deserialize};
 use educe::Educe;
-use serde::{Deserialize, Serialize};
+use rand::RngCore;
+use serde::{Deserialize, Deserializer, Serialize};
+use ssz::Decode;
 use ssz_derive::{Decode, Encode};
+use superstruct::superstruct;
 use test_random_derive::TestRandom;
 use tree_hash_derive::TreeHash;
 
-#[derive(TestRandom, TreeHash, Debug, Clone, Encode, Decode, Serialize, Deserialize, Educe)]
-#[cfg_attr(
-    feature = "arbitrary",
-    derive(arbitrary::Arbitrary),
-    arbitrary(bound = "E: EthSpec")
+#[superstruct(
+    variants(Gloas, Heze),
+    variant_attributes(
+        derive(
+            Debug,
+            Clone,
+            Serialize,
+            Deserialize,
+            Encode,
+            Decode,
+            TreeHash,
+            Educe,
+            TestRandom,
+        ),
+        context_deserialize(ForkName),
+        educe(PartialEq, Hash),
+        serde(bound = "E: EthSpec", deny_unknown_fields),
+        cfg_attr(
+            feature = "arbitrary",
+            derive(arbitrary::Arbitrary),
+            arbitrary(bound = "E: EthSpec"),
+        ),
+    ),
+    cast_error(ty = "BeaconStateError", expr = "BeaconStateError::IncorrectStateVariant"),
+    partial_getter_error(ty = "BeaconStateError", expr = "BeaconStateError::IncorrectStateVariant")
 )]
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, TreeHash, Educe)]
 #[educe(PartialEq, Hash)]
-#[serde(bound = "E: EthSpec")]
-#[context_deserialize(ForkName)]
-// https://github.com/ethereum/consensus-specs/blob/master/specs/gloas/beacon-chain.md#signedexecutionpayloadbid
+#[serde(bound = "E: EthSpec", untagged)]
+#[ssz(enum_behaviour = "transparent")]
+#[tree_hash(enum_behaviour = "transparent")]
 pub struct SignedExecutionPayloadBid<E: EthSpec> {
     pub message: ExecutionPayloadBid<E>,
     pub signature: Signature,
 }
 
-impl<E: EthSpec> SignedExecutionPayloadBid<E> {
-    pub fn empty() -> Self {
-        Self {
-            message: ExecutionPayloadBid::default(),
-            signature: Signature::empty(),
+// Manual implementation of Decode for the enum
+impl<E: EthSpec> Decode for SignedExecutionPayloadBid<E> {
+    fn is_ssz_fixed_len() -> bool {
+        false
+    }
+
+    fn ssz_fixed_len() -> usize {
+        0
+    }
+
+    fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
+        // Try Heze first (longer encoding with inclusion_list_bits)
+        // If that fails, try Gloas
+        SignedExecutionPayloadBidHeze::from_ssz_bytes(bytes)
+            .map(Self::Heze)
+            .or_else(|_| SignedExecutionPayloadBidGloas::from_ssz_bytes(bytes).map(Self::Gloas))
+    }
+}
+
+// Manual implementation of TestRandom for the enum
+impl<E: EthSpec> TestRandom for SignedExecutionPayloadBid<E> {
+    fn random_for_test(rng: &mut impl RngCore) -> Self {
+        // Randomly choose Gloas or Heze variant
+        if bool::random_for_test(rng) {
+            Self::Heze(SignedExecutionPayloadBidHeze::random_for_test(rng))
+        } else {
+            Self::Gloas(SignedExecutionPayloadBidGloas::random_for_test(rng))
         }
+    }
+}
+
+impl<E: EthSpec> SignedExecutionPayloadBid<E> {
+    pub fn empty_gloas() -> Self {
+        Self::Gloas(SignedExecutionPayloadBidGloas {
+            message: ExecutionPayloadBid::Gloas(Default::default()),
+            signature: Signature::empty(),
+        })
+    }
+
+    pub fn empty_heze() -> Self {
+        Self::Heze(SignedExecutionPayloadBidHeze {
+            message: ExecutionPayloadBid::Heze(Default::default()),
+            signature: Signature::empty(),
+        })
+    }
+}
+
+impl<E: EthSpec> crate::fork::ForkVersionDecode for SignedExecutionPayloadBid<E> {
+    fn from_ssz_bytes_by_fork(bytes: &[u8], fork_name: ForkName) -> Result<Self, ssz::DecodeError> {
+        match fork_name {
+            ForkName::Base | ForkName::Altair | ForkName::Bellatrix | ForkName::Capella 
+            | ForkName::Deneb | ForkName::Electra | ForkName::Fulu => {
+                Err(ssz::DecodeError::BytesInvalid(format!(
+                    "unsupported fork for SignedExecutionPayloadBid: {fork_name}",
+                )))
+            }
+            ForkName::Gloas => SignedExecutionPayloadBidGloas::from_ssz_bytes(bytes).map(Self::Gloas),
+            ForkName::Heze => SignedExecutionPayloadBidHeze::from_ssz_bytes(bytes).map(Self::Heze),
+        }
+    }
+}
+
+impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for SignedExecutionPayloadBid<E> {
+    fn context_deserialize<D>(deserializer: D, context: ForkName) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let convert_err = |e| {
+            serde::de::Error::custom(format!("SignedExecutionPayloadBid failed to deserialize: {:?}", e))
+        };
+        Ok(match context {
+            ForkName::Base | ForkName::Altair | ForkName::Bellatrix | ForkName::Capella 
+            | ForkName::Deneb | ForkName::Electra | ForkName::Fulu => {
+                return Err(serde::de::Error::custom(format!(
+                    "SignedExecutionPayloadBid failed to deserialize: unsupported fork '{}'",
+                    context
+                )));
+            }
+            ForkName::Gloas => {
+                Self::Gloas(Deserialize::deserialize(deserializer).map_err(convert_err)?)
+            }
+            ForkName::Heze => {
+                Self::Heze(Deserialize::deserialize(deserializer).map_err(convert_err)?)
+            }
+        })
     }
 }
 
@@ -38,5 +142,6 @@ mod tests {
     use super::*;
     use crate::MainnetEthSpec;
 
-    ssz_and_tree_hash_tests!(SignedExecutionPayloadBid<MainnetEthSpec>);
+    ssz_and_tree_hash_tests!(SignedExecutionPayloadBidGloas<MainnetEthSpec>);
+    ssz_and_tree_hash_tests!(SignedExecutionPayloadBidHeze<MainnetEthSpec>);
 }

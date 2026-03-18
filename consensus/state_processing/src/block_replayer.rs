@@ -318,7 +318,7 @@ where
                         .state
                         .latest_execution_payload_bid()
                         .map_err(BlockReplayError::from)?
-                        .block_hash;
+                        .block_hash();
 
                     // Similar to `is_parent_block_full`, but reading the block hash from the
                     // not-yet-applied `block`. The slot 0 case covers genesis (no block replay reqd).

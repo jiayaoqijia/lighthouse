@@ -326,16 +326,16 @@ impl<'a, E: EthSpec, Payload: AbstractExecPayload<E>> BeaconBlockRef<'a, E, Payl
             block
                 .body
                 .signed_execution_payload_bid
-                .message
-                .blob_kzg_commitments
+                .message()
+                .blob_kzg_commitments()
                 .len(),
         ),
         BeaconBlockRef::Heze(block) => Some(
                 block
                     .body
                     .signed_execution_payload_bid
-                    .message
-                    .blob_kzg_commitments
+                    .message()
+                    .blob_kzg_commitments()
                     .len(),
             ),
         }
@@ -727,7 +727,7 @@ impl<E: EthSpec, Payload: AbstractExecPayload<E>> EmptyBlock for BeaconBlockGloa
                 voluntary_exits: VariableList::empty(),
                 sync_aggregate: SyncAggregate::empty(),
                 bls_to_execution_changes: VariableList::empty(),
-                signed_execution_payload_bid: SignedExecutionPayloadBid::empty(),
+                signed_execution_payload_bid: SignedExecutionPayloadBid::empty_gloas(),
                 payload_attestations: VariableList::empty(),
                 _phantom: PhantomData,
             },
@@ -758,7 +758,7 @@ impl<E: EthSpec, Payload: AbstractExecPayload<E>> EmptyBlock for BeaconBlockHeze
                 voluntary_exits: VariableList::empty(),
                 sync_aggregate: SyncAggregate::empty(),
                 bls_to_execution_changes: VariableList::empty(),
-                signed_execution_payload_bid: SignedExecutionPayloadBid::empty(),
+                signed_execution_payload_bid: SignedExecutionPayloadBid::empty_heze(),
                 payload_attestations: VariableList::empty(),
                 _phantom: PhantomData,
             },

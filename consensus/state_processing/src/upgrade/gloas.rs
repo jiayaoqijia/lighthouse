@@ -8,7 +8,8 @@ use std::mem;
 use typenum::Unsigned;
 use types::{
     BeaconState, BeaconStateError as Error, BeaconStateGloas, BuilderPendingPayment, ChainSpec,
-    DepositData, EthSpec, ExecutionPayloadBid, Fork, is_builder_withdrawal_credential,
+    DepositData, EthSpec, ExecutionPayloadBid, ExecutionPayloadBidGloas, Fork,
+    is_builder_withdrawal_credential,
 };
 
 /// Transform a `Fulu` state into a `Gloas` state.
@@ -74,10 +75,19 @@ pub fn upgrade_state_to_gloas<E: EthSpec>(
         current_sync_committee: pre.current_sync_committee.clone(),
         next_sync_committee: pre.next_sync_committee.clone(),
         // Execution Bid
-        latest_execution_payload_bid: ExecutionPayloadBid {
+        latest_execution_payload_bid: ExecutionPayloadBid::Gloas(ExecutionPayloadBidGloas {
+            parent_block_hash: Default::default(),
+            parent_block_root: Default::default(),
             block_hash: pre.latest_execution_payload_header.block_hash,
-            ..Default::default()
-        },
+            prev_randao: Default::default(),
+            fee_recipient: Default::default(),
+            gas_limit: Default::default(),
+            builder_index: Default::default(),
+            slot: Default::default(),
+            value: Default::default(),
+            execution_payment: Default::default(),
+            blob_kzg_commitments: Default::default(),
+        }),
         // Capella
         next_withdrawal_index: pre.next_withdrawal_index,
         next_withdrawal_validator_index: pre.next_withdrawal_validator_index,

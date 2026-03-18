@@ -560,9 +560,9 @@ pub fn process_execution_payload_bid<E: EthSpec, Payload: AbstractExecPayload<E>
     // Verify the bid signature
     let signed_bid = block.body().signed_execution_payload_bid()?;
 
-    let bid = &signed_bid.message;
-    let amount = bid.value;
-    let builder_index = bid.builder_index;
+    let bid = signed_bid.message();
+    let amount = bid.value();
+    let builder_index = bid.builder_index();
 
     // For self-builds, amount must be zero regardless of withdrawal credential prefix
     if builder_index == BUILDER_INDEX_SELF_BUILD {
@@ -571,7 +571,7 @@ pub fn process_execution_payload_bid<E: EthSpec, Payload: AbstractExecPayload<E>
             ExecutionPayloadBidInvalid::SelfBuildNonZeroAmount.into()
         );
         block_verify!(
-            signed_bid.signature.is_infinity(),
+            signed_bid.signature().is_infinity(),
             ExecutionPayloadBidInvalid::BadSignature.into()
         );
     } else {
@@ -614,19 +614,19 @@ pub fn process_execution_payload_bid<E: EthSpec, Payload: AbstractExecPayload<E>
     // Verify commitments are under limit
     let max_blobs_per_block = spec.max_blobs_per_block(state.current_epoch()) as usize;
     block_verify!(
-        bid.blob_kzg_commitments.len() <= max_blobs_per_block,
+        bid.blob_kzg_commitments().len() <= max_blobs_per_block,
         ExecutionPayloadBidInvalid::ExcessBlobCommitments {
             max: max_blobs_per_block,
-            bid: bid.blob_kzg_commitments.len(),
+            bid: bid.blob_kzg_commitments().len(),
         }
         .into()
     );
 
     // Verify that the bid is for the current slot
     block_verify!(
-        bid.slot == block.slot(),
+        bid.slot() == block.slot(),
         ExecutionPayloadBidInvalid::SlotMismatch {
-            bid_slot: bid.slot,
+            bid_slot: bid.slot(),
             block_slot: block.slot(),
         }
         .into()
@@ -635,29 +635,29 @@ pub fn process_execution_payload_bid<E: EthSpec, Payload: AbstractExecPayload<E>
     // Verify that the bid is for the right parent block
     let latest_block_hash = state.latest_block_hash()?;
     block_verify!(
-        bid.parent_block_hash == *latest_block_hash,
+        bid.parent_block_hash() == *latest_block_hash,
         ExecutionPayloadBidInvalid::ParentBlockHashMismatch {
             state_block_hash: *latest_block_hash,
-            bid_parent_hash: bid.parent_block_hash,
+            bid_parent_hash: bid.parent_block_hash(),
         }
         .into()
     );
 
     block_verify!(
-        bid.parent_block_root == block.parent_root(),
+        bid.parent_block_root() == block.parent_root(),
         ExecutionPayloadBidInvalid::ParentBlockRootMismatch {
             block_parent_root: block.parent_root(),
-            bid_parent_root: bid.parent_block_root,
+            bid_parent_root: bid.parent_block_root(),
         }
         .into()
     );
 
     let expected_randao = *state.get_randao_mix(state.current_epoch())?;
     block_verify!(
-        bid.prev_randao == expected_randao,
+        bid.prev_randao() == expected_randao,
         ExecutionPayloadBidInvalid::PrevRandaoMismatch {
             expected: expected_randao,
-            bid: bid.prev_randao,
+            bid: bid.prev_randao(),
         }
         .into()
     );
@@ -667,14 +667,14 @@ pub fn process_execution_payload_bid<E: EthSpec, Payload: AbstractExecPayload<E>
         let pending_payment = BuilderPendingPayment {
             weight: 0,
             withdrawal: BuilderPendingWithdrawal {
-                fee_recipient: bid.fee_recipient,
+                fee_recipient: bid.fee_recipient(),
                 amount,
                 builder_index,
             },
         };
 
         let payment_index = E::SlotsPerEpoch::to_usize()
-            .safe_add(bid.slot.as_usize().safe_rem(E::SlotsPerEpoch::to_usize())?)?;
+            .safe_add(bid.slot().as_usize().safe_rem(E::SlotsPerEpoch::to_usize())?)?;
 
         *state
             .builder_pending_payments_mut()?

@@ -399,8 +399,8 @@ where
     E: EthSpec,
     F: Fn(BuilderIndex) -> Option<Cow<'a, PublicKey>>,
 {
-    let execution_payload_bid = &signed_execution_payload_bid.message;
-    let builder_index = execution_payload_bid.builder_index;
+    let execution_payload_bid = signed_execution_payload_bid.message();
+    let builder_index = execution_payload_bid.builder_index();
     if builder_index == BUILDER_INDEX_SELF_BUILD {
         // No signatures to verify in case of a self-build, but consensus code MUST check that
         // the signature is the point at infinity.
@@ -418,7 +418,7 @@ where
     let message = execution_payload_bid.signing_root(domain);
 
     Ok(Some(SignatureSet::single_pubkey(
-        &signed_execution_payload_bid.signature,
+        signed_execution_payload_bid.signature(),
         pubkey,
         message,
     )))

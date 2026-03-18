@@ -1,11 +1,15 @@
 use crate::kzg_ext::KzgCommitments;
+use crate::state::BeaconStateError;
 use crate::test_utils::TestRandom;
 use crate::{Address, EthSpec, ExecutionBlockHash, ForkName, Hash256, SignedRoot, Slot};
-use context_deserialize::context_deserialize;
+use context_deserialize::{ContextDeserialize, context_deserialize};
 use educe::Educe;
-use serde::{Deserialize, Serialize};
+use rand::RngCore;
+use serde::{Deserialize, Deserializer, Serialize};
+use ssz::Decode;
 use ssz_derive::{Decode, Encode};
 use ssz_types::BitVector;
+use superstruct::superstruct;
 use test_random_derive::TestRandom;
 use tree_hash_derive::TreeHash;
 use typenum::U16;
@@ -13,55 +17,162 @@ use typenum::U16;
 /// Size of the inclusion list committee as per EIP-7805.
 pub const INCLUSION_LIST_COMMITTEE_SIZE: usize = 16;
 
-#[derive(
-    Default, Debug, Clone, Serialize, Encode, Decode, Deserialize, TreeHash, Educe, TestRandom,
-)]
-#[cfg_attr(
-    feature = "arbitrary",
-    derive(arbitrary::Arbitrary),
-    arbitrary(bound = "E: EthSpec")
-)]
-#[educe(PartialEq, Hash)]
-#[serde(bound = "E: EthSpec")]
-#[context_deserialize(ForkName)]
+/// Superstruct combining ExecutionPayloadBid variants for Gloas and Heze.
+/// Gloas variant does NOT have inclusion_list_bits.
+/// Heze variant has inclusion_list_bits as per EIP-7805.
 // https://github.com/ethereum/consensus-specs/blob/master/specs/gloas/beacon-chain.md#executionpayloadbid
 // Modified in Heze:EIP7805 to add inclusion_list_bits
+#[superstruct(
+    variants(Gloas, Heze),
+    variant_attributes(
+        derive(
+            Default,
+            Debug,
+            Clone,
+            Serialize,
+            Deserialize,
+            Encode,
+            Decode,
+            TreeHash,
+            Educe,
+            TestRandom,
+        ),
+        context_deserialize(ForkName),
+        educe(PartialEq, Hash),
+        serde(bound = "E: EthSpec", deny_unknown_fields),
+        cfg_attr(
+            feature = "arbitrary",
+            derive(arbitrary::Arbitrary),
+            arbitrary(bound = "E: EthSpec"),
+        ),
+    ),
+    cast_error(ty = "BeaconStateError", expr = "BeaconStateError::IncorrectStateVariant"),
+    partial_getter_error(ty = "BeaconStateError", expr = "BeaconStateError::IncorrectStateVariant")
+)]
+#[derive(Debug, Clone, Serialize, Deserialize, Encode, TreeHash, Educe)]
+#[educe(PartialEq, Hash)]
+#[serde(bound = "E: EthSpec", untagged)]
+#[ssz(enum_behaviour = "transparent")]
+#[tree_hash(enum_behaviour = "transparent")]
 pub struct ExecutionPayloadBid<E: EthSpec> {
+    #[superstruct(getter(copy))]
     pub parent_block_hash: ExecutionBlockHash,
+    #[superstruct(getter(copy))]
     pub parent_block_root: Hash256,
+    #[superstruct(getter(copy))]
     pub block_hash: ExecutionBlockHash,
+    #[superstruct(getter(copy))]
     pub prev_randao: Hash256,
     #[serde(with = "serde_utils::address_hex")]
+    #[superstruct(getter(copy))]
     pub fee_recipient: Address,
     #[serde(with = "serde_utils::quoted_u64")]
+    #[superstruct(getter(copy))]
     pub gas_limit: u64,
     #[serde(with = "serde_utils::quoted_u64")]
+    #[superstruct(getter(copy))]
     pub builder_index: u64,
+    #[superstruct(getter(copy))]
     pub slot: Slot,
     #[serde(with = "serde_utils::quoted_u64")]
+    #[superstruct(getter(copy))]
     pub value: u64,
     #[serde(with = "serde_utils::quoted_u64")]
+    #[superstruct(getter(copy))]
     pub execution_payment: u64,
     pub blob_kzg_commitments: KzgCommitments<E>,
     /// [New in Heze:EIP7805] Bitvector indicating which IL committee members' ILs are satisfied.
     /// Each bit corresponds to a committee member index. If bit i is set, the builder claims
     /// to have satisfied the IL from committee member i.
     /// Default is all zeros (no ILs satisfied).
-    /// Note: For pre-Heze (Gloas), this field should be all zeros.
-    #[serde(default = "default_inclusion_list_bits")]
+    #[superstruct(only(Heze))]
+    #[serde(default)]
     pub inclusion_list_bits: BitVector<U16>,
 }
 
-fn default_inclusion_list_bits() -> BitVector<U16> {
-    BitVector::default()
+// Manual implementation of Decode for the enum
+impl<E: EthSpec> Decode for ExecutionPayloadBid<E> {
+    fn is_ssz_fixed_len() -> bool {
+        false
+    }
+
+    fn ssz_fixed_len() -> usize {
+        <Self as Decode>::from_ssz_bytes(&[])
+            .map(|_| 0)
+            .unwrap_or(0)
+    }
+
+    fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
+        // Try Heze first (longer encoding with inclusion_list_bits)
+        // If that fails, try Gloas
+        ExecutionPayloadBidHeze::from_ssz_bytes(bytes)
+            .map(Self::Heze)
+            .or_else(|_| ExecutionPayloadBidGloas::from_ssz_bytes(bytes).map(Self::Gloas))
+    }
+}
+
+// Manual implementation of TestRandom for the enum
+impl<E: EthSpec> TestRandom for ExecutionPayloadBid<E> {
+    fn random_for_test(rng: &mut impl RngCore) -> Self {
+        // Randomly choose Gloas or Heze variant
+        if bool::random_for_test(rng) {
+            Self::Heze(ExecutionPayloadBidHeze::random_for_test(rng))
+        } else {
+            Self::Gloas(ExecutionPayloadBidGloas::random_for_test(rng))
+        }
+    }
+}
+
+impl<E: EthSpec> crate::fork::ForkVersionDecode for ExecutionPayloadBid<E> {
+    fn from_ssz_bytes_by_fork(bytes: &[u8], fork_name: ForkName) -> Result<Self, ssz::DecodeError> {
+        match fork_name {
+            ForkName::Base | ForkName::Altair | ForkName::Bellatrix | ForkName::Capella 
+            | ForkName::Deneb | ForkName::Electra | ForkName::Fulu => {
+                Err(ssz::DecodeError::BytesInvalid(format!(
+                    "unsupported fork for ExecutionPayloadBid: {fork_name}",
+                )))
+            }
+            ForkName::Gloas => ExecutionPayloadBidGloas::from_ssz_bytes(bytes).map(Self::Gloas),
+            ForkName::Heze => ExecutionPayloadBidHeze::from_ssz_bytes(bytes).map(Self::Heze),
+        }
+    }
+}
+
+impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for ExecutionPayloadBid<E> {
+    fn context_deserialize<D>(deserializer: D, context: ForkName) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let convert_err = |e| {
+            serde::de::Error::custom(format!("ExecutionPayloadBid failed to deserialize: {:?}", e))
+        };
+        Ok(match context {
+            ForkName::Base | ForkName::Altair | ForkName::Bellatrix | ForkName::Capella 
+            | ForkName::Deneb | ForkName::Electra | ForkName::Fulu => {
+                return Err(serde::de::Error::custom(format!(
+                    "ExecutionPayloadBid failed to deserialize: unsupported fork '{}'",
+                    context
+                )));
+            }
+            ForkName::Gloas => {
+                Self::Gloas(Deserialize::deserialize(deserializer).map_err(convert_err)?)
+            }
+            ForkName::Heze => {
+                Self::Heze(Deserialize::deserialize(deserializer).map_err(convert_err)?)
+            }
+        })
+    }
 }
 
 impl<E: EthSpec> SignedRoot for ExecutionPayloadBid<E> {}
+impl<E: EthSpec> SignedRoot for ExecutionPayloadBidGloas<E> {}
+impl<E: EthSpec> SignedRoot for ExecutionPayloadBidHeze<E> {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::MainnetEthSpec;
 
-    ssz_and_tree_hash_tests!(ExecutionPayloadBid<MainnetEthSpec>);
+    ssz_and_tree_hash_tests!(ExecutionPayloadBidGloas<MainnetEthSpec>);
+    ssz_and_tree_hash_tests!(ExecutionPayloadBidHeze<MainnetEthSpec>);
 }

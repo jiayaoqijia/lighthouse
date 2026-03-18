@@ -170,16 +170,16 @@ pub fn process_execution_payload_envelope<E: EthSpec>(
     // Verify consistency with the committed bid
     let committed_bid = state.latest_execution_payload_bid()?;
     envelope_verify!(
-        envelope.builder_index == committed_bid.builder_index,
+        envelope.builder_index == committed_bid.builder_index(),
         EnvelopeProcessingError::BuilderIndexMismatch {
-            committed_bid: committed_bid.builder_index,
+            committed_bid: committed_bid.builder_index(),
             envelope: envelope.builder_index,
         }
     );
     envelope_verify!(
-        committed_bid.prev_randao == payload.prev_randao,
+        committed_bid.prev_randao() == payload.prev_randao,
         EnvelopeProcessingError::PrevRandaoMismatch {
-            committed_bid: committed_bid.prev_randao,
+            committed_bid: committed_bid.prev_randao(),
             envelope: payload.prev_randao,
         }
     );
@@ -203,18 +203,18 @@ pub fn process_execution_payload_envelope<E: EthSpec>(
 
     // Verify the gas limit
     envelope_verify!(
-        committed_bid.gas_limit == payload.gas_limit,
+        committed_bid.gas_limit() == payload.gas_limit,
         EnvelopeProcessingError::GasLimitMismatch {
-            committed_bid: committed_bid.gas_limit,
+            committed_bid: committed_bid.gas_limit(),
             envelope: payload.gas_limit,
         }
     );
 
     // Verify the block hash
     envelope_verify!(
-        committed_bid.block_hash == payload.block_hash,
+        committed_bid.block_hash() == payload.block_hash,
         EnvelopeProcessingError::BlockHashMismatch {
-            committed_bid: committed_bid.block_hash,
+            committed_bid: committed_bid.block_hash(),
             envelope: payload.block_hash,
         }
     );
