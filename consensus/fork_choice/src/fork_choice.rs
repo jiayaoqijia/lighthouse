@@ -241,15 +241,23 @@ pub struct QueuedAttestation {
     attesting_indices: Vec<u64>,
     block_root: Hash256,
     target_epoch: Epoch,
+    /// [New in Gloas:EIP7732] Whether the attestation votes for FULL (true) or EMPTY (false) chain.
+    /// Derived from attestation.data.index (0 = EMPTY, 1 = FULL).
+    payload_present: bool,
 }
 
 impl<'a, E: EthSpec> From<IndexedAttestationRef<'a, E>> for QueuedAttestation {
     fn from(a: IndexedAttestationRef<'a, E>) -> Self {
+        // [New in Gloas:EIP7732] Extract payload_present from attestation.data.index
+        // index = 0 → payload_present = false (EMPTY chain vote)
+        // index = 1 → payload_present = true (FULL chain vote)
+        let payload_present = a.data().index == 1;
         Self {
             slot: a.data().slot,
             attesting_indices: a.attesting_indices_to_vec(),
             block_root: a.data().beacon_block_root,
             target_epoch: a.data().target.epoch,
+            payload_present,
         }
     }
 }
@@ -1103,10 +1111,15 @@ where
 
         if attestation.data().slot < self.fc_store.get_current_slot() {
             for validator_index in attestation.attesting_indices_iter() {
+                // [New in Gloas:EIP7732] Extract payload_present from attestation.data.index
+                // index = 0 → payload_present = false (EMPTY chain vote)
+                // index = 1 → payload_present = true (FULL chain vote)
+                let payload_present = attestation.data().index == 1;
                 self.proto_array.process_attestation(
                     *validator_index as usize,
                     attestation.data().beacon_block_root,
                     attestation.data().target.epoch,
+                    payload_present,
                 )?;
             }
         } else {
@@ -1230,6 +1243,7 @@ where
                     *validator_index as usize,
                     attestation.block_root,
                     attestation.target_epoch,
+                    attestation.payload_present,
                 )?;
             }
         }

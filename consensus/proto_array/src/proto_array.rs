@@ -12,10 +12,75 @@ use types::{
     Slot,
 };
 
+// Re-export Gloas constants for fork choice
+pub use types::consts::gloas::{
+    PayloadStatus, PAYLOAD_STATUS_EMPTY, PAYLOAD_STATUS_FULL, PAYLOAD_STATUS_PENDING,
+    ATTESTATION_TIMELINESS_INDEX, PTC_TIMELINESS_INDEX, NUM_BLOCK_TIMELINESS_DEADLINES,
+};
+
 // Define a "legacy" implementation of `Option<usize>` which uses four bytes for encoding the union
 // selector.
 four_byte_option_impl!(four_byte_option_usize, usize);
 four_byte_option_impl!(four_byte_option_checkpoint, Checkpoint);
+
+/// [New in Gloas:EIP7732] Represents a node in the fork choice tree with payload status.
+///
+/// This is the Rust equivalent of the Python `ForkChoiceNode` container defined in
+/// `specs/gloas/fork-choice.md`:
+///
+/// ```python
+/// class ForkChoiceNode(Container):
+///     root: Root
+///     payload_status: PayloadStatus  # One of PAYLOAD_STATUS_* values
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default, Serialize, Deserialize)]
+pub struct ForkChoiceNode {
+    /// The beacon block root.
+    pub root: Hash256,
+    /// The payload status of this node: EMPTY, FULL, or PENDING.
+    pub payload_status: PayloadStatus,
+}
+
+impl ForkChoiceNode {
+    /// Create a new ForkChoiceNode with the given root and PENDING status.
+    pub fn pending(root: Hash256) -> Self {
+        Self {
+            root,
+            payload_status: PAYLOAD_STATUS_PENDING,
+        }
+    }
+
+    /// Create a new ForkChoiceNode with the given root and EMPTY status.
+    pub fn empty(root: Hash256) -> Self {
+        Self {
+            root,
+            payload_status: PAYLOAD_STATUS_EMPTY,
+        }
+    }
+
+    /// Create a new ForkChoiceNode with the given root and FULL status.
+    pub fn full(root: Hash256) -> Self {
+        Self {
+            root,
+            payload_status: PAYLOAD_STATUS_FULL,
+        }
+    }
+
+    /// Returns true if this node has PENDING payload status.
+    pub fn is_pending(&self) -> bool {
+        self.payload_status == PAYLOAD_STATUS_PENDING
+    }
+
+    /// Returns true if this node has EMPTY payload status.
+    pub fn is_empty(&self) -> bool {
+        self.payload_status == PAYLOAD_STATUS_EMPTY
+    }
+
+    /// Returns true if this node has FULL payload status.
+    pub fn is_full(&self) -> bool {
+        self.payload_status == PAYLOAD_STATUS_FULL
+    }
+}
 
 /// Defines an operation which may invalidate the `execution_status` of some nodes.
 #[derive(Clone, Debug)]

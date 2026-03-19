@@ -232,8 +232,9 @@ impl ForkChoiceTestDefinition {
                     block_root,
                     target_epoch,
                 } => {
+                    // [Gloas] Default to false (EMPTY chain vote) for test compatibility
                     fork_choice
-                        .process_attestation(validator_index, block_root, target_epoch)
+                        .process_attestation(validator_index, block_root, target_epoch, false)
                         .unwrap_or_else(|_| {
                             panic!(
                                 "process_attestation op at index {} returned error",

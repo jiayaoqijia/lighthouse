@@ -22,11 +22,20 @@ use types::{
 
 pub const DEFAULT_PRUNE_THRESHOLD: usize = 256;
 
+/// Tracks the voting state of a single validator.
+///
+/// [New in Gloas:EIP7732] Added `next_payload_present` field to track whether
+/// the validator is voting for an EMPTY (false) or FULL (true) chain.
 #[derive(Default, PartialEq, Clone, Encode, Decode)]
 pub struct VoteTracker {
     current_root: Hash256,
     next_root: Hash256,
     next_epoch: Epoch,
+    /// [New in Gloas:EIP7732] The payload status the validator is voting for.
+    /// - `false`: voting for EMPTY chain (attestation.data.index == 0)
+    /// - `true`: voting for FULL chain (attestation.data.index == 1)
+    /// This is only meaningful when `next_root` is set.
+    next_payload_present: bool,
 }
 
 /// Represents the verification status of an execution payload.
@@ -484,17 +493,24 @@ impl ProtoArrayForkChoice {
             .map_err(|e| format!("Failed to process invalid payload: {:?}", e))
     }
 
+    /// Process an attestation from a validator.
+    ///
+    /// [New in Gloas:EIP7732] Added `payload_present` parameter to track whether
+    /// the validator is voting for EMPTY (false) or FULL (true) chain.
     pub fn process_attestation(
         &mut self,
         validator_index: usize,
         block_root: Hash256,
         target_epoch: Epoch,
+        payload_present: bool,
     ) -> Result<(), String> {
         let vote = self.votes.get_mut(validator_index);
 
         if target_epoch > vote.next_epoch || *vote == VoteTracker::default() {
             vote.next_root = block_root;
             vote.next_epoch = target_epoch;
+            // [New in Gloas:EIP7732] Store payload preference
+            vote.next_payload_present = payload_present;
         }
 
         Ok(())
