@@ -12,7 +12,7 @@ use state_processing::{
     per_block_processing::errors::AttesterSlashingValidationError, per_epoch_processing,
 };
 use std::cmp::Ordering;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::marker::PhantomData;
 use std::time::Duration;
 use superstruct::superstruct;
@@ -493,12 +493,19 @@ where
         // the current slot. The `fc_store` will ensure that the `current_slot` is never
         // decreasing, a property which we must maintain.
         let current_slot = self.update_time(system_time_current_slot)?;
+        let gloas_enabled = spec
+            .fork_name_at_epoch(current_slot.epoch(E::slots_per_epoch()))
+            .gloas_enabled();
+        let payload_status_tiebreakers =
+            gloas_enabled.then(|| self.compute_payload_status_tiebreakers(current_slot));
 
         let store = &mut self.fc_store;
 
         // [New in Gloas:EIP7732] Use payload status tiebreaker for Gloas forks
-        let head_root = if spec.fork_name_at_epoch(current_slot.epoch(E::slots_per_epoch())).gloas_enabled() {
-            let current_slot_copy = current_slot;
+        let head_root = if gloas_enabled {
+            let payload_status_tiebreakers = payload_status_tiebreakers
+                .as_ref()
+                .expect("payload status tiebreakers computed for Gloas");
             self.proto_array.find_head_with_tiebreaker::<E, _>(
                 *store.justified_checkpoint(),
                 *store.finalized_checkpoint(),
@@ -508,19 +515,27 @@ where
                 current_slot,
                 spec,
                 |child, best_child| {
-                    // Simple tiebreaker: prefer nodes with bid_block_hash (FULL) over those without (EMPTY)
-                    // Full implementation would use get_payload_status_tiebreaker which considers
-                    // should_extend_payload and PTC votes
-                    let child_is_full = child.bid_block_hash.is_some();
-                    let best_is_full = best_child.bid_block_hash.is_some();
-
-                    // For nodes from the previous slot, prefer FULL if conditions are met
-                    // This is a simplified version - full implementation needs PTC votes
-                    if child.slot + 1 == current_slot_copy {
-                        child_is_full && !best_is_full
-                    } else {
-                        false // Use root comparison for nodes not from previous slot
-                    }
+                    let child_tiebreaker = payload_status_tiebreakers
+                        .get(&child.root)
+                        .copied()
+                        .unwrap_or_else(|| {
+                            if child.bid_block_hash.is_some() {
+                                proto_array::PAYLOAD_STATUS_FULL
+                            } else {
+                                proto_array::PAYLOAD_STATUS_EMPTY
+                            }
+                        });
+                    let best_tiebreaker = payload_status_tiebreakers
+                        .get(&best_child.root)
+                        .copied()
+                        .unwrap_or_else(|| {
+                            if best_child.bid_block_hash.is_some() {
+                                proto_array::PAYLOAD_STATUS_FULL
+                            } else {
+                                proto_array::PAYLOAD_STATUS_EMPTY
+                            }
+                        });
+                    child_tiebreaker > best_tiebreaker
                 },
             )
         } else {
@@ -1572,26 +1587,28 @@ where
 
     /// [New in Heze:EIP7805] Set whether the execution payload for a beacon block
     /// satisfies the inclusion list constraints.
-    pub fn set_payload_inclusion_list_satisfaction(&mut self, block_root: Hash256, satisfied: bool) {
-        self.fc_store.set_payload_inclusion_list_satisfaction(block_root, satisfied);
+    pub fn set_payload_inclusion_list_satisfaction(
+        &mut self,
+        block_root: Hash256,
+        satisfied: bool,
+    ) {
+        self.fc_store
+            .set_payload_inclusion_list_satisfaction(block_root, satisfied);
     }
 
     /// [New in Heze:EIP7805] Check if the execution payload for a beacon block
     /// satisfies the inclusion list constraints.
     pub fn is_payload_inclusion_list_satisfied(&self, block_root: Hash256) -> Option<bool> {
-        self.fc_store.is_payload_inclusion_list_satisfied(block_root)
+        self.fc_store
+            .is_payload_inclusion_list_satisfied(block_root)
     }
 
     // ===== [New in Gloas:EIP7732] PTC and Fork Choice Methods =====
 
     /// [New in Gloas:EIP7732] Record a PTC timeliness vote for a block.
-    pub fn set_payload_timeliness_vote(
-        &mut self,
-        block_root: Hash256,
-        index: usize,
-        vote: bool,
-    ) {
-        self.fc_store.set_payload_timeliness_vote(block_root, index, vote);
+    pub fn set_payload_timeliness_vote(&mut self, block_root: Hash256, index: usize, vote: bool) {
+        self.fc_store
+            .set_payload_timeliness_vote(block_root, index, vote);
     }
 
     /// [New in Gloas:EIP7732] Record a PTC data availability vote for a block.
@@ -1601,7 +1618,8 @@ where
         index: usize,
         vote: bool,
     ) {
-        self.fc_store.set_payload_data_availability_vote(block_root, index, vote);
+        self.fc_store
+            .set_payload_data_availability_vote(block_root, index, vote);
     }
 
     /// [New in Gloas:EIP7732] Check if payload is timely based on PTC votes.
@@ -1611,7 +1629,8 @@ where
 
     /// [New in Gloas:EIP7732] Check if payload data is available based on PTC votes.
     pub fn is_payload_data_available(&self, block_root: Hash256) -> bool {
-        self.fc_store.is_payload_data_available(E::ptc_size(), block_root)
+        self.fc_store
+            .is_payload_data_available(E::ptc_size(), block_root)
     }
 
     /// [New in Gloas:EIP7732] Initialize PTC voting for a new block.
@@ -1621,7 +1640,8 @@ where
         // Initialize with default (false) votes for all PTC members
         // The actual votes will be set via set_payload_timeliness_vote and
         // set_payload_data_availability_vote as PTC messages arrive
-        self.fc_store.initialize_ptc_votes(block_root, E::ptc_size());
+        self.fc_store
+            .initialize_ptc_votes(block_root, E::ptc_size());
     }
 
     /// [New in Gloas:EIP7732] Process a payload attestation message.
@@ -1639,8 +1659,13 @@ where
         ptc_index: usize,
     ) {
         // Update the votes for the block
-        self.fc_store.set_payload_timeliness_vote(beacon_block_root, ptc_index, payload_present);
-        self.fc_store.set_payload_data_availability_vote(beacon_block_root, ptc_index, blob_data_available);
+        self.fc_store
+            .set_payload_timeliness_vote(beacon_block_root, ptc_index, payload_present);
+        self.fc_store.set_payload_data_availability_vote(
+            beacon_block_root,
+            ptc_index,
+            blob_data_available,
+        );
     }
 
     /// [New in Gloas:EIP7732] Determine if we should extend a payload from the previous slot.
@@ -1685,6 +1710,25 @@ where
         };
 
         self.proto_array.is_parent_node_full(proposer_proto_node)
+    }
+
+    fn compute_payload_status_tiebreakers(&self, current_slot: Slot) -> HashMap<Hash256, u8> {
+        self.proto_array
+            .core_proto_array()
+            .nodes
+            .iter()
+            .map(|node| {
+                let fork_choice_node = if node.bid_block_hash.is_some() {
+                    proto_array::ForkChoiceNode::full(node.root)
+                } else {
+                    proto_array::ForkChoiceNode::empty(node.root)
+                };
+                (
+                    node.root,
+                    self.get_payload_status_tiebreaker(&fork_choice_node, current_slot),
+                )
+            })
+            .collect()
     }
 
     /// [New in Gloas:EIP7732] Get the payload status tiebreaker value.

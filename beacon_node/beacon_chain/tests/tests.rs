@@ -16,8 +16,9 @@ use state_processing::{per_slot_processing, per_slot_processing::Error as SlotPr
 use std::sync::LazyLock;
 use types::{
     BeaconState, BeaconStateError, BlockImportSource, ChainSpec, Checkpoint,
-    DEFAULT_PRE_ELECTRA_WS_PERIOD, EthSpec, ForkName, Hash256, MainnetEthSpec, MinimalEthSpec,
-    RelativeEpoch, Slot,
+    DEFAULT_PRE_ELECTRA_WS_PERIOD, Domain, Epoch, EthSpec, ForkName, Hash256, MainnetEthSpec,
+    MinimalEthSpec, PayloadAttestationData, PayloadAttestationMessage, RelativeEpoch, SignedRoot,
+    Slot,
 };
 
 type E = MinimalEthSpec;
@@ -67,6 +68,30 @@ fn get_harness_with_config(
     let harness = BeaconChainHarness::builder(MinimalEthSpec)
         .default_spec()
         .chain_config(chain_config)
+        .keypairs(KEYPAIRS[0..validator_count].to_vec())
+        .fresh_ephemeral_store()
+        .mock_execution_layer()
+        .build();
+
+    harness.advance_slot();
+
+    harness
+}
+
+fn get_gloas_harness(
+    validator_count: usize,
+) -> BeaconChainHarness<EphemeralHarnessType<MinimalEthSpec>> {
+    let mut spec = MinimalEthSpec::default_spec();
+    spec.gloas_fork_epoch = Some(Epoch::new(0));
+    spec.heze_fork_epoch = Some(Epoch::new(0));
+    let spec = spec.compute_derived_values::<MinimalEthSpec>();
+
+    let harness = BeaconChainHarness::builder(MinimalEthSpec)
+        .spec(spec.clone().into())
+        .chain_config(ChainConfig {
+            archive: true,
+            ..Default::default()
+        })
         .keypairs(KEYPAIRS[0..validator_count].to_vec())
         .fresh_ephemeral_store()
         .mock_execution_layer()
@@ -210,6 +235,64 @@ async fn iterators() {
         (head.beacon_state_root(), head.beacon_state.slot()),
         "last state root and slot should be for the head state"
     );
+}
+
+#[tokio::test]
+async fn payload_attestation_messages_update_ptc_votes() {
+    let harness = get_gloas_harness(VALIDATOR_COUNT);
+    let block_root = harness.extend_slots(1).await;
+
+    harness.advance_slot();
+
+    let attestation_slot = Slot::new(1);
+    let current_slot = harness.chain.slot().unwrap();
+    assert_eq!(current_slot, Slot::new(2));
+
+    let mut state = harness
+        .chain
+        .state_at_slot(current_slot, StateSkipConfig::WithoutStateRoots)
+        .unwrap();
+    state
+        .build_committee_cache(RelativeEpoch::Previous, &harness.chain.spec)
+        .unwrap();
+    state
+        .build_committee_cache(RelativeEpoch::Current, &harness.chain.spec)
+        .unwrap();
+
+    let ptc = state
+        .get_ptc(attestation_slot, &harness.chain.spec)
+        .unwrap();
+    let validator_index = ptc.into_iter().next().unwrap();
+
+    let data = PayloadAttestationData {
+        beacon_block_root: block_root,
+        slot: attestation_slot,
+        payload_present: true,
+        blob_data_available: true,
+    };
+    let domain = harness.chain.spec.get_domain(
+        attestation_slot.epoch(MinimalEthSpec::slots_per_epoch()),
+        Domain::PTCAttester,
+        &state.fork(),
+        state.genesis_validators_root(),
+    );
+    let signature = harness.validator_keypairs[validator_index]
+        .sk
+        .sign(data.signing_root(domain));
+    let message = PayloadAttestationMessage {
+        validator_index: validator_index as u64,
+        data,
+        signature,
+    };
+
+    harness
+        .chain
+        .apply_payload_attestation_to_fork_choice(&message)
+        .unwrap();
+
+    let fork_choice = harness.chain.canonical_head.fork_choice_read_lock();
+    assert!(fork_choice.is_payload_timely(block_root));
+    assert!(fork_choice.is_payload_data_available(block_root));
 }
 
 fn find_reorg_slot(

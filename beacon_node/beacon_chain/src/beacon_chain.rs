@@ -2288,6 +2288,84 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             .map_err(Into::into)
     }
 
+    /// Verifies a payload attestation message and records its PTC vote in fork choice.
+    pub fn apply_payload_attestation_to_fork_choice(
+        &self,
+        payload_attestation_message: &PayloadAttestationMessage,
+    ) -> Result<(), Error> {
+        let current_slot = self.slot()?;
+        let attestation_slot = payload_attestation_message.data.slot;
+        let expected_current_slot = attestation_slot
+            .safe_add(Slot::new(1))
+            .map_err(Error::ArithError)?;
+
+        if expected_current_slot != current_slot {
+            return Err(Error::InvalidPayloadAttestation(format!(
+                "expected current slot {expected_current_slot}, got {current_slot}"
+            )));
+        }
+
+        let fork_choice = self.canonical_head.fork_choice_read_lock();
+        let Some(proto_block) =
+            fork_choice.get_block(&payload_attestation_message.data.beacon_block_root)
+        else {
+            return Err(Error::MissingBeaconBlock(
+                payload_attestation_message.data.beacon_block_root,
+            ));
+        };
+
+        if proto_block.slot != attestation_slot {
+            return Err(Error::InvalidPayloadAttestation(format!(
+                "payload attestation slot {} does not match block slot {}",
+                attestation_slot, proto_block.slot
+            )));
+        }
+        drop(fork_choice);
+
+        let mut state = self.state_at_slot(current_slot, StateSkipConfig::WithoutStateRoots)?;
+        state.build_committee_cache(RelativeEpoch::Previous, &self.spec)?;
+        state.build_committee_cache(RelativeEpoch::Current, &self.spec)?;
+
+        let ptc = state.get_ptc(attestation_slot, &self.spec)?;
+        let validator_index = payload_attestation_message.validator_index as usize;
+        let Some(ptc_index) = ptc.into_iter().position(|index| index == validator_index) else {
+            return Err(Error::InvalidPayloadAttestation(format!(
+                "validator {validator_index} is not in the PTC for slot {attestation_slot}"
+            )));
+        };
+
+        let pubkey = self
+            .validator_pubkey(validator_index)?
+            .ok_or(Error::ValidatorIndexUnknown(validator_index))?;
+        let domain = self.spec.get_domain(
+            attestation_slot.epoch(T::EthSpec::slots_per_epoch()),
+            Domain::PTCAttester,
+            &state.fork(),
+            state.genesis_validators_root(),
+        );
+        let signing_root = payload_attestation_message.data.signing_root(domain);
+        if !payload_attestation_message
+            .signature
+            .verify(&pubkey, signing_root)
+        {
+            return Err(Error::InvalidPayloadAttestation(format!(
+                "invalid signature for validator {validator_index}"
+            )));
+        }
+
+        self.canonical_head
+            .fork_choice_write_lock()
+            .on_payload_attestation_message(
+                payload_attestation_message.validator_index,
+                payload_attestation_message.data.beacon_block_root,
+                attestation_slot,
+                payload_attestation_message.data.payload_present,
+                payload_attestation_message.data.blob_data_available,
+                ptc_index,
+            );
+        Ok(())
+    }
+
     /// Accepts an `VerifiedUnaggregatedAttestation` and attempts to apply it to the "naive
     /// aggregation pool".
     ///
@@ -5677,7 +5755,8 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             }
             BeaconState::Gloas(_) | BeaconState::Heze(_) => {
                 return Err(BlockProductionError::GloasNotImplemented(
-                    "Attempting to produce gloas/heze beacon block via non gloas code path".to_owned(),
+                    "Attempting to produce gloas/heze beacon block via non gloas code path"
+                        .to_owned(),
                 ));
             }
         };
@@ -6260,7 +6339,9 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                 // [New in Heze:EIP7805] Payload is valid but doesn't satisfy IL constraints.
                 // This is not a fork choice error - the payload is structurally valid.
                 // The IL satisfaction is tracked separately via payload_inclusion_list_satisfaction.
-                PayloadStatus::InclusionListUnsatisfied { ref validation_error } => {
+                PayloadStatus::InclusionListUnsatisfied {
+                    ref validation_error,
+                } => {
                     warn!(
                         ?validation_error,
                         ?head_hash,
@@ -7289,27 +7370,29 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
     /// or an error if verification failed.
     pub fn process_inclusion_list(
         &self,
-        signed_inclusion_list: crate::inclusion_list_verification::VerifiedInclusionList<T::EthSpec>,
+        signed_inclusion_list: crate::inclusion_list_verification::VerifiedInclusionList<
+            T::EthSpec,
+        >,
     ) -> Result<bool, Error> {
         let message = &signed_inclusion_list.as_inner().message;
         let slot = message.slot;
-        
+
         // Check if we're before the view freeze cutoff
         let is_before_view_freeze_cutoff = self.is_before_view_freeze_cutoff(slot)?;
-        
+
         // Process the inclusion list through the store
         let processed = self.inclusion_list_store.process_signed_inclusion_list(
             signed_inclusion_list.into_inner(),
             is_before_view_freeze_cutoff,
         );
-        
+
         if processed {
             metrics::inc_counter(&metrics::INCLUSION_LIST_PROCESSED_TOTAL);
         }
-        
+
         Ok(processed)
     }
-    
+
     /// Check if the current time is before the view freeze cutoff for a given slot.
     ///
     /// The view freeze cutoff is defined as:
@@ -7319,15 +7402,15 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             .slot_clock
             .start_of(slot)
             .ok_or_else(|| Error::from(BeaconStateError::SlotOutOfBounds))?;
-        
+
         let now = self
             .slot_clock
             .now_duration()
             .ok_or_else(|| Error::from(BeaconStateError::SlotOutOfBounds))?;
-        
+
         let elapsed = now.saturating_sub(slot_start);
         let view_freeze_cutoff = self.spec.get_view_freeze_cutoff();
-        
+
         Ok(elapsed < view_freeze_cutoff)
     }
 }

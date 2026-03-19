@@ -43,8 +43,8 @@ use types::{
     LightClientOptimisticUpdate, PayloadAttestationMessage, ProposerSlashing,
     SignedAggregateAndProof, SignedBeaconBlock, SignedBlsToExecutionChange,
     SignedContributionAndProof, SignedExecutionPayloadBid, SignedExecutionPayloadEnvelope,
-    SignedInclusionList, SignedProposerPreferences, SignedVoluntaryExit, SingleAttestation, Slot, SubnetId,
-    SyncCommitteeMessage, SyncSubnetId, block::BlockImportSource,
+    SignedInclusionList, SignedProposerPreferences, SignedVoluntaryExit, SingleAttestation, Slot,
+    SubnetId, SyncCommitteeMessage, SyncSubnetId, block::BlockImportSource,
 };
 
 use beacon_processor::work_reprocessing_queue::QueuedColumnReconstruction;
@@ -3497,9 +3497,6 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         peer_id: PeerId,
         payload_attestation_message: PayloadAttestationMessage,
     ) {
-        // TODO(EIP-7732): Implement proper payload attestation message gossip processing.
-        // This should integrate with a payload_attestation_verification.rs module once it's implemented.
-
         trace!(
             %peer_id,
             validator_index = payload_attestation_message.validator_index,
@@ -3508,8 +3505,39 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
             "Processing payload attestation message"
         );
 
-        // For now, ignore all payload attestation messages since verification is not implemented
-        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
+        match self
+            .chain
+            .apply_payload_attestation_to_fork_choice(&payload_attestation_message)
+        {
+            Ok(()) => {
+                self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Accept);
+            }
+            Err(BeaconChainError::MissingBeaconBlock(_))
+            | Err(BeaconChainError::NoStateForSlot(_)) => {
+                debug!(
+                    %peer_id,
+                    validator_index = payload_attestation_message.validator_index,
+                    slot = %payload_attestation_message.data.slot,
+                    "Ignoring payload attestation until required block/state is available"
+                );
+                self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
+            }
+            Err(error) => {
+                debug!(
+                    %peer_id,
+                    validator_index = payload_attestation_message.validator_index,
+                    slot = %payload_attestation_message.data.slot,
+                    ?error,
+                    "Rejecting invalid payload attestation"
+                );
+                self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Reject);
+                self.gossip_penalize_peer(
+                    peer_id,
+                    PeerAction::LowToleranceError,
+                    "payload_attestation_invalid",
+                );
+            }
+        }
     }
 
     pub fn process_gossip_proposer_preferences(
@@ -3562,57 +3590,90 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
 
         // Perform basic P2P verification (size and slot checks)
         use beacon_chain::inclusion_list_verification::VerifiedInclusionList;
-        
-        let signed_il = match VerifiedInclusionList::verify_basic(signed_inclusion_list, current_slot) {
-            Ok(verified) => verified.into_inner(),
-            Err(e) => {
-                match e {
-                    beacon_chain::inclusion_list_verification::Error::ExceedsMaxBytes { actual, max } => {
-                        debug!(
-                            %peer_id,
-                            %slot,
-                            %validator_index,
-                            actual_bytes = actual,
-                            max_bytes = max,
-                            "Rejected signed inclusion list: exceeds max bytes"
-                        );
-                        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Reject);
-                        self.gossip_penalize_peer(peer_id, PeerAction::LowToleranceError, "invalid_inclusion_list_size");
+
+        let signed_il =
+            match VerifiedInclusionList::verify_basic(signed_inclusion_list, current_slot) {
+                Ok(verified) => verified.into_inner(),
+                Err(e) => {
+                    match e {
+                        beacon_chain::inclusion_list_verification::Error::ExceedsMaxBytes {
+                            actual,
+                            max,
+                        } => {
+                            debug!(
+                                %peer_id,
+                                %slot,
+                                %validator_index,
+                                actual_bytes = actual,
+                                max_bytes = max,
+                                "Rejected signed inclusion list: exceeds max bytes"
+                            );
+                            self.propagate_validation_result(
+                                message_id,
+                                peer_id,
+                                MessageAcceptance::Reject,
+                            );
+                            self.gossip_penalize_peer(
+                                peer_id,
+                                PeerAction::LowToleranceError,
+                                "invalid_inclusion_list_size",
+                            );
+                        }
+                        beacon_chain::inclusion_list_verification::Error::InvalidSlot {
+                            slot,
+                            current_slot,
+                        } => {
+                            debug!(
+                                %peer_id,
+                                %slot,
+                                %current_slot,
+                                %validator_index,
+                                "Rejected signed inclusion list: invalid slot"
+                            );
+                            self.propagate_validation_result(
+                                message_id,
+                                peer_id,
+                                MessageAcceptance::Reject,
+                            );
+                            self.gossip_penalize_peer(
+                                peer_id,
+                                PeerAction::MidToleranceError,
+                                "invalid_inclusion_list_slot",
+                            );
+                        }
+                        beacon_chain::inclusion_list_verification::Error::ReceivedTooLate {
+                            slot,
+                        } => {
+                            debug!(
+                                %peer_id,
+                                %slot,
+                                %validator_index,
+                                "Ignored signed inclusion list: received too late"
+                            );
+                            self.propagate_validation_result(
+                                message_id,
+                                peer_id,
+                                MessageAcceptance::Ignore,
+                            );
+                        }
+                        _ => {
+                            debug!(
+                                %peer_id,
+                                %slot,
+                                %validator_index,
+                                error = ?e,
+                                "Ignored signed inclusion list: verification error"
+                            );
+                            self.propagate_validation_result(
+                                message_id,
+                                peer_id,
+                                MessageAcceptance::Ignore,
+                            );
+                        }
                     }
-                    beacon_chain::inclusion_list_verification::Error::InvalidSlot { slot, current_slot } => {
-                        debug!(
-                            %peer_id,
-                            %slot,
-                            %current_slot,
-                            %validator_index,
-                            "Rejected signed inclusion list: invalid slot"
-                        );
-                        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Reject);
-                        self.gossip_penalize_peer(peer_id, PeerAction::MidToleranceError, "invalid_inclusion_list_slot");
-                    }
-                    beacon_chain::inclusion_list_verification::Error::ReceivedTooLate { slot } => {
-                        debug!(
-                            %peer_id,
-                            %slot,
-                            %validator_index,
-                            "Ignored signed inclusion list: received too late"
-                        );
-                        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
-                    }
-                    _ => {
-                        debug!(
-                            %peer_id,
-                            %slot,
-                            %validator_index,
-                            error = ?e,
-                            "Ignored signed inclusion list: verification error"
-                        );
-                        self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
-                    }
+                    return;
                 }
-                return;
-            }
-        };
+            };
 
         // Log successful basic verification
         debug!(
@@ -3630,7 +3691,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         let is_before_view_freeze_cutoff = {
             let slot_start = self.chain.slot_clock.start_of(signed_il.message.slot);
             let now = self.chain.slot_clock.now_duration();
-            
+
             match (slot_start, now) {
                 (Some(start), Some(now_duration)) => {
                     let elapsed = now_duration.saturating_sub(start);
@@ -3642,11 +3703,11 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                 _ => false,
             }
         };
-        
-        let processed = self.chain.inclusion_list_store.process_signed_inclusion_list(
-            signed_il.clone(),
-            is_before_view_freeze_cutoff,
-        );
+
+        let processed = self
+            .chain
+            .inclusion_list_store
+            .process_signed_inclusion_list(signed_il.clone(), is_before_view_freeze_cutoff);
 
         if processed {
             debug!(
@@ -3668,18 +3729,18 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                     .iter()
                     .map(|tx| tx.clone().into())
                     .collect();
-                
+
                 self.executor.spawn(
                     async move {
                         use execution_layer::json_structures::JsonInclusionListV1;
-                        
+
                         let json_il = JsonInclusionListV1 {
                             slot: slot.into(),
                             validator_index,
                             inclusion_list_committee_root: committee_root,
                             transactions: transactions.into_iter().map(Into::into).collect(),
                         };
-                        
+
                         match execution_layer.new_inclusion_list_v1(json_il).await {
                             Ok(response) => {
                                 debug!(

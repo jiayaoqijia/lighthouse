@@ -93,6 +93,7 @@ pub enum BeaconChainError {
     ValidatorPubkeyCacheError(String),
     ValidatorIndexUnknown(usize),
     ValidatorPubkeyUnknown(PublicKeyBytes),
+    InvalidPayloadAttestation(String),
     OpPoolError(OpPoolError),
     NaiveAggregationError(NaiveAggregationError),
     ObservedAttestationsError(ObservedAttestationsError),

@@ -47,6 +47,10 @@ impl From<ArithError> for Error {
 /// The number of validator balance sets that are cached within `BalancesCache`.
 const MAX_BALANCE_CACHE_SIZE: usize = 4;
 
+fn has_two_thirds_supermajority(true_count: usize, committee_size: usize) -> bool {
+    true_count.saturating_mul(3) >= committee_size.saturating_mul(2)
+}
+
 #[superstruct(
     variants(V8),
     variant_attributes(derive(PartialEq, Clone, Debug, Encode, Decode)),
@@ -223,18 +227,12 @@ where
             // [New in Heze:EIP7805] Initialize with anchor block root as satisfied
             payload_inclusion_list_satisfaction: [(anchor_block_root, true)].into_iter().collect(),
             // [New in Gloas:EIP7732] Initialize anchor block with all PTC votes as true
-            payload_timeliness_vote: [(
-                anchor_block_root,
-                vec![true; E::ptc_size()],
-            )]
-            .into_iter()
-            .collect(),
-            payload_data_availability_vote: [(
-                anchor_block_root,
-                vec![true; E::ptc_size()],
-            )]
-            .into_iter()
-            .collect(),
+            payload_timeliness_vote: [(anchor_block_root, vec![true; E::ptc_size()])]
+                .into_iter()
+                .collect(),
+            payload_data_availability_vote: [(anchor_block_root, vec![true; E::ptc_size()])]
+                .into_iter()
+                .collect(),
             _phantom: PhantomData,
         })
     }
@@ -248,20 +246,20 @@ where
             .iter()
             .map(|(&k, &v)| (k, v))
             .collect();
-        
+
         // [New in Gloas:EIP7732] Convert PTC votes to Vec for SSZ serialization
         let ptc_timeliness: Vec<(Hash256, Vec<bool>)> = self
             .payload_timeliness_vote
             .iter()
             .map(|(&k, v)| (k, v.clone()))
             .collect();
-        
+
         let ptc_data_availability: Vec<(Hash256, Vec<bool>)> = self
             .payload_data_availability_vote
             .iter()
             .map(|(&k, v)| (k, v.clone()))
             .collect();
-        
+
         PersistedForkChoiceStore {
             time: self.time,
             finalized_checkpoint: self.finalized_checkpoint,
@@ -329,24 +327,22 @@ where
             .ok_or(Error::MissingState(justified_state_root))?;
 
         let justified_balances = JustifiedBalances::from_justified_state(&justified_state)?;
-        
+
         // Convert Vec back to HashMap
         let il_satisfaction: HashMap<Hash256, bool> = persisted
             .payload_inclusion_list_satisfaction
             .into_iter()
             .collect();
-        
+
         // [New in Gloas:EIP7732] Convert PTC votes back to HashMap
-        let ptc_timeliness: HashMap<Hash256, Vec<bool>> = persisted
-            .payload_timeliness_vote
-            .into_iter()
-            .collect();
-        
+        let ptc_timeliness: HashMap<Hash256, Vec<bool>> =
+            persisted.payload_timeliness_vote.into_iter().collect();
+
         let ptc_data_availability: HashMap<Hash256, Vec<bool>> = persisted
             .payload_data_availability_vote
             .into_iter()
             .collect();
-        
+
         Ok(Self {
             store,
             balances_cache: <_>::default(),
@@ -486,12 +482,15 @@ where
 
     /// [New in Heze:EIP7805] Check if the payload at the given root satisfies IL constraints.
     fn is_payload_inclusion_list_satisfied(&self, block_root: Hash256) -> Option<bool> {
-        self.payload_inclusion_list_satisfaction.get(&block_root).copied()
+        self.payload_inclusion_list_satisfaction
+            .get(&block_root)
+            .copied()
     }
 
     /// [New in Heze:EIP7805] Record IL satisfaction status for a payload.
     fn set_payload_inclusion_list_satisfaction(&mut self, block_root: Hash256, satisfied: bool) {
-        self.payload_inclusion_list_satisfaction.insert(block_root, satisfied);
+        self.payload_inclusion_list_satisfaction
+            .insert(block_root, satisfied);
     }
 
     /// [New in Heze:EIP7805] Get the entire payload_inclusion_list_satisfaction map.
@@ -523,7 +522,12 @@ where
     }
 
     /// [New in Gloas:EIP7732] Record a PTC data availability vote from a committee member.
-    fn set_payload_data_availability_vote(&mut self, block_root: Hash256, index: usize, vote: bool) {
+    fn set_payload_data_availability_vote(
+        &mut self,
+        block_root: Hash256,
+        index: usize,
+        vote: bool,
+    ) {
         let votes = self
             .payload_data_availability_vote
             .entry(block_root)
@@ -539,8 +543,7 @@ where
         match self.payload_timeliness_vote.get(&block_root) {
             Some(votes) => {
                 let true_count = votes.iter().filter(|&&v| v).count();
-                let threshold = (2 * ptc_size) / 3;
-                true_count > threshold
+                has_two_thirds_supermajority(true_count, ptc_size)
             }
             None => false,
         }
@@ -552,8 +555,7 @@ where
         match self.payload_data_availability_vote.get(&block_root) {
             Some(votes) => {
                 let true_count = votes.iter().filter(|&&v| v).count();
-                let threshold = (2 * ptc_size) / 3;
-                true_count > threshold
+                has_two_thirds_supermajority(true_count, ptc_size)
             }
             None => false,
         }
@@ -562,12 +564,31 @@ where
     /// [New in Gloas:EIP7732] Initialize PTC voting arrays for a new block.
     fn initialize_ptc_votes(&mut self, block_root: Hash256, ptc_size: usize) {
         // Initialize with all false votes
-        self.payload_timeliness_vote.insert(block_root, vec![false; ptc_size]);
-        self.payload_data_availability_vote.insert(block_root, vec![false; ptc_size]);
+        self.payload_timeliness_vote
+            .insert(block_root, vec![false; ptc_size]);
+        self.payload_data_availability_vote
+            .insert(block_root, vec![false; ptc_size]);
     }
 }
 
 pub type PersistedForkChoiceStore = PersistedForkChoiceStoreV28;
+
+#[cfg(test)]
+mod tests {
+    use super::has_two_thirds_supermajority;
+
+    #[test]
+    fn supermajority_helper_accepts_exact_two_thirds() {
+        assert!(has_two_thirds_supermajority(2, 3));
+        assert!(has_two_thirds_supermajority(4, 6));
+    }
+
+    #[test]
+    fn supermajority_helper_rejects_less_than_two_thirds() {
+        assert!(!has_two_thirds_supermajority(1, 2));
+        assert!(!has_two_thirds_supermajority(3, 5));
+    }
+}
 
 /// A container which allows persisting the `BeaconForkChoiceStore` to the on-disk database.
 #[superstruct(
