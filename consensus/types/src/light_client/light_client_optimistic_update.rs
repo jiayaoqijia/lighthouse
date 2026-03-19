@@ -23,7 +23,7 @@ use crate::{
 /// A LightClientOptimisticUpdate is the update we send on each slot,
 /// it is based off the current unfinalized epoch is verified only against BLS signature.
 #[superstruct(
-    variants(Altair, Capella, Deneb, Electra, Fulu),
+    variants(Altair, Capella, Deneb, Electra, Fulu, Gloas),
     variant_attributes(
         derive(
             Debug,
@@ -68,6 +68,9 @@ pub struct LightClientOptimisticUpdate<E: EthSpec> {
     pub attested_header: LightClientHeaderElectra<E>,
     #[superstruct(only(Fulu), partial_getter(rename = "attested_header_fulu"))]
     pub attested_header: LightClientHeaderFulu<E>,
+    // Gloas uses Altair-style header (beacon header only)
+    #[superstruct(only(Gloas), partial_getter(rename = "attested_header_gloas"))]
+    pub attested_header: LightClientHeaderAltair<E>,
     /// current sync aggregate
     pub sync_aggregate: SyncAggregate<E>,
     /// Slot of the sync aggregated signature
@@ -125,7 +128,7 @@ impl<E: EthSpec> LightClientOptimisticUpdate<E> {
             }),
             // Gloas/Heze use Altair-style optimistic update (beacon header only)
             ForkName::Gloas | ForkName::Heze => {
-                Self::Altair(LightClientOptimisticUpdateAltair {
+                Self::Gloas(LightClientOptimisticUpdateGloas {
                     attested_header: LightClientHeaderAltair::block_to_light_client_header(
                         attested_block,
                     )?,
@@ -149,6 +152,7 @@ impl<E: EthSpec> LightClientOptimisticUpdate<E> {
             Self::Deneb(_) => func(ForkName::Deneb),
             Self::Electra(_) => func(ForkName::Electra),
             Self::Fulu(_) => func(ForkName::Fulu),
+            Self::Gloas(_) => func(ForkName::Gloas),
         }
     }
 
@@ -188,9 +192,9 @@ impl<E: EthSpec> LightClientOptimisticUpdate<E> {
                 Self::Electra(LightClientOptimisticUpdateElectra::from_ssz_bytes(bytes)?)
             }
             ForkName::Fulu => Self::Fulu(LightClientOptimisticUpdateFulu::from_ssz_bytes(bytes)?),
-            // Gloas/Heze use Altair-style optimistic update
+            // Gloas/Heze use LightClientOptimisticUpdateGloas format
             ForkName::Gloas | ForkName::Heze => {
-                Self::Altair(LightClientOptimisticUpdateAltair::from_ssz_bytes(bytes)?)
+                Self::Gloas(LightClientOptimisticUpdateGloas::from_ssz_bytes(bytes)?)
             }
             ForkName::Base => {
                 return Err(ssz::DecodeError::BytesInvalid(format!(
@@ -213,9 +217,8 @@ impl<E: EthSpec> LightClientOptimisticUpdate<E> {
             ForkName::Deneb => <LightClientOptimisticUpdateDeneb<E> as Encode>::ssz_fixed_len(),
             ForkName::Electra => <LightClientOptimisticUpdateElectra<E> as Encode>::ssz_fixed_len(),
             ForkName::Fulu => <LightClientOptimisticUpdateFulu<E> as Encode>::ssz_fixed_len(),
-            // Gloas/Heze use Altair-style optimistic update
             ForkName::Gloas | ForkName::Heze => {
-                <LightClientOptimisticUpdateAltair<E> as Encode>::ssz_fixed_len()
+                <LightClientOptimisticUpdateGloas<E> as Encode>::ssz_fixed_len()
             }
         };
         fixed_len + LightClientHeader::<E>::ssz_max_var_len_for_fork(fork_name)
@@ -268,9 +271,9 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for LightClientOptimisti
             ForkName::Fulu => {
                 Self::Fulu(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
-            // Gloas/Heze use Altair-style optimistic update
+            // Gloas/Heze use LightClientOptimisticUpdateGloas format
             ForkName::Gloas | ForkName::Heze => {
-                Self::Altair(Deserialize::deserialize(deserializer).map_err(convert_err)?)
+                Self::Gloas(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
         })
     }
@@ -307,5 +310,11 @@ mod tests {
     mod fulu {
         use crate::{LightClientOptimisticUpdateFulu, MainnetEthSpec};
         ssz_tests!(LightClientOptimisticUpdateFulu<MainnetEthSpec>);
+    }
+
+    #[cfg(test)]
+    mod gloas {
+        use crate::{LightClientOptimisticUpdateGloas, MainnetEthSpec};
+        ssz_tests!(LightClientOptimisticUpdateGloas<MainnetEthSpec>);
     }
 }

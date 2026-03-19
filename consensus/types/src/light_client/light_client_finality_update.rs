@@ -23,7 +23,7 @@ use crate::{
 };
 
 #[superstruct(
-    variants(Altair, Capella, Deneb, Electra, Fulu),
+    variants(Altair, Capella, Deneb, Electra, Fulu, Gloas),
     variant_attributes(
         derive(
             Debug,
@@ -68,6 +68,9 @@ pub struct LightClientFinalityUpdate<E: EthSpec> {
     pub attested_header: LightClientHeaderElectra<E>,
     #[superstruct(only(Fulu), partial_getter(rename = "attested_header_fulu"))]
     pub attested_header: LightClientHeaderFulu<E>,
+    // Gloas uses Altair-style header (beacon header only)
+    #[superstruct(only(Gloas), partial_getter(rename = "attested_header_gloas"))]
+    pub attested_header: LightClientHeaderAltair<E>,
     /// The last `BeaconBlockHeader` from the last attested finalized block (end of epoch).
     #[superstruct(only(Altair), partial_getter(rename = "finalized_header_altair"))]
     pub finalized_header: LightClientHeaderAltair<E>,
@@ -79,6 +82,9 @@ pub struct LightClientFinalityUpdate<E: EthSpec> {
     pub finalized_header: LightClientHeaderElectra<E>,
     #[superstruct(only(Fulu), partial_getter(rename = "finalized_header_fulu"))]
     pub finalized_header: LightClientHeaderFulu<E>,
+    // Gloas uses Altair-style header
+    #[superstruct(only(Gloas), partial_getter(rename = "finalized_header_gloas"))]
+    pub finalized_header: LightClientHeaderAltair<E>,
     /// Merkle proof attesting finalized header.
     #[superstruct(
         only(Altair, Capella, Deneb),
@@ -88,6 +94,12 @@ pub struct LightClientFinalityUpdate<E: EthSpec> {
     #[superstruct(
         only(Electra, Fulu),
         partial_getter(rename = "finality_branch_electra")
+    )]
+    pub finality_branch: FixedVector<Hash256, FinalizedRootProofLenElectra>,
+    // Gloas uses Electra-style proof length (7)
+    #[superstruct(
+        only(Gloas),
+        partial_getter(rename = "finality_branch_gloas")
     )]
     pub finality_branch: FixedVector<Hash256, FinalizedRootProofLenElectra>,
     /// current sync aggregate
@@ -177,9 +189,9 @@ impl<E: EthSpec> LightClientFinalityUpdate<E> {
                 sync_aggregate,
                 signature_slot,
             }),
-            // Gloas/Heze use Altair-style finality update (beacon header only)
+            // Gloas/Heze use Altair-style header (beacon header only) with Electra-style proof length
             ForkName::Gloas | ForkName::Heze => {
-                Self::Altair(LightClientFinalityUpdateAltair {
+                Self::Gloas(LightClientFinalityUpdateGloas {
                     attested_header: LightClientHeaderAltair::block_to_light_client_header(
                         attested_block,
                     )?,
@@ -209,6 +221,7 @@ impl<E: EthSpec> LightClientFinalityUpdate<E> {
             Self::Deneb(_) => func(ForkName::Deneb),
             Self::Electra(_) => func(ForkName::Electra),
             Self::Fulu(_) => func(ForkName::Fulu),
+            Self::Gloas(_) => func(ForkName::Gloas),
         }
     }
 
@@ -246,9 +259,9 @@ impl<E: EthSpec> LightClientFinalityUpdate<E> {
                 Self::Electra(LightClientFinalityUpdateElectra::from_ssz_bytes(bytes)?)
             }
             ForkName::Fulu => Self::Fulu(LightClientFinalityUpdateFulu::from_ssz_bytes(bytes)?),
-            // Gloas/Heze use Altair-style finality update
+            // Gloas/Heze use LightClientFinalityUpdateGloas format
             ForkName::Gloas | ForkName::Heze => {
-                Self::Altair(LightClientFinalityUpdateAltair::from_ssz_bytes(bytes)?)
+                Self::Gloas(LightClientFinalityUpdateGloas::from_ssz_bytes(bytes)?)
             }
             ForkName::Base => {
                 return Err(ssz::DecodeError::BytesInvalid(format!(
@@ -271,9 +284,8 @@ impl<E: EthSpec> LightClientFinalityUpdate<E> {
             ForkName::Deneb => <LightClientFinalityUpdateDeneb<E> as Encode>::ssz_fixed_len(),
             ForkName::Electra => <LightClientFinalityUpdateElectra<E> as Encode>::ssz_fixed_len(),
             ForkName::Fulu => <LightClientFinalityUpdateFulu<E> as Encode>::ssz_fixed_len(),
-            // Gloas/Heze use Altair-style finality update
             ForkName::Gloas | ForkName::Heze => {
-                <LightClientFinalityUpdateAltair<E> as Encode>::ssz_fixed_len()
+                <LightClientFinalityUpdateGloas<E> as Encode>::ssz_fixed_len()
             }
         };
         // `2 *` because there are two headers in the update
@@ -327,9 +339,9 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for LightClientFinalityU
             ForkName::Fulu => {
                 Self::Fulu(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
-            // Gloas/Heze use Altair-style finality update
+            // Gloas/Heze use LightClientFinalityUpdateGloas format
             ForkName::Gloas | ForkName::Heze => {
-                Self::Altair(Deserialize::deserialize(deserializer).map_err(convert_err)?)
+                Self::Gloas(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
         })
     }
@@ -366,5 +378,11 @@ mod tests {
     mod fulu {
         use crate::{LightClientFinalityUpdateFulu, MainnetEthSpec};
         ssz_tests!(LightClientFinalityUpdateFulu<MainnetEthSpec>);
+    }
+
+    #[cfg(test)]
+    mod gloas {
+        use crate::{LightClientFinalityUpdateGloas, MainnetEthSpec};
+        ssz_tests!(LightClientFinalityUpdateGloas<MainnetEthSpec>);
     }
 }

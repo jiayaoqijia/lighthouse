@@ -3539,6 +3539,7 @@ pub fn compute_weak_subjectivity_period_electra(
 mod weak_subjectivity_tests {
     use crate::state::beacon_state::compute_weak_subjectivity_period_electra;
     use crate::{ChainSpec, Epoch, EthSpec, MainnetEthSpec};
+    use metastruct::NumFields;
 
     const GWEI_PER_ETH: u64 = 1_000_000_000;
 

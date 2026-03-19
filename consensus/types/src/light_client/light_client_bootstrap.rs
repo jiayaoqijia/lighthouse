@@ -27,7 +27,7 @@ use crate::{
 /// A LightClientBootstrap is the initializer we send over to light_client nodes
 /// that are trying to generate their basic storage when booting up.
 #[superstruct(
-    variants(Altair, Capella, Deneb, Electra, Fulu),
+    variants(Altair, Capella, Deneb, Electra, Fulu, Gloas),
     variant_attributes(
         derive(
             Debug,
@@ -72,6 +72,9 @@ pub struct LightClientBootstrap<E: EthSpec> {
     pub header: LightClientHeaderElectra<E>,
     #[superstruct(only(Fulu), partial_getter(rename = "header_fulu"))]
     pub header: LightClientHeaderFulu<E>,
+    // Gloas uses Altair-style header (beacon header only)
+    #[superstruct(only(Gloas), partial_getter(rename = "header_gloas"))]
+    pub header: LightClientHeaderAltair<E>,
     /// The `SyncCommittee` used in the requested period.
     pub current_sync_committee: Arc<SyncCommittee<E>>,
     /// Merkle proof for sync committee
@@ -83,6 +86,12 @@ pub struct LightClientBootstrap<E: EthSpec> {
     #[superstruct(
         only(Electra, Fulu),
         partial_getter(rename = "current_sync_committee_branch_electra")
+    )]
+    pub current_sync_committee_branch: FixedVector<Hash256, CurrentSyncCommitteeProofLenElectra>,
+    // Gloas uses Electra-style proof length (6)
+    #[superstruct(
+        only(Gloas),
+        partial_getter(rename = "current_sync_committee_branch_gloas")
     )]
     pub current_sync_committee_branch: FixedVector<Hash256, CurrentSyncCommitteeProofLenElectra>,
 }
@@ -98,6 +107,7 @@ impl<E: EthSpec> LightClientBootstrap<E> {
             Self::Deneb(_) => func(ForkName::Deneb),
             Self::Electra(_) => func(ForkName::Electra),
             Self::Fulu(_) => func(ForkName::Fulu),
+            Self::Gloas(_) => func(ForkName::Gloas),
         }
     }
 
@@ -117,8 +127,11 @@ impl<E: EthSpec> LightClientBootstrap<E> {
             ForkName::Deneb => Self::Deneb(LightClientBootstrapDeneb::from_ssz_bytes(bytes)?),
             ForkName::Electra => Self::Electra(LightClientBootstrapElectra::from_ssz_bytes(bytes)?),
             ForkName::Fulu => Self::Fulu(LightClientBootstrapFulu::from_ssz_bytes(bytes)?),
-            // TODO(gloas): implement Gloas light client
-            ForkName::Base | ForkName::Gloas | ForkName::Heze => {
+            // Gloas/Heze use LightClientBootstrapGloas format
+            ForkName::Gloas | ForkName::Heze => {
+                Self::Gloas(LightClientBootstrapGloas::from_ssz_bytes(bytes)?)
+            }
+            ForkName::Base => {
                 return Err(ssz::DecodeError::BytesInvalid(format!(
                     "LightClientBootstrap decoding for {fork_name} not implemented"
                 )));
@@ -139,9 +152,8 @@ impl<E: EthSpec> LightClientBootstrap<E> {
             ForkName::Deneb => <LightClientBootstrapDeneb<E> as Encode>::ssz_fixed_len(),
             ForkName::Electra => <LightClientBootstrapElectra<E> as Encode>::ssz_fixed_len(),
             ForkName::Fulu => <LightClientBootstrapFulu<E> as Encode>::ssz_fixed_len(),
-            // TODO(gloas): implement Gloas light client
             ForkName::Gloas | ForkName::Heze => {
-                <LightClientBootstrapAltair<E> as Encode>::ssz_fixed_len()
+                <LightClientBootstrapGloas<E> as Encode>::ssz_fixed_len()
             }
         };
         fixed_len + LightClientHeader::<E>::ssz_max_var_len_for_fork(fork_name)
@@ -193,9 +205,9 @@ impl<E: EthSpec> LightClientBootstrap<E> {
                     .try_into()
                     .map_err(LightClientError::SszTypesError)?,
             }),
-            // Gloas/Heze use Altair-style bootstrap (beacon header only)
+            // Gloas/Heze use Altair-style header with Electra-style proof length
             ForkName::Gloas | ForkName::Heze => {
-                Self::Altair(LightClientBootstrapAltair {
+                Self::Gloas(LightClientBootstrapGloas {
                     header: LightClientHeaderAltair::block_to_light_client_header(block)?,
                     current_sync_committee,
                     current_sync_committee_branch: current_sync_committee_branch
@@ -256,9 +268,9 @@ impl<E: EthSpec> LightClientBootstrap<E> {
                     .try_into()
                     .map_err(LightClientError::SszTypesError)?,
             }),
-            // Gloas/Heze use Altair-style bootstrap (beacon header only)
+            // Gloas/Heze use Altair-style header with Electra-style proof length
             ForkName::Gloas | ForkName::Heze => {
-                Self::Altair(LightClientBootstrapAltair {
+                Self::Gloas(LightClientBootstrapGloas {
                     header: LightClientHeaderAltair::block_to_light_client_header(block)?,
                     current_sync_committee,
                     current_sync_committee_branch: current_sync_committee_branch
@@ -305,9 +317,9 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for LightClientBootstrap
             ForkName::Fulu => {
                 Self::Fulu(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
-            // Gloas/Heze use Altair-style bootstrap
+            // Gloas/Heze use LightClientBootstrapGloas format
             ForkName::Gloas | ForkName::Heze => {
-                Self::Altair(Deserialize::deserialize(deserializer).map_err(convert_err)?)
+                Self::Gloas(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
         })
     }
@@ -344,5 +356,11 @@ mod tests {
     mod fulu {
         use crate::{LightClientBootstrapFulu, MainnetEthSpec};
         ssz_tests!(LightClientBootstrapFulu<MainnetEthSpec>);
+    }
+
+    #[cfg(test)]
+    mod gloas {
+        use crate::{LightClientBootstrapGloas, MainnetEthSpec};
+        ssz_tests!(LightClientBootstrapGloas<MainnetEthSpec>);
     }
 }
