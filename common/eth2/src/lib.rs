@@ -812,6 +812,23 @@ impl BeaconNodeHttpClient {
         self.get(path).await
     }
 
+    /// `GET validator/inclusion_list_transactions`
+    ///
+    /// Returns inclusion list transactions from the execution engine's mempool.
+    /// This is part of EIP-7805 (FOCIL - Fork-Choice Enforced Inclusion Lists).
+    pub async fn get_validator_inclusion_list_transactions(
+        &self,
+    ) -> Result<GenericResponse<GetInclusionListTransactionsResponse>, Error> {
+        let mut path = self.eth_path(V1)?;
+
+        path.path_segments_mut()
+            .map_err(|()| Error::InvalidUrl(self.server.clone()))?
+            .push("validator")
+            .push("inclusion_list_transactions");
+
+        self.get(path).await
+    }
+
     /// `GET beacon/states/{state_id}/randao?epoch`
     pub async fn get_beacon_states_randao(
         &self,
@@ -1785,6 +1802,27 @@ impl BeaconNodeHttpClient {
             .push("voluntary_exits");
 
         self.get(path).await
+    }
+
+    /// `POST beacon/pool/inclusion_lists`
+    ///
+    /// Submits a signed inclusion list to the beacon node for gossip propagation.
+    /// This is part of EIP-7805 (FOCIL - Fork-Choice Enforced Inclusion Lists).
+    pub async fn post_beacon_pool_inclusion_lists<E: EthSpec>(
+        &self,
+        signed_inclusion_list: &SignedInclusionList<E>,
+    ) -> Result<(), Error> {
+        let mut path = self.eth_path(V1)?;
+
+        path.path_segments_mut()
+            .map_err(|()| Error::InvalidUrl(self.server.clone()))?
+            .push("beacon")
+            .push("pool")
+            .push("inclusion_lists");
+
+        self.post(path, signed_inclusion_list).await?;
+
+        Ok(())
     }
 
     /// `POST beacon/pool/sync_committees`

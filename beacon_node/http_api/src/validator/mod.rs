@@ -1009,3 +1009,64 @@ pub fn get_validator_duties_proposer<T: BeaconChainTypes>(
         )
         .boxed()
 }
+
+// GET validator/inclusion_list_transactions
+//
+// Returns transactions from the execution engine's mempool for inclusion in an InclusionList.
+// This is part of EIP-7805 (FOCIL - Fork-Choice Enforced Inclusion Lists).
+pub fn get_validator_inclusion_list_transactions<T: BeaconChainTypes>(
+    eth_v1: EthV1Filter,
+    chain_filter: ChainFilter<T>,
+    task_spawner_filter: TaskSpawnerFilter<T>,
+) -> ResponseFilter {
+    eth_v1
+        .and(warp::path("validator"))
+        .and(warp::path("inclusion_list_transactions"))
+        .and(warp::path::end())
+        .and(task_spawner_filter)
+        .and(chain_filter)
+        .then(
+            |task_spawner: TaskSpawner<T::EthSpec>, chain: Arc<BeaconChain<T>>| {
+                task_spawner.spawn_async_with_rejection(Priority::P0, async move {
+                    // Get the execution layer
+                    let execution_layer = chain
+                        .execution_layer
+                        .as_ref()
+                        .ok_or_else(|| {
+                            warp_utils::reject::custom_bad_request(
+                                "Execution layer not available".to_string(),
+                            )
+                        })?;
+
+                    // Call engine_getInclusionListV1 on the execution engine
+                    let response = execution_layer
+                        .get_inclusion_list_v1()
+                        .await
+                        .map_err(|e| {
+                            warp_utils::reject::custom_bad_request(format!(
+                                "Failed to get inclusion list from execution engine: {:?}",
+                                e
+                            ))
+                        })?;
+
+                    // Convert transactions to hex strings
+                    let transactions: Vec<String> = response
+                        .transactions
+                        .into_iter()
+                        .map(|tx| {
+                            let bytes: Vec<u8> = tx.into();
+                            format!("0x{}", hex::encode(&bytes))
+                        })
+                        .collect();
+
+                    Ok::<_, warp::Rejection>(
+                        warp::reply::json(&GenericResponse::from(
+                            eth2::types::GetInclusionListTransactionsResponse { transactions },
+                        ))
+                        .into_response(),
+                    )
+                })
+            },
+        )
+        .boxed()
+}

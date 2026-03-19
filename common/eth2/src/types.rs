@@ -546,6 +546,16 @@ pub struct GetInclusionListCommitteeResponse {
     pub committee_root: Hash256,
 }
 
+/// Response for GET /validator/inclusion_list_transactions
+///
+/// Returns transactions from the execution engine's mempool for inclusion in
+/// an InclusionList (EIP-7805 FOCIL).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct GetInclusionListTransactionsResponse {
+    /// List of encoded transactions (hex encoded RLP) to include in the inclusion list.
+    pub transactions: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BlockHeaderAndSignature {
     pub message: BeaconBlockHeader,

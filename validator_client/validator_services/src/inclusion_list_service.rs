@@ -386,11 +386,37 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
 
     /// Get inclusion list transactions from the execution engine.
     async fn get_inclusion_list_transactions(&self) -> Result<Vec<Vec<u8>>, String> {
-        // Query execution engine for inclusion list transactions
-        // This would use the engine API: engine_getInclusionListV1
+        // Query beacon node which forwards to execution engine for inclusion list transactions
+        // This uses the engine_getInclusionListV1 method via the beacon node's HTTP API
+        let response = self
+            .beacon_nodes
+            .first_success(|beacon_node| async move {
+                beacon_node
+                    .get_validator_inclusion_list_transactions()
+                    .await
+                    .map_err(|e| format!("Failed to get inclusion list transactions: {}", e))
+            })
+            .await
+            .map_err(|e| format!("Failed to query beacon node: {}", e))?;
 
-        // For now, return empty transactions
-        Ok(Vec::new())
+        // Decode hex-encoded transactions back to bytes
+        let transactions: Vec<Vec<u8>> = response
+            .data
+            .transactions
+            .into_iter()
+            .filter_map(|hex_tx| {
+                // Remove "0x" prefix if present and decode hex
+                let hex_str = hex_tx.strip_prefix("0x").unwrap_or(&hex_tx);
+                hex::decode(hex_str).ok()
+            })
+            .collect();
+
+        debug!(
+            tx_count = transactions.len(),
+            "EIP7805: Retrieved inclusion list transactions"
+        );
+
+        Ok(transactions)
     }
 
     /// Broadcast the signed inclusion list to the network.
@@ -404,21 +430,28 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
             "EIP7805: Broadcasting inclusion list"
         );
 
-        // Submit to beacon node for gossip propagation
-        let signed_il = Arc::new(signed_inclusion_list);
+        let slot = signed_inclusion_list.message.slot;
+        let validator_index = signed_inclusion_list.message.validator_index;
 
-        let _result = self
-            .beacon_nodes
+        // Submit to beacon node for gossip propagation
+        self.beacon_nodes
             .request(ApiTopic::InclusionList, move |beacon_node| {
-                let signed_il = signed_il.clone();
+                let signed_inclusion_list = signed_inclusion_list.clone();
                 async move {
-                    // TODO: Implement proper beacon API call
-                    // POST /eth/v1/beacon/pool/inclusion_list
-                    let _ = (beacon_node, signed_il);
-                    Err("Inclusion list broadcast endpoint not implemented".to_string())
+                    beacon_node
+                        .post_beacon_pool_inclusion_lists::<S::E>(&signed_inclusion_list)
+                        .await
+                        .map_err(|e| format!("Failed to broadcast inclusion list: {}", e))
                 }
             })
-            .await;
+            .await
+            .map_err(|e| format!("Failed to submit inclusion list to beacon node: {}", e))?;
+
+        info!(
+            slot = %slot,
+            validator_index = validator_index,
+            "EIP7805: Successfully broadcast inclusion list"
+        );
 
         Ok(())
     }

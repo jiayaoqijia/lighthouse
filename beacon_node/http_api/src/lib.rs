@@ -2676,6 +2676,13 @@ pub fn serve<T: BeaconChainTypes>(
         task_spawner_filter.clone(),
     );
 
+    // GET validator/inclusion_list_transactions (EIP-7805 FOCIL)
+    let get_validator_inclusion_list_transactions = get_validator_inclusion_list_transactions(
+        eth_v1.clone(),
+        chain_filter.clone(),
+        task_spawner_filter.clone(),
+    );
+
     // POST validator/aggregate_and_proofs
     let post_validator_aggregate_and_proofs = post_validator_aggregate_and_proofs(
         any_version.clone(),
@@ -3476,6 +3483,7 @@ pub fn serve<T: BeaconChainTypes>(
                 .uor(get_validator_attestation_data)
                 .uor(get_validator_aggregate_attestation)
                 .uor(get_validator_sync_committee_contribution)
+                .uor(get_validator_inclusion_list_transactions)
                 .uor(get_lighthouse_health)
                 .uor(get_lighthouse_ui_health)
                 .uor(get_lighthouse_ui_validator_count)
