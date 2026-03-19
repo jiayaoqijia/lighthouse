@@ -120,8 +120,15 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
     }
 
     pub fn start_update_service(self, spec: &ChainSpec) -> Result<(), String> {
-        if !self.heze_fork_activated() {
-            info!("Inclusion list service not started: Heze fork not active");
+        // Always start the service - it will wait for Heze fork activation internally
+        let heze_fork_epoch = spec.heze_fork_epoch;
+        if let Some(fork_epoch) = heze_fork_epoch {
+            info!(
+                heze_fork_epoch = %fork_epoch,
+                "EIP7805: Starting inclusion list service (will wait for Heze fork activation)"
+            );
+        } else {
+            info!("Inclusion list service not started: Heze fork not configured");
             return Ok(());
         }
 
