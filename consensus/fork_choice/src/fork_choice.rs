@@ -1646,9 +1646,18 @@ where
     /// [New in Gloas:EIP7732] Determine if we should extend a payload from the previous slot.
     ///
     /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#should_extend_payload
+    /// Modified in Heze:EIP7805 to check IL satisfaction first.
     ///
     /// Returns true if we should build on the FULL version of the block with the given root.
     pub fn should_extend_payload(&self, root: Hash256) -> bool {
+        // [New in Heze:EIP7805] Check if payload satisfies inclusion list constraints
+        // If IL is not satisfied, do not extend the payload
+        if let Some(il_satisfied) = self.fc_store.is_payload_inclusion_list_satisfied(root) {
+            if !il_satisfied {
+                return false;
+            }
+        }
+
         let proposer_root = self.fc_store.proposer_boost_root();
 
         // Case 1: Payload is timely and data is available
