@@ -552,12 +552,16 @@ impl<E: EthSpec> ProductionValidatorClient<E> {
         );
 
         // [New in Heze:EIP7805] Initialize InclusionListService
+        // Note: We pass None for head_monitor_rx because the head_monitor channel is already
+        // used by the attestation service. The inclusion list service will use its own
+        // mechanism to detect head changes (polling or separate subscription).
         let inclusion_list_service = InclusionListService::new(
             duties_service.clone(),
             validator_store.clone(),
             slot_clock.clone(),
             beacon_nodes.clone(),
             context.executor.clone(),
+            None, // head_monitor_rx - will use local head fallback
         );
 
         Ok(Self {

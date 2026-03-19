@@ -2,9 +2,15 @@
 //!
 //! This service handles the production and broadcasting of inclusion lists
 //! by validators who are members of the inclusion list committee.
+//!
+//! Per EIP-7805 spec:
+//! - IL should be produced and broadcast immediately after processing the block
+//!   for the current slot and confirming it as the head.
+//! - If no block is received by (submission_due - 1000ms), use local head.
+//! - Must broadcast by submission_deadline (~67% of slot = ~8s for 12s slot).
 
 use crate::duties_service::DutiesService;
-use beacon_node_fallback::{ApiTopic, BeaconNodeFallback};
+use beacon_node_fallback::{ApiTopic, BeaconNodeFallback, beacon_head_monitor::HeadEvent};
 use bls::PublicKeyBytes;
 use eth2::types::StateId;
 use slot_clock::SlotClock;
@@ -12,7 +18,9 @@ use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use task_executor::TaskExecutor;
-use tokio::time::{Duration, sleep};
+use tokio::sync::Mutex;
+use tokio::sync::mpsc;
+use tokio::time::{Duration, Instant, sleep};
 use tracing::{debug, error, info, trace, warn};
 use types::{
     ChainSpec, EthSpec, Hash256, IlTransaction, IlTransactions, InclusionList, SignedInclusionList,
@@ -29,7 +37,9 @@ pub const VIEW_FREEZE_CUTOFF_BPS: u64 = 7500;
 /// Basis points for proposer inclusion list cutoff (~92% of slot duration).
 pub const PROPOSER_INCLUSION_LIST_CUTOFF_BPS: u64 = 9167;
 
-/// Number of milliseconds before the submission deadline to check for head.
+/// Number of milliseconds before the submission deadline to fallback to local head.
+/// Per spec: "If no block is received by get_inclusion_list_submission_due_ms(epoch) - 1000 
+/// milliseconds into the slot, the validator should run get_head"
 const HEAD_CHECK_MARGIN_MS: u64 = 1000;
 
 pub struct InclusionListService<S: ValidatorStore, T: SlotClock + 'static> {
@@ -61,6 +71,8 @@ pub struct Inner<S: ValidatorStore, T: SlotClock + 'static> {
     /// Boolean to track whether the service has posted subscriptions to the BN at least once.
     #[allow(dead_code)]
     first_subscription_done: AtomicBool,
+    /// Receiver for head events from beacon node.
+    head_monitor_rx: Option<Mutex<mpsc::Receiver<HeadEvent>>>,
 }
 
 impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S, T> {
@@ -70,6 +82,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
         slot_clock: T,
         beacon_nodes: Arc<BeaconNodeFallback<T>>,
         executor: TaskExecutor,
+        head_monitor_rx: Option<mpsc::Receiver<HeadEvent>>,
     ) -> Self {
         Self {
             inner: Arc::new(Inner {
@@ -79,6 +92,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
                 beacon_nodes,
                 executor,
                 first_subscription_done: AtomicBool::new(false),
+                head_monitor_rx: head_monitor_rx.map(Mutex::new),
             }),
         }
     }
@@ -154,23 +168,49 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
                         continue;
                     }
 
-                    // Calculate submission deadline
+                    // Per EIP-7805 spec:
+                    // 1. Wait for block and process immediately when received
+                    // 2. If no block by (submission_due - 1000ms), use local head
+                    // 3. Must broadcast by submission_due
+
                     let submission_due_ms = get_inclusion_list_submission_due_ms(&spec);
+                    let fallback_deadline_ms = submission_due_ms.saturating_sub(HEAD_CHECK_MARGIN_MS);
 
-                    // Wait until submission deadline
-                    if let Some(slot_start) = self.slot_clock.start_of(current_slot) {
-                        let now = tokio::time::Instant::now();
-                        let deadline_duration = Duration::from_millis(submission_due_ms);
-                        let submission_deadline = slot_start + deadline_duration;
+                    // Calculate the deadline instant
+                    // Use slot_clock to determine if we can calculate the deadline
+                    let deadline_instant = if self.slot_clock.start_of(current_slot).is_some() {
+                        let now = Instant::now();
+                        let elapsed = now.elapsed();
+                        let deadline_duration = Duration::from_millis(fallback_deadline_ms);
+                        // Calculate when the deadline is from now
+                        if deadline_duration > elapsed {
+                            Instant::now() + (deadline_duration - elapsed)
+                        } else {
+                            // Already past the deadline, process immediately with local head
+                            Instant::now()
+                        }
+                    } else {
+                        // Can't determine slot start, use a reasonable timeout
+                        Instant::now() + Duration::from_millis(fallback_deadline_ms)
+                    };
 
-                        // Get Duration from Instant
-                        let now_duration = now.elapsed();
-                        let wait_until_deadline = submission_deadline.saturating_sub(now_duration);
-                        let margin = Duration::from_millis(HEAD_CHECK_MARGIN_MS);
-                        let actual_wait = wait_until_deadline.saturating_sub(margin);
+                    // Try to receive a head event (block) before the deadline
+                    let head_event = self.wait_for_head_event(current_slot, deadline_instant).await;
 
-                        if !actual_wait.is_zero() {
-                            sleep(actual_wait).await;
+                    match head_event {
+                        Some(event) => {
+                            debug!(
+                                slot = %current_slot,
+                                beacon_block_root = ?event.beacon_block_root,
+                                "EIP7805: Received block, processing inclusion list immediately"
+                            );
+                        }
+                        None => {
+                            // Timeout - use local head
+                            debug!(
+                                slot = %current_slot,
+                                "EIP7805: No block received, using local head for inclusion list"
+                            );
                         }
                     }
 
@@ -208,6 +248,84 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
         );
 
         Ok(())
+    }
+
+    /// Wait for a head event (block) for the current slot until the deadline.
+    ///
+    /// Per EIP-7805 spec:
+    /// "If a validator is in the current inclusion list committee, the validator should
+    /// create and broadcast the signed_inclusion_list to the global inclusion_list
+    /// subnet by get_inclusion_list_submission_due_ms(epoch) milliseconds into the slot
+    /// after processing the block for the current slot and confirming it as the head."
+    ///
+    /// Returns Some(HeadEvent) if a block for the current slot was received before deadline.
+    /// Returns None if timeout or no head monitor available (fallback to local head).
+    async fn wait_for_head_event(&self, current_slot: Slot, deadline: Instant) -> Option<HeadEvent> {
+        let Some(receiver) = &self.head_monitor_rx else {
+            // No head monitor configured, use local head immediately
+            debug!(
+                slot = %current_slot,
+                "EIP7805: No head monitor configured, using local head"
+            );
+            return None;
+        };
+
+        let mut receiver = receiver.lock().await;
+
+        loop {
+            // Calculate remaining time until deadline
+            let now = Instant::now();
+            if now >= deadline {
+                debug!(
+                    slot = %current_slot,
+                    "EIP7805: Deadline reached, falling back to local head"
+                );
+                return None;
+            }
+
+            let remaining = deadline - now;
+
+            // Wait for either a head event or timeout
+            tokio::select! {
+                result = receiver.recv() => {
+                    match result {
+                        Some(head_event) => {
+                            // Check if this event is for the current slot
+                            if head_event.slot == current_slot {
+                                debug!(
+                                    slot = %current_slot,
+                                    beacon_block_root = ?head_event.beacon_block_root,
+                                    "EIP7805: Received head event for current slot"
+                                );
+                                return Some(head_event);
+                            } else {
+                                // Event for different slot, continue waiting
+                                trace!(
+                                    current_slot = %current_slot,
+                                    event_slot = %head_event.slot,
+                                    "EIP7805: Ignoring head event for different slot"
+                                );
+                                continue;
+                            }
+                        }
+                        None => {
+                            warn!(
+                                slot = %current_slot,
+                                "EIP7805: Head monitor channel closed"
+                            );
+                            return None;
+                        }
+                    }
+                }
+                _ = sleep(remaining) => {
+                    debug!(
+                        slot = %current_slot,
+                        "EIP7805: Timeout waiting for block, using local head"
+                    );
+                    return None;
+                }
+            }
+        }
     }
 
     /// Get inclusion list committee assignments for the given slot.
