@@ -2032,6 +2032,14 @@ pub struct Config {
     #[serde(deserialize_with = "deserialize_fork_epoch")]
     pub heze_fork_epoch: Option<MaybeQuoted<Epoch>>,
 
+    // EIP7805_FORK_EPOCH is an alias for HEZE_FORK_EPOCH (ethereum-package uses this name)
+    #[serde(default)]
+    #[serde(skip_serializing)]
+    pub eip7805_fork_epoch: Option<MaybeQuoted<Epoch>>,
+    // EIP7805_FORK_VERSION is an alias for HEZE_FORK_VERSION
+    #[serde(default, skip_serializing)]
+    eip7805_fork_version: Option<[u8; 4]>,
+
     #[serde(with = "serde_utils::quoted_u64")]
     seconds_per_slot: u64,
     #[serde(default)]
@@ -2609,6 +2617,10 @@ impl Config {
                 .heze_fork_epoch
                 .map(|epoch| MaybeQuoted { value: epoch }),
 
+            // EIP7805 aliases are not serialized (skip_serializing)
+            eip7805_fork_epoch: None,
+            eip7805_fork_version: None,
+
             seconds_per_slot: spec.seconds_per_slot,
             slot_duration_ms: Some(MaybeQuoted {
                 value: spec.slot_duration_ms,
@@ -2718,6 +2730,8 @@ impl Config {
             gloas_fork_epoch,
             heze_fork_version,
             heze_fork_epoch,
+            eip7805_fork_epoch,
+            eip7805_fork_version,
             seconds_per_slot,
             slot_duration_ms,
             seconds_per_eth1_block,
@@ -2804,8 +2818,10 @@ impl Config {
             fulu_fork_version,
             gloas_fork_version,
             gloas_fork_epoch: gloas_fork_epoch.map(|q| q.value),
-            heze_fork_version,
-            heze_fork_epoch: heze_fork_epoch.map(|q| q.value),
+            heze_fork_version: eip7805_fork_version.unwrap_or(heze_fork_version),
+            heze_fork_epoch: heze_fork_epoch
+                .or(eip7805_fork_epoch)
+                .map(|q| q.value),
             seconds_per_slot,
             slot_duration_ms: slot_duration_ms
                 .map(|q| q.value)
