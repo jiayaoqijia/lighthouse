@@ -1281,6 +1281,64 @@ impl ProtoArrayForkChoice {
             && (node.payload_status == PAYLOAD_STATUS_PENDING
                 || node.payload_status == ancestor.payload_status)
     }
+
+    /// [New in Gloas:EIP7732] Get the children of a fork choice node.
+    ///
+    /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#get_node_children
+    ///
+    /// Returns a list of child nodes for the given node.
+    /// - For PENDING nodes: returns EMPTY + optionally FULL if payload revealed
+    /// - For EMPTY/FULL nodes: returns matching child blocks
+    pub fn get_node_children(
+        &self,
+        node: &crate::proto_array::ForkChoiceNode,
+        payload_revealed: bool,
+    ) -> Vec<crate::proto_array::ForkChoiceNode> {
+        use crate::proto_array::{ForkChoiceNode, PAYLOAD_STATUS_PENDING, PAYLOAD_STATUS_EMPTY, PAYLOAD_STATUS_FULL};
+
+        if node.payload_status == PAYLOAD_STATUS_PENDING {
+            // For PENDING nodes, return EMPTY + optionally FULL
+            let mut children = vec![ForkChoiceNode::empty(node.root)];
+            if payload_revealed {
+                children.push(ForkChoiceNode::full(node.root));
+            }
+            children
+        } else {
+            // For EMPTY/FULL nodes, find matching child blocks
+            let Some(block_index) = self.proto_array.indices.get(&node.root) else {
+                return vec![];
+            };
+
+            self.proto_array
+                .nodes
+                .iter()
+                .filter_map(|child| {
+                    // Check if this child's parent is the node
+                    if child.parent == Some(*block_index) {
+                        // Check if node's payload_status matches get_parent_payload_status for this child
+                        let parent_status_matches = if child.bid_parent_block_hash.is_some() {
+                            // Child has bid info - check if parent was FULL or EMPTY
+                            let parent_is_full = self.proto_array.is_parent_node_full(child);
+                            if parent_is_full {
+                                node.payload_status == PAYLOAD_STATUS_FULL
+                            } else {
+                                node.payload_status == PAYLOAD_STATUS_EMPTY
+                            }
+                        } else {
+                            // No bid info - assume matches (pre-Gloas behavior)
+                            true
+                        };
+
+                        if parent_status_matches {
+                            // Child is PENDING until payload is revealed
+                            return Some(ForkChoiceNode::pending(child.root));
+                        }
+                    }
+                    None
+                })
+                .collect()
+        }
+    }
 }
 
 #[cfg(test)]

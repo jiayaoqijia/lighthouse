@@ -129,4 +129,7 @@ pub trait ForkChoiceStore<E: EthSpec>: Sized {
     /// Check if payload data is available based on PTC votes.
     /// Returns true if >= 2/3 of PTC voted for data availability.
     fn is_payload_data_available(&self, ptc_size: usize, block_root: Hash256) -> bool;
+
+    /// Initialize PTC voting arrays for a new block.
+    fn initialize_ptc_votes(&mut self, block_root: Hash256, ptc_size: usize);
 }

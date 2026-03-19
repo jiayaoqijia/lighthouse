@@ -558,6 +558,13 @@ where
             None => false,
         }
     }
+
+    /// [New in Gloas:EIP7732] Initialize PTC voting arrays for a new block.
+    fn initialize_ptc_votes(&mut self, block_root: Hash256, ptc_size: usize) {
+        // Initialize with all false votes
+        self.payload_timeliness_vote.insert(block_root, vec![false; ptc_size]);
+        self.payload_data_availability_vote.insert(block_root, vec![false; ptc_size]);
+    }
 }
 
 pub type PersistedForkChoiceStore = PersistedForkChoiceStoreV28;

@@ -1614,6 +1614,35 @@ where
         self.fc_store.is_payload_data_available(E::ptc_size(), block_root)
     }
 
+    /// [New in Gloas:EIP7732] Initialize PTC voting for a new block.
+    ///
+    /// This should be called when a new block is added to fork choice.
+    pub fn initialize_ptc_votes(&mut self, block_root: Hash256) {
+        // Initialize with default (false) votes for all PTC members
+        // The actual votes will be set via set_payload_timeliness_vote and
+        // set_payload_data_availability_vote as PTC messages arrive
+        self.fc_store.initialize_ptc_votes(block_root, E::ptc_size());
+    }
+
+    /// [New in Gloas:EIP7732] Process a payload attestation message.
+    ///
+    /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#on_payload_attestation_message
+    ///
+    /// Updates the PTC votes for the block based on the attestation.
+    pub fn on_payload_attestation_message(
+        &mut self,
+        _validator_index: u64,
+        beacon_block_root: Hash256,
+        _slot: Slot,
+        payload_present: bool,
+        blob_data_available: bool,
+        ptc_index: usize,
+    ) {
+        // Update the votes for the block
+        self.fc_store.set_payload_timeliness_vote(beacon_block_root, ptc_index, payload_present);
+        self.fc_store.set_payload_data_availability_vote(beacon_block_root, ptc_index, blob_data_available);
+    }
+
     /// [New in Gloas:EIP7732] Determine if we should extend a payload from the previous slot.
     ///
     /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#should_extend_payload
