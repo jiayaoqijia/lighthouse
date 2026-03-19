@@ -305,9 +305,18 @@ impl<E: EthSpec> InclusionListStore<E> {
         if let Some(&existing_hash) = validator_map.get(&validator_index) {
             if existing_hash != il_hash {
                 // Equivocation detected: same validator, different IL
-                self.mark_equivocator(key, validator_index);
+                // Mark as equivocator (we already hold seen_validators lock, so update directly)
+                self.equivocators
+                    .write()
+                    .entry(key)
+                    .or_default()
+                    .insert(validator_index);
+
+                // Remove from seen validators (we already hold the lock)
+                validator_map.remove(&validator_index);
 
                 // Remove the existing IL from storage
+                drop(seen); // Release lock before calling remove_il
                 self.remove_il(key, validator_index);
 
                 return true;
@@ -343,21 +352,6 @@ impl<E: EthSpec> InclusionListStore<E> {
             .read()
             .get(&key)
             .is_some_and(|set| set.contains(&validator_index))
-    }
-
-    /// Mark a validator as an equivocator.
-    fn mark_equivocator(&self, key: StoreKey, validator_index: u64) {
-        self.equivocators
-            .write()
-            .entry(key)
-            .or_default()
-            .insert(validator_index);
-
-        // Also remove from seen validators
-        self.seen_validators
-            .write()
-            .get_mut(&key)
-            .map(|map| map.remove(&validator_index));
     }
 
     /// Store an inclusion list.

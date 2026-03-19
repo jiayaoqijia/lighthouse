@@ -562,12 +562,17 @@ where
     }
 
     /// [New in Gloas:EIP7732] Initialize PTC voting arrays for a new block.
+    ///
+    /// Uses `or_insert_with` to avoid overwriting votes that may have been recorded
+    /// before block processing (e.g., if PTC attestation messages arrived early).
     fn initialize_ptc_votes(&mut self, block_root: Hash256, ptc_size: usize) {
-        // Initialize with all false votes
+        // Only initialize if not already present (votes may have been recorded earlier)
         self.payload_timeliness_vote
-            .insert(block_root, vec![false; ptc_size]);
+            .entry(block_root)
+            .or_insert_with(|| vec![false; ptc_size]);
         self.payload_data_availability_vote
-            .insert(block_root, vec![false; ptc_size]);
+            .entry(block_root)
+            .or_insert_with(|| vec![false; ptc_size]);
     }
 }
 
