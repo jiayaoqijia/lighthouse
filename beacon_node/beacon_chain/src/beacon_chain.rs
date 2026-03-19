@@ -3918,6 +3918,11 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                     &self.spec,
                 )
                 .map_err(|e| BlockError::BeaconChainError(Box::new(e.into())))?;
+
+            // [New in Gloas:EIP7732] Initialize PTC voting for the new block
+            if block.fork_name_unchecked().gloas_enabled() {
+                fork_choice.initialize_ptc_votes(block_root);
+            }
         }
 
         // If the block is recent enough and it was not optimistically imported, check to see if it
