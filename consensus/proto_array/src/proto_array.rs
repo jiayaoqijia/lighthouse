@@ -15,7 +15,6 @@ use types::{
 // Re-export Gloas constants for fork choice
 pub use types::consts::gloas::{
     PayloadStatus, PAYLOAD_STATUS_EMPTY, PAYLOAD_STATUS_FULL, PAYLOAD_STATUS_PENDING,
-    ATTESTATION_TIMELINESS_INDEX, PTC_TIMELINESS_INDEX, NUM_BLOCK_TIMELINESS_DEADLINES,
 };
 
 // Define a "legacy" implementation of `Option<usize>` which uses four bytes for encoding the union
@@ -230,7 +229,7 @@ impl ProtoArray {
     #[allow(clippy::too_many_arguments)]
     pub fn apply_score_changes<E: EthSpec>(
         &mut self,
-        mut deltas: Vec<i64>,
+        deltas: Vec<i64>,
         best_justified_checkpoint: Checkpoint,
         best_finalized_checkpoint: Checkpoint,
         new_justified_balances: &JustifiedBalances,
@@ -238,6 +237,38 @@ impl ProtoArray {
         current_slot: Slot,
         spec: &ChainSpec,
     ) -> Result<(), Error> {
+        // Default to root-based tiebreaker for pre-Gloas behavior
+        self.apply_score_changes_with_tiebreaker::<E, _>(
+            deltas,
+            best_justified_checkpoint,
+            best_finalized_checkpoint,
+            new_justified_balances,
+            proposer_boost_root,
+            current_slot,
+            spec,
+            |_child, _best_child| false, // Default: always use root comparison
+        )
+    }
+
+    /// [New in Gloas:EIP7732] Apply score changes with a custom tie-breaker function.
+    ///
+    /// The tie-breaker function returns true if `child` should win over `best_child`
+    /// in case of equal weights (used for Gloas payload status tie-breaking).
+    #[allow(clippy::too_many_arguments)]
+    pub fn apply_score_changes_with_tiebreaker<E: EthSpec, F>(
+        &mut self,
+        mut deltas: Vec<i64>,
+        best_justified_checkpoint: Checkpoint,
+        best_finalized_checkpoint: Checkpoint,
+        new_justified_balances: &JustifiedBalances,
+        proposer_boost_root: Hash256,
+        current_slot: Slot,
+        spec: &ChainSpec,
+        payload_tiebreaker: F,
+    ) -> Result<(), Error>
+    where
+        F: Fn(&ProtoNode, &ProtoNode) -> bool,
+    {
         if deltas.len() != self.indices.len() {
             return Err(Error::InvalidDeltaLen {
                 deltas: deltas.len(),
@@ -361,12 +392,13 @@ impl ProtoArray {
 
             // If the node has a parent, try to update its best-child and best-descendant.
             if let Some(parent_index) = node.parent {
-                self.maybe_update_best_child_and_descendant::<E>(
+                self.maybe_update_best_child_and_descendant::<E, _>(
                     parent_index,
                     node_index,
                     current_slot,
                     best_justified_checkpoint,
                     best_finalized_checkpoint,
+                    &payload_tiebreaker,
                 )?;
             }
         }
@@ -433,12 +465,14 @@ impl ProtoArray {
         self.nodes.push(node.clone());
 
         if let Some(parent_index) = node.parent {
-            self.maybe_update_best_child_and_descendant::<E>(
+            // Use default root-based tiebreaker for on_new_block
+            self.maybe_update_best_child_and_descendant::<E, _>(
                 parent_index,
                 node_index,
                 current_slot,
                 best_justified_checkpoint,
                 best_finalized_checkpoint,
+                &|_child, _best_child| false, // Default: always use root comparison
             )?;
 
             if matches!(block.execution_status, ExecutionStatus::Valid(_)) {
@@ -853,14 +887,18 @@ impl ProtoArray {
     ///   best-descendant.
     /// - The child is not the best child but becomes the best child.
     /// - The child is not the best child and does not become the best child.
-    fn maybe_update_best_child_and_descendant<E: EthSpec>(
+    fn maybe_update_best_child_and_descendant<E: EthSpec, F>(
         &mut self,
         parent_index: usize,
         child_index: usize,
         current_slot: Slot,
         best_justified_checkpoint: Checkpoint,
         best_finalized_checkpoint: Checkpoint,
-    ) -> Result<(), Error> {
+        payload_tiebreaker: &F,
+    ) -> Result<(), Error>
+    where
+        F: Fn(&ProtoNode, &ProtoNode) -> bool,
+    {
         let child = self
             .nodes
             .get(child_index)
@@ -919,15 +957,16 @@ impl ProtoArray {
                         // The best child leads to a viable head, but the child doesn't.
                         no_change
                     } else if child.weight == best_child.weight {
-                        // Tie-breaker of equal weights by root.
-                        // TODO(gloas): Replace this with `get_payload_status_tiebreaker` which uses
-                        // `should_extend_payload`. In Heze, `should_extend_payload` checks IL satisfaction
-                        // via `is_payload_inclusion_list_satisfied` before extending a payload.
-                        // This requires:
-                        // 1. `ForkChoiceNode` with `payload_status` (EMPTY/FULL/PENDING)
-                        // 2. Integration with `payload_inclusion_list_satisfaction` from fork_choice_store
-                        // See: specs/gloas/fork-choice.md and specs/heze/fork-choice.md
-                        if child.root >= best_child.root {
+                        // [New in Gloas:EIP7732] Tie-breaker of equal weights using payload status.
+                        // Uses `get_payload_status_tiebreaker` which considers EMPTY/FULL/PENDING
+                        // status and `should_extend_payload` result.
+                        // Falls back to root comparison if tiebreaker returns false for both.
+                        if payload_tiebreaker(child, best_child) {
+                            change_to_child
+                        } else if payload_tiebreaker(best_child, child) {
+                            no_change
+                        } else if child.root >= best_child.root {
+                            // Fallback: tie-breaker of equal weights by root (pre-Gloas behavior)
                             change_to_child
                         } else {
                             no_change

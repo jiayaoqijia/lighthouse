@@ -3,7 +3,8 @@ use crate::{
     error::Error,
     proto_array::{
         InvalidationOperation, Iter, ProposerBoost, ProtoArray, ProtoNode,
-        calculate_committee_fraction,
+        calculate_committee_fraction, PAYLOAD_STATUS_EMPTY, PAYLOAD_STATUS_FULL,
+        PAYLOAD_STATUS_PENDING,
     },
     ssz_container::SszContainer,
 };
@@ -36,6 +37,37 @@ pub struct VoteTracker {
     /// - `true`: voting for FULL chain (attestation.data.index == 1)
     /// This is only meaningful when `next_root` is set.
     next_payload_present: bool,
+}
+
+/// [New in Gloas:EIP7732] Represents the latest vote from a validator.
+///
+/// This is the Rust equivalent of the Python `LatestMessage` dataclass defined in
+/// `specs/gloas/fork-choice.md`:
+///
+/// ```python
+/// @dataclass(eq=True, frozen=True)
+/// class LatestMessage(object):
+///     slot: Slot
+///     root: Root
+///     payload_present: boolean
+/// ```
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
+pub struct LatestMessage {
+    pub slot: Slot,
+    pub root: Hash256,
+    /// Whether the validator is voting for FULL (true) or EMPTY (false) chain.
+    pub payload_present: bool,
+}
+
+impl LatestMessage {
+    /// Create a new LatestMessage.
+    pub fn new(slot: Slot, root: Hash256, payload_present: bool) -> Self {
+        Self {
+            slot,
+            root,
+            payload_present,
+        }
+    }
 }
 
 /// Represents the verification status of an execution payload.
@@ -557,6 +589,38 @@ impl ProtoArrayForkChoice {
         current_slot: Slot,
         spec: &ChainSpec,
     ) -> Result<Hash256, String> {
+        // Use default root-based tiebreaker for pre-Gloas behavior
+        self.find_head_with_tiebreaker::<E, _>(
+            justified_checkpoint,
+            finalized_checkpoint,
+            justified_state_balances,
+            proposer_boost_root,
+            equivocating_indices,
+            current_slot,
+            spec,
+            |_child, _best_child| false, // Default: always use root comparison
+        )
+    }
+
+    /// [New in Gloas:EIP7732] Find head with custom payload status tiebreaker.
+    ///
+    /// The tie-breaker function returns true if `child` should win over `best_child`
+    /// in case of equal weights (used for Gloas payload status tie-breaking).
+    #[allow(clippy::too_many_arguments)]
+    pub fn find_head_with_tiebreaker<E: EthSpec, F>(
+        &mut self,
+        justified_checkpoint: Checkpoint,
+        finalized_checkpoint: Checkpoint,
+        justified_state_balances: &JustifiedBalances,
+        proposer_boost_root: Hash256,
+        equivocating_indices: &BTreeSet<u64>,
+        current_slot: Slot,
+        spec: &ChainSpec,
+        payload_tiebreaker: F,
+    ) -> Result<Hash256, String>
+    where
+        F: Fn(&ProtoNode, &ProtoNode) -> bool,
+    {
         let old_balances = &mut self.balances;
         let new_balances = justified_state_balances;
 
@@ -570,7 +634,7 @@ impl ProtoArrayForkChoice {
         .map_err(|e| format!("find_head compute_deltas failed: {:?}", e))?;
 
         self.proto_array
-            .apply_score_changes::<E>(
+            .apply_score_changes_with_tiebreaker::<E, _>(
                 deltas,
                 justified_checkpoint,
                 finalized_checkpoint,
@@ -578,6 +642,7 @@ impl ProtoArrayForkChoice {
                 proposer_boost_root,
                 current_slot,
                 spec,
+                payload_tiebreaker,
             )
             .map_err(|e| format!("find_head apply_score_changes failed: {:?}", e))?;
 
@@ -873,7 +938,10 @@ impl ProtoArrayForkChoice {
         self.proto_array.indices.contains_key(block_root)
     }
 
-    fn get_proto_node(&self, block_root: &Hash256) -> Option<&ProtoNode> {
+    /// [New in Gloas:EIP7732] Get a proto node by its root.
+    ///
+    /// This is useful for Gloas fork choice operations that need to inspect node properties.
+    pub fn get_proto_node(&self, block_root: &Hash256) -> Option<&ProtoNode> {
         let block_index = self.proto_array.indices.get(block_root)?;
         self.proto_array.nodes.get(*block_index)
     }
@@ -917,6 +985,36 @@ impl ProtoArrayForkChoice {
             .nodes
             .get(*block_index)
             .map(|node| node.weight)
+    }
+
+    /// [New in Gloas:EIP7732] Returns the weight supporting a specific payload status.
+    ///
+    /// In Gloas, votes are split by payload status (EMPTY/FULL). This method calculates
+    /// the weight of votes supporting a given block's payload status using `is_supporting_vote`.
+    ///
+    /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#get_weight
+    pub fn get_weight_gloas(&self, node: &crate::proto_array::ForkChoiceNode) -> u64 {
+        // Get the proto node to access weight
+        let Some(block_index) = self.proto_array.indices.get(&node.root) else {
+            return 0;
+        };
+        let Some(proto_node) = self.proto_array.nodes.get(*block_index) else {
+            return 0;
+        };
+
+        // For now, return the full weight. Full implementation would:
+        // 1. Iterate over all validators with latest_messages
+        // 2. Use is_supporting_vote to check if the vote supports this node's payload_status
+        // 3. Sum only the weights of supporting votes
+        //
+        // This requires:
+        // - Access to latest_messages with payload_present field
+        // - The is_supporting_vote logic integrated into weight calculation
+        // - Changes to compute_deltas to track payload-present-aware deltas
+        //
+        // The current implementation uses the base weight, which is correct for pre-Gloas behavior.
+        // TODO(gloas): Implement full payload-status-aware weight calculation
+        proto_node.weight
     }
 
     /// See `ProtoArray` documentation.
@@ -1119,6 +1217,70 @@ fn compute_deltas(
     }
 
     Ok(deltas)
+}
+
+// ===== [New in Gloas:EIP7732] Fork Choice Helper Functions =====
+
+impl ProtoArrayForkChoice {
+    /// [New in Gloas:EIP7732] Check if the parent of a block has a FULL payload.
+    ///
+    /// This is a wrapper around the internal `proto_array.is_parent_node_full` method.
+    pub fn is_parent_node_full(&self, block: &ProtoNode) -> bool {
+        self.proto_array.is_parent_node_full(block)
+    }
+
+    /// [New in Gloas:EIP7732] Get the ancestor of a block at a given slot.
+    ///
+    /// This is a wrapper around the internal `proto_array.get_ancestor` method.
+    pub fn get_ancestor(&self, root: Hash256, slot: Slot) -> Option<crate::proto_array::ForkChoiceNode> {
+        self.proto_array.get_ancestor(root, slot)
+    }
+
+    /// [New in Gloas:EIP7732] Check if a vote supports a given fork choice node.
+    ///
+    /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#is_supporting_vote
+    ///
+    /// Returns whether the vote `message` supports the chain containing the fork choice node.
+    pub fn is_supporting_vote(
+        &self,
+        node: &crate::proto_array::ForkChoiceNode,
+        message: &LatestMessage,
+    ) -> bool {
+        let Some(block) = self.get_proto_node(&node.root) else {
+            return false;
+        };
+
+        // Case 1: The vote is directly for this node
+        if node.root == message.root {
+            // If the node is PENDING, any vote supports it
+            if node.payload_status == PAYLOAD_STATUS_PENDING {
+                return true;
+            }
+            // If the vote slot is not newer than the block slot, it doesn't count
+            if message.slot <= block.slot {
+                return false;
+            }
+            // Vote for FULL chain supports FULL node
+            // Vote for EMPTY chain supports EMPTY node
+            if message.payload_present {
+                return node.payload_status == PAYLOAD_STATUS_FULL;
+            } else {
+                return node.payload_status == PAYLOAD_STATUS_EMPTY;
+            }
+        }
+
+        // Case 2: The vote is for a different node - check ancestor relationship
+        let Some(ancestor) = self.proto_array.get_ancestor(message.root, block.slot) else {
+            return false;
+        };
+
+        // The vote supports this node if:
+        // 1. The ancestor is this node, AND
+        // 2. Either this node is PENDING, or the payload status matches
+        node.root == ancestor.root
+            && (node.payload_status == PAYLOAD_STATUS_PENDING
+                || node.payload_status == ancestor.payload_status)
+    }
 }
 
 #[cfg(test)]

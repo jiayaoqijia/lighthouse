@@ -496,15 +496,44 @@ where
 
         let store = &mut self.fc_store;
 
-        let head_root = self.proto_array.find_head::<E>(
-            *store.justified_checkpoint(),
-            *store.finalized_checkpoint(),
-            store.justified_balances(),
-            store.proposer_boost_root(),
-            store.equivocating_indices(),
-            current_slot,
-            spec,
-        )?;
+        // [New in Gloas:EIP7732] Use payload status tiebreaker for Gloas forks
+        let head_root = if spec.fork_name_at_epoch(current_slot.epoch(E::slots_per_epoch())).gloas_enabled() {
+            let current_slot_copy = current_slot;
+            self.proto_array.find_head_with_tiebreaker::<E, _>(
+                *store.justified_checkpoint(),
+                *store.finalized_checkpoint(),
+                store.justified_balances(),
+                store.proposer_boost_root(),
+                store.equivocating_indices(),
+                current_slot,
+                spec,
+                |child, best_child| {
+                    // Simple tiebreaker: prefer nodes with bid_block_hash (FULL) over those without (EMPTY)
+                    // Full implementation would use get_payload_status_tiebreaker which considers
+                    // should_extend_payload and PTC votes
+                    let child_is_full = child.bid_block_hash.is_some();
+                    let best_is_full = best_child.bid_block_hash.is_some();
+
+                    // For nodes from the previous slot, prefer FULL if conditions are met
+                    // This is a simplified version - full implementation needs PTC votes
+                    if child.slot + 1 == current_slot_copy {
+                        child_is_full && !best_is_full
+                    } else {
+                        false // Use root comparison for nodes not from previous slot
+                    }
+                },
+            )
+        } else {
+            self.proto_array.find_head::<E>(
+                *store.justified_checkpoint(),
+                *store.finalized_checkpoint(),
+                store.justified_balances(),
+                store.proposer_boost_root(),
+                store.equivocating_indices(),
+                current_slot,
+                spec,
+            )
+        }?;
 
         // Cache some values for the next forkchoiceUpdate call to the execution layer.
         let head_hash = self
@@ -916,6 +945,9 @@ where
                 execution_status,
                 unrealized_justified_checkpoint: Some(unrealized_justified_checkpoint),
                 unrealized_finalized_checkpoint: Some(unrealized_finalized_checkpoint),
+                // [New in Gloas:EIP7732] Bid hash fields - None for pre-Gloas blocks
+                bid_block_hash: None,
+                bid_parent_block_hash: None,
             },
             current_slot,
             self.justified_checkpoint(),
@@ -1548,6 +1580,115 @@ where
     /// satisfies the inclusion list constraints.
     pub fn is_payload_inclusion_list_satisfied(&self, block_root: Hash256) -> Option<bool> {
         self.fc_store.is_payload_inclusion_list_satisfied(block_root)
+    }
+
+    // ===== [New in Gloas:EIP7732] PTC and Fork Choice Methods =====
+
+    /// [New in Gloas:EIP7732] Record a PTC timeliness vote for a block.
+    pub fn set_payload_timeliness_vote(
+        &mut self,
+        block_root: Hash256,
+        index: usize,
+        vote: bool,
+    ) {
+        self.fc_store.set_payload_timeliness_vote(block_root, index, vote);
+    }
+
+    /// [New in Gloas:EIP7732] Record a PTC data availability vote for a block.
+    pub fn set_payload_data_availability_vote(
+        &mut self,
+        block_root: Hash256,
+        index: usize,
+        vote: bool,
+    ) {
+        self.fc_store.set_payload_data_availability_vote(block_root, index, vote);
+    }
+
+    /// [New in Gloas:EIP7732] Check if payload is timely based on PTC votes.
+    pub fn is_payload_timely(&self, block_root: Hash256) -> bool {
+        self.fc_store.is_payload_timely(E::ptc_size(), block_root)
+    }
+
+    /// [New in Gloas:EIP7732] Check if payload data is available based on PTC votes.
+    pub fn is_payload_data_available(&self, block_root: Hash256) -> bool {
+        self.fc_store.is_payload_data_available(E::ptc_size(), block_root)
+    }
+
+    /// [New in Gloas:EIP7732] Determine if we should extend a payload from the previous slot.
+    ///
+    /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#should_extend_payload
+    ///
+    /// Returns true if we should build on the FULL version of the block with the given root.
+    pub fn should_extend_payload(&self, root: Hash256) -> bool {
+        let proposer_root = self.fc_store.proposer_boost_root();
+
+        // Case 1: Payload is timely and data is available
+        if self.is_payload_timely(root) && self.is_payload_data_available(root) {
+            return true;
+        }
+
+        // Case 2: No proposer boost set
+        if proposer_root.is_zero() {
+            return true;
+        }
+
+        // Case 3: Proposer boost is for a different branch
+        let Some(proposer_block) = self.proto_array.get_block(&proposer_root) else {
+            return false;
+        };
+
+        if proposer_block.parent_root != Some(root) {
+            return true;
+        }
+
+        // Case 4: Parent of proposer boost block is full
+        let Some(proposer_proto_node) = self.proto_array.get_proto_node(&proposer_root) else {
+            return false;
+        };
+
+        self.proto_array.is_parent_node_full(proposer_proto_node)
+    }
+
+    /// [New in Gloas:EIP7732] Get the payload status tiebreaker value.
+    ///
+    /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#get_payload_status_tiebreaker
+    ///
+    /// Returns a u8 value used for tie-breaking between EMPTY and FULL nodes.
+    /// Higher values are preferred.
+    pub fn get_payload_status_tiebreaker(
+        &self,
+        node: &proto_array::ForkChoiceNode,
+        current_slot: Slot,
+    ) -> u8 {
+        // If PENDING or not from previous slot, return the status as-is
+        if node.payload_status == proto_array::PAYLOAD_STATUS_PENDING {
+            return node.payload_status;
+        }
+
+        let Some(block) = self.proto_array.get_proto_node(&node.root) else {
+            return node.payload_status;
+        };
+
+        if block.slot + 1 != current_slot {
+            return node.payload_status;
+        }
+
+        // For nodes from the previous slot, apply tiebreaker logic
+        match node.payload_status {
+            proto_array::PAYLOAD_STATUS_EMPTY => {
+                // EMPTY nodes get priority 1 (prefer FULL if available)
+                1
+            }
+            proto_array::PAYLOAD_STATUS_FULL => {
+                // FULL nodes get priority 2 if we should extend, 0 otherwise
+                if self.should_extend_payload(node.root) {
+                    2
+                } else {
+                    0
+                }
+            }
+            _ => node.payload_status,
+        }
     }
 }
 

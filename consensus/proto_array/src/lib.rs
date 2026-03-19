@@ -11,7 +11,7 @@ pub use crate::proto_array::{
     PAYLOAD_STATUS_FULL, PAYLOAD_STATUS_PENDING, calculate_committee_fraction,
 };
 pub use crate::proto_array_fork_choice::{
-    Block, DisallowedReOrgOffsets, DoNotReOrg, ExecutionStatus, ProposerHeadError,
+    Block, DisallowedReOrgOffsets, DoNotReOrg, ExecutionStatus, LatestMessage, ProposerHeadError,
     ProposerHeadInfo, ProtoArrayForkChoice, ReOrgThreshold,
 };
 pub use error::Error;
