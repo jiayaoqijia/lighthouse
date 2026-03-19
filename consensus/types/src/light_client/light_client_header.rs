@@ -109,8 +109,11 @@ impl<E: EthSpec> LightClientHeader<E> {
             ForkName::Fulu => {
                 LightClientHeader::Fulu(LightClientHeaderFulu::block_to_light_client_header(block)?)
             }
-            // TODO(gloas): implement Gloas light client
-            ForkName::Gloas | ForkName::Heze => return Err(LightClientError::GloasNotImplemented),
+            // Gloas/Heze use Altair-style header (beacon only) since execution payload
+            // is not in the block body but in a separate envelope (ePBS design).
+            ForkName::Gloas | ForkName::Heze => LightClientHeader::Altair(
+                LightClientHeaderAltair::block_to_light_client_header(block)?,
+            ),
         };
         Ok(header)
     }
@@ -132,8 +135,11 @@ impl<E: EthSpec> LightClientHeader<E> {
             ForkName::Fulu => {
                 LightClientHeader::Fulu(LightClientHeaderFulu::from_ssz_bytes(bytes)?)
             }
-            // TODO(gloas): implement Gloas light client
-            ForkName::Base | ForkName::Gloas | ForkName::Heze => {
+            // Gloas/Heze use Altair-style header (beacon only)
+            ForkName::Gloas | ForkName::Heze => {
+                LightClientHeader::Altair(LightClientHeaderAltair::from_ssz_bytes(bytes)?)
+            }
+            ForkName::Base => {
                 return Err(ssz::DecodeError::BytesInvalid(format!(
                     "LightClientHeader decoding for {fork_name} not implemented"
                 )));
@@ -363,14 +369,14 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for LightClientHeader<E>
             ))
         };
         Ok(match context {
-            // TODO(gloas): implement Gloas light client
-            ForkName::Base | ForkName::Gloas | ForkName::Heze => {
+            ForkName::Base => {
                 return Err(serde::de::Error::custom(format!(
                     "LightClientFinalityUpdate failed to deserialize: unsupported fork '{}'",
                     context
                 )));
             }
-            ForkName::Altair | ForkName::Bellatrix => {
+            // Gloas/Heze use Altair-style header (beacon only)
+            ForkName::Altair | ForkName::Bellatrix | ForkName::Gloas | ForkName::Heze => {
                 Self::Altair(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
             ForkName::Capella => {

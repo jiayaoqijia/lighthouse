@@ -177,7 +177,22 @@ impl<E: EthSpec> LightClientFinalityUpdate<E> {
                 sync_aggregate,
                 signature_slot,
             }),
-            ForkName::Gloas | ForkName::Heze => return Err(LightClientError::GloasNotImplemented),
+            // Gloas/Heze use Altair-style finality update (beacon header only)
+            ForkName::Gloas | ForkName::Heze => {
+                Self::Altair(LightClientFinalityUpdateAltair {
+                    attested_header: LightClientHeaderAltair::block_to_light_client_header(
+                        attested_block,
+                    )?,
+                    finalized_header: LightClientHeaderAltair::block_to_light_client_header(
+                        finalized_block,
+                    )?,
+                    finality_branch: finality_branch
+                        .try_into()
+                        .map_err(LightClientError::SszTypesError)?,
+                    sync_aggregate,
+                    signature_slot,
+                })
+            }
             ForkName::Base => return Err(LightClientError::AltairForkNotActive),
         };
 
@@ -231,8 +246,11 @@ impl<E: EthSpec> LightClientFinalityUpdate<E> {
                 Self::Electra(LightClientFinalityUpdateElectra::from_ssz_bytes(bytes)?)
             }
             ForkName::Fulu => Self::Fulu(LightClientFinalityUpdateFulu::from_ssz_bytes(bytes)?),
-            // TODO(gloas): implement Gloas light client
-            ForkName::Base | ForkName::Gloas | ForkName::Heze => {
+            // Gloas/Heze use Altair-style finality update
+            ForkName::Gloas | ForkName::Heze => {
+                Self::Altair(LightClientFinalityUpdateAltair::from_ssz_bytes(bytes)?)
+            }
+            ForkName::Base => {
                 return Err(ssz::DecodeError::BytesInvalid(format!(
                     "LightClientFinalityUpdate decoding for {fork_name} not implemented"
                 )));
@@ -253,8 +271,10 @@ impl<E: EthSpec> LightClientFinalityUpdate<E> {
             ForkName::Deneb => <LightClientFinalityUpdateDeneb<E> as Encode>::ssz_fixed_len(),
             ForkName::Electra => <LightClientFinalityUpdateElectra<E> as Encode>::ssz_fixed_len(),
             ForkName::Fulu => <LightClientFinalityUpdateFulu<E> as Encode>::ssz_fixed_len(),
-            // TODO(gloas): implement Gloas light client
-            ForkName::Gloas | ForkName::Heze => 0,
+            // Gloas/Heze use Altair-style finality update
+            ForkName::Gloas | ForkName::Heze => {
+                <LightClientFinalityUpdateAltair<E> as Encode>::ssz_fixed_len()
+            }
         };
         // `2 *` because there are two headers in the update
         fixed_size + 2 * LightClientHeader::<E>::ssz_max_var_len_for_fork(fork_name)
@@ -307,12 +327,9 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for LightClientFinalityU
             ForkName::Fulu => {
                 Self::Fulu(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
+            // Gloas/Heze use Altair-style finality update
             ForkName::Gloas | ForkName::Heze => {
-                // TODO(EIP-7732): check if this is correct
-                return Err(serde::de::Error::custom(format!(
-                    "LightClientBootstrap failed to deserialize: unsupported fork '{}'",
-                    context
-                )));
+                Self::Altair(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
         })
     }

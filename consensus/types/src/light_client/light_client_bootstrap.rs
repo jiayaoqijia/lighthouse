@@ -193,8 +193,16 @@ impl<E: EthSpec> LightClientBootstrap<E> {
                     .try_into()
                     .map_err(LightClientError::SszTypesError)?,
             }),
-            // TODO(gloas): implement Gloas light client
-            ForkName::Gloas | ForkName::Heze => return Err(LightClientError::GloasNotImplemented),
+            // Gloas/Heze use Altair-style bootstrap (beacon header only)
+            ForkName::Gloas | ForkName::Heze => {
+                Self::Altair(LightClientBootstrapAltair {
+                    header: LightClientHeaderAltair::block_to_light_client_header(block)?,
+                    current_sync_committee,
+                    current_sync_committee_branch: current_sync_committee_branch
+                        .try_into()
+                        .map_err(LightClientError::SszTypesError)?,
+                })
+            }
         };
 
         Ok(light_client_bootstrap)
@@ -248,8 +256,16 @@ impl<E: EthSpec> LightClientBootstrap<E> {
                     .try_into()
                     .map_err(LightClientError::SszTypesError)?,
             }),
-            // TODO(gloas): implement Gloas light client
-            ForkName::Gloas | ForkName::Heze => return Err(LightClientError::GloasNotImplemented),
+            // Gloas/Heze use Altair-style bootstrap (beacon header only)
+            ForkName::Gloas | ForkName::Heze => {
+                Self::Altair(LightClientBootstrapAltair {
+                    header: LightClientHeaderAltair::block_to_light_client_header(block)?,
+                    current_sync_committee,
+                    current_sync_committee_branch: current_sync_committee_branch
+                        .try_into()
+                        .map_err(LightClientError::SszTypesError)?,
+                })
+            }
         };
 
         Ok(light_client_bootstrap)
@@ -289,12 +305,9 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for LightClientBootstrap
             ForkName::Fulu => {
                 Self::Fulu(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
+            // Gloas/Heze use Altair-style bootstrap
             ForkName::Gloas | ForkName::Heze => {
-                // TODO(EIP-7732): check if this is correct
-                return Err(serde::de::Error::custom(format!(
-                    "LightClientBootstrap failed to deserialize: unsupported fork '{}'",
-                    context
-                )));
+                Self::Altair(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
         })
     }

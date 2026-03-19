@@ -123,7 +123,16 @@ impl<E: EthSpec> LightClientOptimisticUpdate<E> {
                 sync_aggregate,
                 signature_slot,
             }),
-            ForkName::Gloas | ForkName::Heze => return Err(LightClientError::GloasNotImplemented),
+            // Gloas/Heze use Altair-style optimistic update (beacon header only)
+            ForkName::Gloas | ForkName::Heze => {
+                Self::Altair(LightClientOptimisticUpdateAltair {
+                    attested_header: LightClientHeaderAltair::block_to_light_client_header(
+                        attested_block,
+                    )?,
+                    sync_aggregate,
+                    signature_slot,
+                })
+            }
             ForkName::Base => return Err(LightClientError::AltairForkNotActive),
         };
 
@@ -179,8 +188,11 @@ impl<E: EthSpec> LightClientOptimisticUpdate<E> {
                 Self::Electra(LightClientOptimisticUpdateElectra::from_ssz_bytes(bytes)?)
             }
             ForkName::Fulu => Self::Fulu(LightClientOptimisticUpdateFulu::from_ssz_bytes(bytes)?),
-            // TODO(gloas): implement Gloas light client
-            ForkName::Base | ForkName::Gloas | ForkName::Heze => {
+            // Gloas/Heze use Altair-style optimistic update
+            ForkName::Gloas | ForkName::Heze => {
+                Self::Altair(LightClientOptimisticUpdateAltair::from_ssz_bytes(bytes)?)
+            }
+            ForkName::Base => {
                 return Err(ssz::DecodeError::BytesInvalid(format!(
                     "LightClientOptimisticUpdate decoding for {fork_name} not implemented"
                 )));
@@ -201,8 +213,10 @@ impl<E: EthSpec> LightClientOptimisticUpdate<E> {
             ForkName::Deneb => <LightClientOptimisticUpdateDeneb<E> as Encode>::ssz_fixed_len(),
             ForkName::Electra => <LightClientOptimisticUpdateElectra<E> as Encode>::ssz_fixed_len(),
             ForkName::Fulu => <LightClientOptimisticUpdateFulu<E> as Encode>::ssz_fixed_len(),
-            // TODO(gloas): implement Gloas light client
-            ForkName::Gloas | ForkName::Heze => 0,
+            // Gloas/Heze use Altair-style optimistic update
+            ForkName::Gloas | ForkName::Heze => {
+                <LightClientOptimisticUpdateAltair<E> as Encode>::ssz_fixed_len()
+            }
         };
         fixed_len + LightClientHeader::<E>::ssz_max_var_len_for_fork(fork_name)
     }
@@ -254,12 +268,9 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for LightClientOptimisti
             ForkName::Fulu => {
                 Self::Fulu(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
+            // Gloas/Heze use Altair-style optimistic update
             ForkName::Gloas | ForkName::Heze => {
-                // TODO(EIP-7732): check if this is correct
-                return Err(serde::de::Error::custom(format!(
-                    "LightClientBootstrap failed to deserialize: unsupported fork '{}'",
-                    context
-                )));
+                Self::Altair(Deserialize::deserialize(deserializer).map_err(convert_err)?)
             }
         })
     }

@@ -323,11 +323,37 @@ impl<E: EthSpec> LightClientUpdate<E> {
                     signature_slot: block_slot,
                 })
             }
-            // To add a new fork, just append the new fork variant on the latest fork. Forks that
-            // have a distinct execution header will need a new LightClientUpdate variant only
-            // if you need to test or support lightclient usages
-            // TODO(gloas): implement Gloas light client
-            ForkName::Gloas | ForkName::Heze => return Err(LightClientError::GloasNotImplemented),
+            // Gloas/Heze use Altair-style light client update (beacon header only)
+            ForkName::Gloas | ForkName::Heze => {
+                let attested_header =
+                    LightClientHeaderAltair::block_to_light_client_header(attested_block)?;
+
+                let finalized_header = if let Some(finalized_block) = finalized_block {
+                    // Check if the finalized block is from Gloas/Heze fork
+                    let block_fork = finalized_block.fork_name_unchecked();
+                    if matches!(block_fork, ForkName::Gloas | ForkName::Heze) {
+                        LightClientHeaderAltair::block_to_light_client_header(finalized_block)?
+                    } else {
+                        LightClientHeaderAltair::default()
+                    }
+                } else {
+                    LightClientHeaderAltair::default()
+                };
+
+                Self::Altair(LightClientUpdateAltair {
+                    attested_header,
+                    next_sync_committee,
+                    next_sync_committee_branch: next_sync_committee_branch
+                        .try_into()
+                        .map_err(LightClientError::SszTypesError)?,
+                    finalized_header,
+                    finality_branch: finality_branch
+                        .try_into()
+                        .map_err(LightClientError::SszTypesError)?,
+                    sync_aggregate: sync_aggregate.clone(),
+                    signature_slot: block_slot,
+                })
+            }
         };
 
         Ok(light_client_update)
@@ -342,8 +368,11 @@ impl<E: EthSpec> LightClientUpdate<E> {
             ForkName::Deneb => Self::Deneb(LightClientUpdateDeneb::from_ssz_bytes(bytes)?),
             ForkName::Electra => Self::Electra(LightClientUpdateElectra::from_ssz_bytes(bytes)?),
             ForkName::Fulu => Self::Fulu(LightClientUpdateFulu::from_ssz_bytes(bytes)?),
-            // TODO(gloas): implement Gloas light client
-            ForkName::Base | ForkName::Gloas | ForkName::Heze => {
+            // Gloas/Heze use Altair-style light client update
+            ForkName::Gloas | ForkName::Heze => {
+                Self::Altair(LightClientUpdateAltair::from_ssz_bytes(bytes)?)
+            }
+            ForkName::Base => {
                 return Err(ssz::DecodeError::BytesInvalid(format!(
                     "LightClientUpdate decoding for {fork_name} not implemented"
                 )));
