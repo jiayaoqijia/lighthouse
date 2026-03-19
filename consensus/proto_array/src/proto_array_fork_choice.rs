@@ -2,9 +2,8 @@ use crate::{
     JustifiedBalances,
     error::Error,
     proto_array::{
-        InvalidationOperation, Iter, ProposerBoost, ProtoArray, ProtoNode,
-        calculate_committee_fraction, PAYLOAD_STATUS_EMPTY, PAYLOAD_STATUS_FULL,
-        PAYLOAD_STATUS_PENDING,
+        InvalidationOperation, Iter, PAYLOAD_STATUS_EMPTY, PAYLOAD_STATUS_FULL,
+        PAYLOAD_STATUS_PENDING, ProposerBoost, ProtoArray, ProtoNode, calculate_committee_fraction,
     },
     ssz_container::SszContainer,
 };
@@ -1232,7 +1231,11 @@ impl ProtoArrayForkChoice {
     /// [New in Gloas:EIP7732] Get the ancestor of a block at a given slot.
     ///
     /// This is a wrapper around the internal `proto_array.get_ancestor` method.
-    pub fn get_ancestor(&self, root: Hash256, slot: Slot) -> Option<crate::proto_array::ForkChoiceNode> {
+    pub fn get_ancestor(
+        &self,
+        root: Hash256,
+        slot: Slot,
+    ) -> Option<crate::proto_array::ForkChoiceNode> {
         self.proto_array.get_ancestor(root, slot)
     }
 
@@ -1294,7 +1297,9 @@ impl ProtoArrayForkChoice {
         node: &crate::proto_array::ForkChoiceNode,
         payload_revealed: bool,
     ) -> Vec<crate::proto_array::ForkChoiceNode> {
-        use crate::proto_array::{ForkChoiceNode, PAYLOAD_STATUS_PENDING, PAYLOAD_STATUS_EMPTY, PAYLOAD_STATUS_FULL};
+        use crate::proto_array::{
+            ForkChoiceNode, PAYLOAD_STATUS_EMPTY, PAYLOAD_STATUS_FULL, PAYLOAD_STATUS_PENDING,
+        };
 
         if node.payload_status == PAYLOAD_STATUS_PENDING {
             // For PENDING nodes, return EMPTY + optionally FULL

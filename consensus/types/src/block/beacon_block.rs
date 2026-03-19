@@ -20,8 +20,8 @@ use crate::{
     block::{
         BeaconBlockBodyAltair, BeaconBlockBodyBase, BeaconBlockBodyBellatrix,
         BeaconBlockBodyCapella, BeaconBlockBodyDeneb, BeaconBlockBodyElectra, BeaconBlockBodyFulu,
-        BeaconBlockBodyGloas, BeaconBlockBodyHeze, BeaconBlockBodyRef, BeaconBlockBodyRefMut, BeaconBlockHeader,
-        SignedBeaconBlock, SignedBeaconBlockHeader,
+        BeaconBlockBodyGloas, BeaconBlockBodyHeze, BeaconBlockBodyRef, BeaconBlockBodyRefMut,
+        BeaconBlockHeader, SignedBeaconBlock, SignedBeaconBlockHeader,
     },
     core::{ChainSpec, Domain, Epoch, EthSpec, Graffiti, Hash256, SignedRoot, Slot},
     deposit::{Deposit, DepositData},
@@ -323,14 +323,14 @@ impl<'a, E: EthSpec, Payload: AbstractExecPayload<E>> BeaconBlockRef<'a, E, Payl
             BeaconBlockRef::Electra(block) => Some(block.body.blob_kzg_commitments.len()),
             BeaconBlockRef::Fulu(block) => Some(block.body.blob_kzg_commitments.len()),
             BeaconBlockRef::Gloas(block) => Some(
-            block
-                .body
-                .signed_execution_payload_bid
-                .message()
-                .blob_kzg_commitments()
-                .len(),
-        ),
-        BeaconBlockRef::Heze(block) => Some(
+                block
+                    .body
+                    .signed_execution_payload_bid
+                    .message()
+                    .blob_kzg_commitments()
+                    .len(),
+            ),
+            BeaconBlockRef::Heze(block) => Some(
                 block
                     .body
                     .signed_execution_payload_bid

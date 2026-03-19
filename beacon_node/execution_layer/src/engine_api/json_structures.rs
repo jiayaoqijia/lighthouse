@@ -937,7 +937,9 @@ impl From<PayloadStatusV1Status> for JsonPayloadStatusV1Status {
             PayloadStatusV1Status::Syncing => JsonPayloadStatusV1Status::Syncing,
             PayloadStatusV1Status::Accepted => JsonPayloadStatusV1Status::Accepted,
             PayloadStatusV1Status::InvalidBlockHash => JsonPayloadStatusV1Status::InvalidBlockHash,
-            PayloadStatusV1Status::InclusionListUnsatisfied => JsonPayloadStatusV1Status::InclusionListUnsatisfied,
+            PayloadStatusV1Status::InclusionListUnsatisfied => {
+                JsonPayloadStatusV1Status::InclusionListUnsatisfied
+            }
         }
     }
 }
@@ -949,7 +951,9 @@ impl From<JsonPayloadStatusV1Status> for PayloadStatusV1Status {
             JsonPayloadStatusV1Status::Syncing => PayloadStatusV1Status::Syncing,
             JsonPayloadStatusV1Status::Accepted => PayloadStatusV1Status::Accepted,
             JsonPayloadStatusV1Status::InvalidBlockHash => PayloadStatusV1Status::InvalidBlockHash,
-            JsonPayloadStatusV1Status::InclusionListUnsatisfied => PayloadStatusV1Status::InclusionListUnsatisfied,
+            JsonPayloadStatusV1Status::InclusionListUnsatisfied => {
+                PayloadStatusV1Status::InclusionListUnsatisfied
+            }
         }
     }
 }

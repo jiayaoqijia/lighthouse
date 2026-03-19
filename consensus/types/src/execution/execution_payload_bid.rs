@@ -46,8 +46,14 @@ pub const INCLUSION_LIST_COMMITTEE_SIZE: usize = 16;
             arbitrary(bound = "E: EthSpec"),
         ),
     ),
-    cast_error(ty = "BeaconStateError", expr = "BeaconStateError::IncorrectStateVariant"),
-    partial_getter_error(ty = "BeaconStateError", expr = "BeaconStateError::IncorrectStateVariant")
+    cast_error(
+        ty = "BeaconStateError",
+        expr = "BeaconStateError::IncorrectStateVariant"
+    ),
+    partial_getter_error(
+        ty = "BeaconStateError",
+        expr = "BeaconStateError::IncorrectStateVariant"
+    )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize, Encode, TreeHash, Educe)]
 #[educe(PartialEq, Hash)]
@@ -127,12 +133,15 @@ impl<E: EthSpec> TestRandom for ExecutionPayloadBid<E> {
 impl<E: EthSpec> crate::fork::ForkVersionDecode for ExecutionPayloadBid<E> {
     fn from_ssz_bytes_by_fork(bytes: &[u8], fork_name: ForkName) -> Result<Self, ssz::DecodeError> {
         match fork_name {
-            ForkName::Base | ForkName::Altair | ForkName::Bellatrix | ForkName::Capella 
-            | ForkName::Deneb | ForkName::Electra | ForkName::Fulu => {
-                Err(ssz::DecodeError::BytesInvalid(format!(
-                    "unsupported fork for ExecutionPayloadBid: {fork_name}",
-                )))
-            }
+            ForkName::Base
+            | ForkName::Altair
+            | ForkName::Bellatrix
+            | ForkName::Capella
+            | ForkName::Deneb
+            | ForkName::Electra
+            | ForkName::Fulu => Err(ssz::DecodeError::BytesInvalid(format!(
+                "unsupported fork for ExecutionPayloadBid: {fork_name}",
+            ))),
             ForkName::Gloas => ExecutionPayloadBidGloas::from_ssz_bytes(bytes).map(Self::Gloas),
             ForkName::Heze => ExecutionPayloadBidHeze::from_ssz_bytes(bytes).map(Self::Heze),
         }
@@ -145,11 +154,19 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for ExecutionPayloadBid<
         D: Deserializer<'de>,
     {
         let convert_err = |e| {
-            serde::de::Error::custom(format!("ExecutionPayloadBid failed to deserialize: {:?}", e))
+            serde::de::Error::custom(format!(
+                "ExecutionPayloadBid failed to deserialize: {:?}",
+                e
+            ))
         };
         Ok(match context {
-            ForkName::Base | ForkName::Altair | ForkName::Bellatrix | ForkName::Capella 
-            | ForkName::Deneb | ForkName::Electra | ForkName::Fulu => {
+            ForkName::Base
+            | ForkName::Altair
+            | ForkName::Bellatrix
+            | ForkName::Capella
+            | ForkName::Deneb
+            | ForkName::Electra
+            | ForkName::Fulu => {
                 return Err(serde::de::Error::custom(format!(
                     "ExecutionPayloadBid failed to deserialize: unsupported fork '{}'",
                     context

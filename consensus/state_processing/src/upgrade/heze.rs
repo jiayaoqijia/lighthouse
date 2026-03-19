@@ -1,5 +1,5 @@
-use std::mem;
 use ssz_types::BitVector;
+use std::mem;
 use typenum::U16;
 use types::{
     BeaconState, BeaconStateError as Error, BeaconStateHeze, ChainSpec, EthSpec,
@@ -29,7 +29,7 @@ pub fn upgrade_state_to_heze<E: EthSpec>(
     //
     // Fixed size vectors get cloned because replacing them would require the same size
     // allocation as cloning.
-    
+
     // Extract the Gloas bid from the enum
     let pre_bid = match &pre.latest_execution_payload_bid {
         ExecutionPayloadBid::Gloas(bid) => bid,
@@ -37,7 +37,7 @@ pub fn upgrade_state_to_heze<E: EthSpec>(
             return Err(Error::IncorrectStateVariant);
         }
     };
-    
+
     let post = BeaconState::Heze(BeaconStateHeze {
         // Versioning
         genesis_time: pre.genesis_time,

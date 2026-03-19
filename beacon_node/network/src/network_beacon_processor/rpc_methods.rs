@@ -1434,10 +1434,10 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         );
 
         // Get inclusion lists from the store
-        let inclusion_lists = self.chain.inclusion_list_store.get_inclusion_lists_by_indices(
-            request.slot,
-            &request.committee_indices,
-        );
+        let inclusion_lists = self
+            .chain
+            .inclusion_list_store
+            .get_inclusion_lists_by_indices(request.slot, &request.committee_indices);
 
         // Send each inclusion list as a separate response
         for signed_il in inclusion_lists {

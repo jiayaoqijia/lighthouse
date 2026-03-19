@@ -23,6 +23,7 @@ use task_executor::JoinHandle;
 use tracing::{Instrument, Span, debug, debug_span, error, instrument, trace, warn};
 use tree_hash::TreeHash;
 use types::consts::gloas::BUILDER_INDEX_SELF_BUILD;
+use types::inclusion_list::get_inclusion_list_committee;
 use types::{
     Address, Attestation, AttestationElectra, AttesterSlashing, AttesterSlashingElectra,
     BeaconBlock, BeaconBlockBodyGloas, BeaconBlockBodyHeze, BeaconBlockGloas, BeaconBlockHeze,
@@ -34,7 +35,6 @@ use types::{
     SignedExecutionPayloadBidHeze, SignedExecutionPayloadEnvelope, SignedVoluntaryExit, Slot,
     SyncAggregate, Withdrawal, Withdrawals,
 };
-use types::inclusion_list::get_inclusion_list_committee;
 
 use crate::{
     BeaconChain, BeaconChainError, BeaconChainTypes, BlockProductionError,
@@ -742,22 +742,23 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         } = block_proposal_contents;
 
         let state_root = state.update_tree_hash_cache()?;
-        
+
         // Determine the fork to create the correct bid variant
         let fork = self.spec.fork_name_at_slot::<T::EthSpec>(produce_at_slot);
-        
+
         // [New in Heze:EIP7805] Get inclusion_list_bits for Heze
         let signed_bid = if fork == ForkName::Heze {
             // Get IL bits for the slot-1 (ILs from previous slot)
             let il_slot = state.slot().saturating_sub(Slot::new(1));
-            let committee = get_inclusion_list_committee(&state, il_slot)
-                .unwrap_or_default();
+            let committee = get_inclusion_list_committee(&state, il_slot).unwrap_or_default();
             let committee_root = committee.tree_hash_root();
             let key = (il_slot, committee_root);
-            
+
             // Get the IL bits from our local store
-            let inclusion_list_bits = self.inclusion_list_store.get_inclusion_list_bits(key, &committee);
-            
+            let inclusion_list_bits = self
+                .inclusion_list_store
+                .get_inclusion_list_bits(key, &committee);
+
             let bid = ExecutionPayloadBidHeze::<T::EthSpec> {
                 parent_block_hash: state.latest_block_hash()?.to_owned(),
                 parent_block_root: state.get_latest_block_root(state_root),
@@ -772,7 +773,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                 blob_kzg_commitments,
                 inclusion_list_bits,
             };
-            
+
             SignedExecutionPayloadBid::Heze(SignedExecutionPayloadBidHeze {
                 message_heze: bid,
                 signature: Signature::infinity().map_err(BlockProductionError::BlsError)?,
@@ -791,7 +792,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                 execution_payment: EXECUTION_PAYMENT_TRUSTLESS_BUILD,
                 blob_kzg_commitments,
             };
-            
+
             SignedExecutionPayloadBid::Gloas(SignedExecutionPayloadBidGloas {
                 message_gloas: bid,
                 signature: Signature::infinity().map_err(BlockProductionError::BlsError)?,
@@ -848,7 +849,7 @@ fn get_execution_payload_gloas<T: BeaconChainTypes>(
     let inclusion_list_transactions = if fork == ForkName::Heze {
         // IL slot is slot - 1 (ILs from previous slot are used for current block)
         let il_slot = state.slot().saturating_sub(Slot::new(1));
-        
+
         // Get the IL committee for this slot
         let committee = match get_inclusion_list_committee(state, il_slot) {
             Ok(c) => c,
@@ -863,7 +864,7 @@ fn get_execution_payload_gloas<T: BeaconChainTypes>(
             }
         };
         let committee_root = committee.tree_hash_root();
-        
+
         // Get transactions from the IL store
         let key = (il_slot, committee_root);
         chain.inclusion_list_store.get_transactions(key)
@@ -951,7 +952,7 @@ where
     let suggested_fee_recipient = execution_layer
         .get_suggested_fee_recipient(proposer_index)
         .await;
-    
+
     // [New in Heze:EIP7805] Use V4 PayloadAttributes for Heze, V3 for Gloas
     let payload_attributes = if fork == ForkName::Heze {
         PayloadAttributes::new_v4(

@@ -1157,9 +1157,9 @@ impl ChainSpec {
             /*
              * EIP-7805 (FOCIL) Time parameters
              */
-            view_freeze_cutoff_bps: 7500,  // 75% of slot duration
-            inclusion_list_submission_due_bps: 6667,  // ~67% of slot duration
-            proposer_inclusion_list_cutoff_bps: 9167,  // ~92% of slot duration
+            view_freeze_cutoff_bps: 7500, // 75% of slot duration
+            inclusion_list_submission_due_bps: 6667, // ~67% of slot duration
+            proposer_inclusion_list_cutoff_bps: 9167, // ~92% of slot duration
 
             /*
              * Derived time values (set by `compute_derived_values()`)
@@ -1169,9 +1169,9 @@ impl ChainSpec {
             sync_message_due: Duration::from_millis(3999),
             contribution_and_proof_due: Duration::from_millis(8000),
             // EIP-7805 (FOCIL) derived time values
-            view_freeze_cutoff: Duration::from_millis(9000),  // 75% of 12000ms
-            inclusion_list_submission_due: Duration::from_millis(8000),  // 66.67% of 12000ms
-            proposer_inclusion_list_cutoff: Duration::from_millis(11000),  // 91.67% of 12000ms
+            view_freeze_cutoff: Duration::from_millis(9000), // 75% of 12000ms
+            inclusion_list_submission_due: Duration::from_millis(8000), // 66.67% of 12000ms
+            proposer_inclusion_list_cutoff: Duration::from_millis(11000), // 91.67% of 12000ms
 
             /*
              * Reward and penalty quotients
@@ -1238,7 +1238,7 @@ impl ChainSpec {
             domain_sync_committee: 7,
             domain_sync_committee_selection_proof: 8,
             domain_contribution_and_proof: 9,
-            domain_inclusion_list_committee: 14,  // 0x0E000000 as per EIP-7805
+            domain_inclusion_list_committee: 14, // 0x0E000000 as per EIP-7805
             altair_fork_version: [0x01, 0x00, 0x00, 0x00],
             altair_fork_epoch: Some(Epoch::new(74240)),
 
@@ -1485,9 +1485,9 @@ impl ChainSpec {
             contribution_and_proof_due: Duration::from_millis(4000),
 
             // EIP-7805 (FOCIL) derived time values for minimal (6000ms slot)
-            view_freeze_cutoff: Duration::from_millis(4500),  // 75% of 6000ms
-            inclusion_list_submission_due: Duration::from_millis(4000),  // 66.67% of 6000ms
-            proposer_inclusion_list_cutoff: Duration::from_millis(5500),  // 91.67% of 6000ms
+            view_freeze_cutoff: Duration::from_millis(4500), // 75% of 6000ms
+            inclusion_list_submission_due: Duration::from_millis(4000), // 66.67% of 6000ms
+            proposer_inclusion_list_cutoff: Duration::from_millis(5500), // 91.67% of 6000ms
 
             // Other
             network_id: 2, // lighthouse testnet network id
@@ -1576,9 +1576,9 @@ impl ChainSpec {
             /*
              * EIP-7805 (FOCIL) Time parameters
              */
-            view_freeze_cutoff_bps: 7500,  // 75% of slot duration
-            inclusion_list_submission_due_bps: 6667,  // ~67% of slot duration
-            proposer_inclusion_list_cutoff_bps: 9167,  // ~92% of slot duration
+            view_freeze_cutoff_bps: 7500, // 75% of slot duration
+            inclusion_list_submission_due_bps: 6667, // ~67% of slot duration
+            proposer_inclusion_list_cutoff_bps: 9167, // ~92% of slot duration
 
             /*
              * Derived time values (set by `compute_derived_values()`)
@@ -1589,9 +1589,9 @@ impl ChainSpec {
             sync_message_due: Duration::from_millis(1666),
             contribution_and_proof_due: Duration::from_millis(3333),
             // EIP-7805 (FOCIL) derived time values for 5000ms slot
-            view_freeze_cutoff: Duration::from_millis(3750),  // 75% of 5000ms
-            inclusion_list_submission_due: Duration::from_millis(3333),  // 66.67% of 5000ms
-            proposer_inclusion_list_cutoff: Duration::from_millis(4583),  // 91.67% of 5000ms
+            view_freeze_cutoff: Duration::from_millis(3750), // 75% of 5000ms
+            inclusion_list_submission_due: Duration::from_millis(3333), // 66.67% of 5000ms
+            proposer_inclusion_list_cutoff: Duration::from_millis(4583), // 91.67% of 5000ms
 
             /*
              * Reward and penalty quotients
@@ -1658,7 +1658,7 @@ impl ChainSpec {
             domain_sync_committee: 7,
             domain_sync_committee_selection_proof: 8,
             domain_contribution_and_proof: 9,
-            domain_inclusion_list_committee: 14,  // 0x0E000000 as per EIP-7805
+            domain_inclusion_list_committee: 14, // 0x0E000000 as per EIP-7805
             altair_fork_version: [0x01, 0x00, 0x00, 0x64],
             altair_fork_epoch: Some(Epoch::new(512)),
             sync_message_due_bps: 3333,
@@ -2431,15 +2431,15 @@ const fn default_contribution_due_bps() -> u64 {
 
 // EIP-7805 (FOCIL) default time parameters
 const fn default_view_freeze_cutoff_bps() -> u64 {
-    7500  // 75% of slot duration
+    7500 // 75% of slot duration
 }
 
 const fn default_inclusion_list_submission_due_bps() -> u64 {
-    6667  // ~67% of slot duration
+    6667 // ~67% of slot duration
 }
 
 const fn default_proposer_inclusion_list_cutoff_bps() -> u64 {
-    9167  // ~92% of slot duration
+    9167 // ~92% of slot duration
 }
 
 fn max_blocks_by_root_request_common(max_request_blocks: u64) -> usize {

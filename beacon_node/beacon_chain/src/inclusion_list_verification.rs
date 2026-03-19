@@ -9,13 +9,16 @@ use std::collections::{HashMap, HashSet};
 use bls::Signature;
 use parking_lot::RwLock;
 use slot_clock::SlotClock;
+use ssz_types::BitVector;
+use tree_hash::TreeHash;
+use typenum::U16;
 use types::{
     ChainSpec, EthSpec, Hash256, Slot,
-    inclusion_list::{InclusionList, SignedInclusionList, MAX_BYTES_PER_INCLUSION_LIST, INCLUSION_LIST_COMMITTEE_SIZE},
+    inclusion_list::{
+        INCLUSION_LIST_COMMITTEE_SIZE, InclusionList, MAX_BYTES_PER_INCLUSION_LIST,
+        SignedInclusionList,
+    },
 };
-use ssz_types::BitVector;
-use typenum::U16;
-use tree_hash::TreeHash;
 
 /// Maximum clock disparity for gossip propagation (500ms in milliseconds).
 const MAXIMUM_GOSSIP_CLOCK_DISPARITY: u64 = 500;
@@ -46,32 +49,20 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
 #[derive(Debug)]
 pub enum Error {
     /// The inclusion list exceeds the maximum byte size.
-    ExceedsMaxBytes {
-        actual: usize,
-        max: usize,
-    },
+    ExceedsMaxBytes { actual: usize, max: usize },
     /// The slot is not within the valid range (current or previous slot).
-    InvalidSlot {
-        slot: Slot,
-        current_slot: Slot,
-    },
+    InvalidSlot { slot: Slot, current_slot: Slot },
     /// The inclusion list was received too late (past attestation deadline).
-    ReceivedTooLate {
-        slot: Slot,
-    },
+    ReceivedTooLate { slot: Slot },
     /// The committee root does not match.
     CommitteeRootMismatch {
         expected: Hash256,
         provided: Hash256,
     },
     /// The validator is not in the inclusion list committee.
-    ValidatorNotInCommittee {
-        validator_index: u64,
-    },
+    ValidatorNotInCommittee { validator_index: u64 },
     /// The validator has already equivocated.
-    EquivocatedValidator {
-        validator_index: u64,
-    },
+    EquivocatedValidator { validator_index: u64 },
     /// Invalid signature.
     InvalidSignature,
     /// Unknown validator index.
@@ -115,7 +106,7 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
 
         // 2. [REJECT] Slot must be current or previous slot
         let previous_slot = current_slot.saturating_sub(1u64);
-        
+
         if message.slot != current_slot && message.slot != previous_slot {
             return Err(Error::InvalidSlot {
                 slot: message.slot,
@@ -127,7 +118,7 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
             signed_inclusion_list,
         })
     }
-    
+
     /// Perform full P2P verification with state-dependent checks.
     ///
     /// Implements all P2P validation rules from Heze spec:
@@ -152,12 +143,14 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
         let verified = Self::verify_basic(signed_inclusion_list, current_slot)?;
         let signed_il = verified.signed_inclusion_list;
         let message = &signed_il.message;
-        
+
         // 4. [IGNORE] Committee root verification
         // Note: This is IGNORE, not REJECT - we skip if mismatch but don't punish
-        let expected_committee_root = types::inclusion_list::get_inclusion_list_committee_root(state, message.slot)
-            .map_err(|e| Error::InternalError(format!("Failed to compute committee root: {}", e)))?;
-        
+        let expected_committee_root =
+            types::inclusion_list::get_inclusion_list_committee_root(state, message.slot).map_err(
+                |e| Error::InternalError(format!("Failed to compute committee root: {}", e)),
+            )?;
+
         if message.inclusion_list_committee_root != expected_committee_root {
             // IGNORE: Committee root mismatch - skip processing
             return Err(Error::CommitteeRootMismatch {
@@ -165,43 +158,44 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
                 provided: message.inclusion_list_committee_root,
             });
         }
-        
+
         // 5. [REJECT] Validator must be in committee
         let committee = types::inclusion_list::get_inclusion_list_committee(state, message.slot)
             .map_err(|e| Error::InternalError(format!("Failed to get committee: {}", e)))?;
-        
+
         if !committee.contains(&message.validator_index) {
             return Err(Error::ValidatorNotInCommittee {
                 validator_index: message.validator_index,
             });
         }
-        
+
         // 6. [IGNORE] Check if this is the first or second IL from this validator
         // This is used for equivocation tracking - we allow up to 2 ILs per validator
         let key = (message.slot, message.inclusion_list_committee_root);
-        let il_count = il_store.get_inclusion_lists(key)
+        let il_count = il_store
+            .get_inclusion_lists(key)
             .iter()
             .filter(|il| il.validator_index == message.validator_index)
             .count();
-        
+
         if il_count >= 2 {
             // IGNORE: Already have 2 ILs from this validator
             return Err(Error::EquivocatedValidator {
                 validator_index: message.validator_index,
             });
         }
-        
+
         // 7. [REJECT] Signature verification
-        let is_valid_sig = types::inclusion_list::is_valid_inclusion_list_signature(
-            state,
-            &signed_il,
-            spec,
-        ).map_err(|e| Error::InternalError(format!("Signature verification error: {}", e)))?;
-        
+        let is_valid_sig =
+            types::inclusion_list::is_valid_inclusion_list_signature(state, &signed_il, spec)
+                .map_err(|e| {
+                    Error::InternalError(format!("Signature verification error: {}", e))
+                })?;
+
         if !is_valid_sig {
             return Err(Error::InvalidSignature);
         }
-        
+
         Ok(Self {
             signed_inclusion_list: signed_il,
         })
@@ -227,7 +221,7 @@ pub fn verify_propagation_slot_range(
     // This is a simplified check compared to the original
     let slot_duration = slot_clock.slot_duration();
     let tolerance = std::time::Duration::from_millis(MAXIMUM_GOSSIP_CLOCK_DISPARITY);
-    
+
     if let Some(slot_start) = slot_clock.start_of(message.slot) {
         if let Some(now) = slot_clock.now_duration() {
             let elapsed = now.saturating_sub(slot_start);
@@ -255,11 +249,11 @@ pub struct InclusionListStore<E: EthSpec> {
     /// Each entry contains the list of ILs for that key.
     /// Spec: `inclusion_lists: DefaultDict[Tuple[Slot, Root], Set[InclusionList]]`
     inclusion_lists: RwLock<HashMap<StoreKey, Vec<InclusionList<E>>>>,
-    
+
     /// Track equivocators: (slot, committee_root) -> Set of validator indices that have equivocated.
     /// Spec: `equivocators: DefaultDict[Tuple[Slot, Root], Set[ValidatorIndex]]`
     equivocators: RwLock<HashMap<StoreKey, HashSet<u64>>>,
-    
+
     /// Track which validators we've seen ILs from: (slot, committee_root) -> (validator_index -> IL hash).
     /// Used for equivocation detection.
     seen_validators: RwLock<HashMap<StoreKey, HashMap<u64, Hash256>>>,
@@ -290,42 +284,45 @@ impl<E: EthSpec> InclusionListStore<E> {
         inclusion_list: InclusionList<E>,
         is_before_view_freeze_cutoff: bool,
     ) -> bool {
-        let key = (inclusion_list.slot, inclusion_list.inclusion_list_committee_root);
+        let key = (
+            inclusion_list.slot,
+            inclusion_list.inclusion_list_committee_root,
+        );
         let validator_index = inclusion_list.validator_index;
-        
+
         // Check if this validator is already an equivocator
         if self.is_equivocator(key, validator_index) {
             return false; // Ignore ILs from equivocators
         }
-        
+
         // Compute hash of this IL
         let il_hash = inclusion_list.tree_hash_root();
-        
+
         // Check if we've seen this validator before
         let mut seen = self.seen_validators.write();
         let validator_map = seen.entry(key).or_default();
-        
+
         if let Some(&existing_hash) = validator_map.get(&validator_index) {
             if existing_hash != il_hash {
                 // Equivocation detected: same validator, different IL
                 self.mark_equivocator(key, validator_index);
-                
+
                 // Remove the existing IL from storage
                 self.remove_il(key, validator_index);
-                
+
                 return true;
             }
             // Same IL, ignore duplicate
             return false;
         }
-        
+
         // First IL from this validator
         if is_before_view_freeze_cutoff {
             // Store the IL
             self.store_il(key, inclusion_list);
             validator_map.insert(validator_index, il_hash);
         }
-        
+
         true
     }
 
@@ -355,7 +352,7 @@ impl<E: EthSpec> InclusionListStore<E> {
             .entry(key)
             .or_default()
             .insert(validator_index);
-        
+
         // Also remove from seen validators
         self.seen_validators
             .write()
@@ -381,8 +378,13 @@ impl<E: EthSpec> InclusionListStore<E> {
 
     /// Get all inclusion lists for a given key, excluding equivocators.
     pub fn get_inclusion_lists(&self, key: StoreKey) -> Vec<InclusionList<E>> {
-        let equivocators = self.equivocators.read().get(&key).cloned().unwrap_or_default();
-        
+        let equivocators = self
+            .equivocators
+            .read()
+            .get(&key)
+            .cloned()
+            .unwrap_or_default();
+
         self.inclusion_lists
             .read()
             .get(&key)
@@ -397,7 +399,7 @@ impl<E: EthSpec> InclusionListStore<E> {
 
     /// [New in Heze:EIP7805] Get inclusion lists for a given slot and list of validator indices.
     /// Returns signed inclusion lists for the specified indices.
-    /// 
+    ///
     /// Note: Currently returns SignedInclusionList with empty signature since
     /// the store only keeps the InclusionList message. This should be updated
     /// if signature preservation is needed for RPC responses.
@@ -412,25 +414,26 @@ impl<E: EthSpec> InclusionListStore<E> {
             .enumerate()
             .filter_map(|(i, is_set)| if is_set { Some(i as u64) } else { None })
             .collect();
-        
+
         // We need to check all possible committee roots for this slot
         // For now, we iterate through all stored keys with this slot
         let inclusion_lists = self.inclusion_lists.read();
         let equivocators = self.equivocators.read();
-        
+
         let mut result = Vec::new();
-        
+
         for ((key_slot, committee_root), ils) in inclusion_lists.iter() {
             if *key_slot == slot {
                 for il in ils {
                     // Skip if this validator is an equivocator
-                    if equivocators.get(&(*key_slot, *committee_root))
+                    if equivocators
+                        .get(&(*key_slot, *committee_root))
                         .map(|e| e.contains(&il.validator_index))
                         .unwrap_or(false)
                     {
                         continue;
                     }
-                    
+
                     // Add if the validator index is in our requested set
                     if indices_set.contains(&il.validator_index) {
                         result.push(SignedInclusionList {
@@ -441,7 +444,7 @@ impl<E: EthSpec> InclusionListStore<E> {
                 }
             }
         }
-        
+
         result
     }
 
@@ -449,13 +452,15 @@ impl<E: EthSpec> InclusionListStore<E> {
     ///
     /// Returns a Bitvector where each bit indicates whether an IL was received
     /// from the corresponding committee member.
-    pub fn get_inclusion_list_bits(
-        &self,
-        key: StoreKey,
-        committee: &[u64],
-    ) -> BitVector<U16> {
-        let equivocators = self.equivocators.read().get(&key).cloned().unwrap_or_default();
-        let validator_indices: HashSet<u64> = self.inclusion_lists
+    pub fn get_inclusion_list_bits(&self, key: StoreKey, committee: &[u64]) -> BitVector<U16> {
+        let equivocators = self
+            .equivocators
+            .read()
+            .get(&key)
+            .cloned()
+            .unwrap_or_default();
+        let validator_indices: HashSet<u64> = self
+            .inclusion_lists
             .read()
             .get(&key)
             .map(|ils| {
@@ -465,7 +470,7 @@ impl<E: EthSpec> InclusionListStore<E> {
                     .collect()
             })
             .unwrap_or_default();
-        
+
         // Create bitvector
         let mut bits = BitVector::<U16>::default();
         for (i, &validator_index) in committee.iter().enumerate() {
@@ -473,16 +478,22 @@ impl<E: EthSpec> InclusionListStore<E> {
                 bits.set(i, true).expect("index within bounds");
             }
         }
-        
+
         bits
     }
 
     /// Get all unique transactions from inclusion lists for a given key.
     /// Implements `get_inclusion_list_transactions` from the Heze spec.
     pub fn get_transactions(&self, key: StoreKey) -> Vec<Vec<u8>> {
-        let equivocators = self.equivocators.read().get(&key).cloned().unwrap_or_default();
-        
-        let mut all_txs: Vec<Vec<u8>> = self.inclusion_lists
+        let equivocators = self
+            .equivocators
+            .read()
+            .get(&key)
+            .cloned()
+            .unwrap_or_default();
+
+        let mut all_txs: Vec<Vec<u8>> = self
+            .inclusion_lists
             .read()
             .get(&key)
             .map(|ils| {
@@ -492,7 +503,7 @@ impl<E: EthSpec> InclusionListStore<E> {
                     .collect()
             })
             .unwrap_or_default();
-        
+
         // Deduplicate transactions
         all_txs.sort();
         all_txs.dedup();
@@ -510,8 +521,12 @@ impl<E: EthSpec> InclusionListStore<E> {
         inclusion_list_bits: &BitVector<U16>,
     ) -> bool {
         let local_bits = self.get_inclusion_list_bits(key, committee);
-        
-        for (_i, (bit, local_bit)) in inclusion_list_bits.iter().zip(local_bits.iter()).enumerate() {
+
+        for (_i, (bit, local_bit)) in inclusion_list_bits
+            .iter()
+            .zip(local_bits.iter())
+            .enumerate()
+        {
             // If local has a bit set, the incoming must also have it set
             if local_bit && !bit {
                 return false;
@@ -523,17 +538,23 @@ impl<E: EthSpec> InclusionListStore<E> {
     /// Prune old inclusion lists from the store.
     pub fn prune(&self, current_slot: Slot) {
         let prune_slot = current_slot.saturating_sub(Slot::new(2));
-        
-        self.inclusion_lists.write().retain(|(slot, _), _| *slot >= prune_slot);
-        self.equivocators.write().retain(|(slot, _), _| *slot >= prune_slot);
-        self.seen_validators.write().retain(|(slot, _), _| *slot >= prune_slot);
+
+        self.inclusion_lists
+            .write()
+            .retain(|(slot, _), _| *slot >= prune_slot);
+        self.equivocators
+            .write()
+            .retain(|(slot, _), _| *slot >= prune_slot);
+        self.seen_validators
+            .write()
+            .retain(|(slot, _), _| *slot >= prune_slot);
     }
-    
+
     /// Get the number of stored inclusion lists (for metrics).
     pub fn len(&self) -> usize {
         self.inclusion_lists.read().values().map(|s| s.len()).sum()
     }
-    
+
     /// Check if the store is empty.
     pub fn is_empty(&self) -> bool {
         self.inclusion_lists.read().is_empty()
@@ -547,19 +568,22 @@ impl<E: EthSpec> InclusionListStore<E> {
     pub fn get_all_for_slot(&self, slot: Slot) -> Vec<SignedInclusionList<E>> {
         let inclusion_lists = self.inclusion_lists.read();
         let equivocators = self.equivocators.read();
-        
+
         let mut result = Vec::new();
-        
+
         for ((key_slot, committee_root), ils) in inclusion_lists.iter() {
             if *key_slot == slot {
-                let equiv_set = equivocators.get(&(*key_slot, *committee_root)).cloned().unwrap_or_default();
-                
+                let equiv_set = equivocators
+                    .get(&(*key_slot, *committee_root))
+                    .cloned()
+                    .unwrap_or_default();
+
                 for il in ils {
                     // Skip equivocators
                     if equiv_set.contains(&il.validator_index) {
                         continue;
                     }
-                    
+
                     result.push(SignedInclusionList {
                         message: il.clone(),
                         signature: Signature::empty(),
@@ -567,7 +591,7 @@ impl<E: EthSpec> InclusionListStore<E> {
                 }
             }
         }
-        
+
         result
     }
 }
@@ -575,9 +599,13 @@ impl<E: EthSpec> InclusionListStore<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use types::inclusion_list::{InclusionList, IlTransaction};
+    use types::inclusion_list::{IlTransaction, InclusionList};
 
-    fn create_test_il<E: EthSpec>(slot: Slot, validator_index: u64, txs: Vec<Vec<u8>>) -> InclusionList<E> {
+    fn create_test_il<E: EthSpec>(
+        slot: Slot,
+        validator_index: u64,
+        txs: Vec<Vec<u8>>,
+    ) -> InclusionList<E> {
         let transactions: Vec<IlTransaction<E>> = txs
             .into_iter()
             .map(|tx| IlTransaction::<E>::new(tx).expect("valid transaction"))
@@ -586,7 +614,8 @@ mod tests {
             slot,
             validator_index,
             inclusion_list_committee_root: Hash256::repeat_byte(0x42),
-            transactions: types::inclusion_list::IlTransactions::<E>::new(transactions).expect("valid transactions"),
+            transactions: types::inclusion_list::IlTransactions::<E>::new(transactions)
+                .expect("valid transactions"),
         }
     }
 
@@ -596,7 +625,7 @@ mod tests {
         let slot = Slot::new(1);
         let root = Hash256::default();
         let _key = (slot, root);
-        
+
         // Initially empty
         assert!(store.is_empty());
         assert_eq!(store.len(), 0);
@@ -606,130 +635,130 @@ mod tests {
     fn test_max_bytes() {
         assert_eq!(MAX_BYTES_PER_INCLUSION_LIST, 8192);
     }
-    
+
     #[test]
     fn test_committee_size() {
         assert_eq!(INCLUSION_LIST_COMMITTEE_SIZE, 16);
     }
-    
+
     #[test]
     fn test_process_inclusion_list() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
         let slot = Slot::new(1);
         let root = Hash256::repeat_byte(0x42);
         let key = (slot, root);
-        
+
         // Process first IL
         let il1 = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
         assert!(store.process_inclusion_list(il1, true));
-        
+
         // Check it was stored
         assert!(!store.is_empty());
         assert_eq!(store.len(), 1);
-        
+
         let ils = store.get_inclusion_lists(key);
         assert_eq!(ils.len(), 1);
         assert_eq!(ils[0].validator_index, 0);
     }
-    
+
     #[test]
     fn test_process_multiple_ils_from_different_validators() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
         let slot = Slot::new(1);
         let root = Hash256::repeat_byte(0x42);
         let key = (slot, root);
-        
+
         // Process IL from validator 0
         let il0 = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
         assert!(store.process_inclusion_list(il0, true));
-        
+
         // Process IL from validator 1
         let il1 = create_test_il(slot, 1, vec![vec![4, 5, 6]]);
         assert!(store.process_inclusion_list(il1, true));
-        
+
         // Check both were stored
         assert_eq!(store.len(), 2);
-        
+
         let ils = store.get_inclusion_lists(key);
         assert_eq!(ils.len(), 2);
     }
-    
+
     #[test]
     fn test_duplicate_il_ignored() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
         let slot = Slot::new(1);
         let _root = Hash256::repeat_byte(0x42);
-        
+
         // Process IL
         let il = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
         assert!(store.process_inclusion_list(il.clone(), true));
-        
+
         // Process same IL again - should be ignored
         assert!(!store.process_inclusion_list(il, true));
-        
+
         // Still only 1 IL
         assert_eq!(store.len(), 1);
     }
-    
+
     #[test]
     fn test_equivocation_detection() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
         let slot = Slot::new(1);
         let root = Hash256::repeat_byte(0x42);
         let key = (slot, root);
-        
+
         // Process first IL from validator 0
         let il1 = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
         assert!(store.process_inclusion_list(il1, true));
-        
+
         // Process different IL from same validator - equivocation
         let il2 = create_test_il(slot, 0, vec![vec![4, 5, 6]]);
         assert!(store.process_inclusion_list(il2, true));
-        
+
         // Validator 0 should be marked as equivocator
         assert!(store.is_equivocator(key, 0));
-        
+
         // No ILs should remain for equivocator
         let ils = store.get_inclusion_lists(key);
         assert!(ils.is_empty());
     }
-    
+
     #[test]
     fn test_equivocator_ignored() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
         let slot = Slot::new(1);
         let _root = Hash256::repeat_byte(0x42);
-        
+
         // Create equivocation
         let il1 = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
         store.process_inclusion_list(il1, true);
         let il2 = create_test_il(slot, 0, vec![vec![4, 5, 6]]);
         store.process_inclusion_list(il2, true);
-        
+
         // Validator 0 is now an equivocator
-        
+
         // New IL from equivocator should be ignored
         let il3 = create_test_il(slot, 0, vec![vec![7, 8, 9]]);
         assert!(!store.process_inclusion_list(il3, true));
     }
-    
+
     #[test]
     fn test_get_inclusion_list_bits() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
         let slot = Slot::new(1);
         let root = Hash256::repeat_byte(0x42);
         let key = (slot, root);
-        
+
         // Committee: validators at indices 0, 1, 2, ...
         let committee: Vec<u64> = (0..16).collect();
-        
+
         // Process ILs from validators 0, 2, 5
         store.process_inclusion_list(create_test_il(slot, 0, vec![vec![1]]), true);
         store.process_inclusion_list(create_test_il(slot, 2, vec![vec![2]]), true);
         store.process_inclusion_list(create_test_il(slot, 5, vec![vec![3]]), true);
-        
+
         let bits = store.get_inclusion_list_bits(key, &committee);
-        
+
         // Bits at positions 0, 2, 5 should be set
         assert!(bits.get(0).unwrap());
         assert!(!bits.get(1).unwrap());
@@ -738,109 +767,109 @@ mod tests {
         assert!(!bits.get(4).unwrap());
         assert!(bits.get(5).unwrap());
     }
-    
+
     #[test]
     fn test_get_transactions() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
         let slot = Slot::new(1);
         let root = Hash256::repeat_byte(0x42);
         let key = (slot, root);
-        
+
         // Process ILs with transactions
         store.process_inclusion_list(create_test_il(slot, 0, vec![vec![1, 2], vec![3, 4]]), true);
         store.process_inclusion_list(create_test_il(slot, 1, vec![vec![5, 6], vec![1, 2]]), true); // duplicate tx
-        
+
         let txs = store.get_transactions(key);
-        
+
         // Should have 3 unique transactions (sorted and deduped)
         assert_eq!(txs.len(), 3);
         assert!(txs.contains(&vec![1, 2]));
         assert!(txs.contains(&vec![3, 4]));
         assert!(txs.contains(&vec![5, 6]));
     }
-    
+
     #[test]
     fn test_is_inclusive() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
         let slot = Slot::new(1);
         let root = Hash256::repeat_byte(0x42);
         let key = (slot, root);
-        
+
         let committee: Vec<u64> = (0..16).collect();
-        
+
         // Process ILs from validators 0, 2
         store.process_inclusion_list(create_test_il(slot, 0, vec![vec![1]]), true);
         store.process_inclusion_list(create_test_il(slot, 2, vec![vec![2]]), true);
-        
+
         // Create a bitvector that has bits 0, 2, 5 set (superset)
         let mut incoming_bits = BitVector::<U16>::default();
         incoming_bits.set(0, true).unwrap();
         incoming_bits.set(2, true).unwrap();
         incoming_bits.set(5, true).unwrap();
-        
+
         // Should be inclusive (incoming has all local bits)
         assert!(store.is_inclusive(key, &committee, &incoming_bits));
-        
+
         // Create a bitvector that only has bit 5 set (not superset)
         let mut insufficient_bits = BitVector::<U16>::default();
         insufficient_bits.set(5, true).unwrap();
-        
+
         // Should not be inclusive (missing bits 0, 2)
         assert!(!store.is_inclusive(key, &committee, &insufficient_bits));
     }
-    
+
     #[test]
     fn test_prune() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
-        
+
         // Add ILs at slots 1, 2, 3
         store.process_inclusion_list(create_test_il(Slot::new(1), 0, vec![vec![1]]), true);
         store.process_inclusion_list(create_test_il(Slot::new(2), 0, vec![vec![2]]), true);
         store.process_inclusion_list(create_test_il(Slot::new(3), 0, vec![vec![3]]), true);
-        
+
         assert_eq!(store.len(), 3);
-        
+
         // Prune at slot 4 (should remove slot 1)
         store.prune(Slot::new(4));
-        
+
         // Slots < 2 should be pruned
         assert_eq!(store.len(), 2);
         assert!(store.get_all_for_slot(Slot::new(1)).is_empty());
         assert!(!store.get_all_for_slot(Slot::new(2)).is_empty());
     }
-    
+
     #[test]
     fn test_not_stored_before_view_freeze_cutoff() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
         let slot = Slot::new(1);
         let root = Hash256::repeat_byte(0x42);
         let key = (slot, root);
-        
+
         // Process IL but indicate it's after view freeze cutoff
         let il = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
         assert!(store.process_inclusion_list(il, false));
-        
+
         // Should not be stored
         assert!(store.is_empty());
         let ils = store.get_inclusion_lists(key);
         assert!(ils.is_empty());
     }
-    
+
     #[test]
     fn test_get_all_for_slot() {
         let store = InclusionListStore::<types::MainnetEthSpec>::new();
-        
+
         // Add ILs at different slots
         store.process_inclusion_list(create_test_il(Slot::new(1), 0, vec![vec![1]]), true);
         store.process_inclusion_list(create_test_il(Slot::new(1), 1, vec![vec![2]]), true);
         store.process_inclusion_list(create_test_il(Slot::new(2), 0, vec![vec![3]]), true);
-        
+
         let ils_slot1 = store.get_all_for_slot(Slot::new(1));
         assert_eq!(ils_slot1.len(), 2);
-        
+
         let ils_slot2 = store.get_all_for_slot(Slot::new(2));
         assert_eq!(ils_slot2.len(), 1);
-        
+
         let ils_slot3 = store.get_all_for_slot(Slot::new(3));
         assert!(ils_slot3.is_empty());
     }

@@ -56,6 +56,6 @@ pub mod graffiti {
 pub mod inclusion_list;
 
 pub use inclusion_list::{
-    InclusionList, IlTransaction, IlTransactions, SignedInclusionList,
-    MAX_BYTES_PER_INCLUSION_LIST, MAX_TRANSACTIONS_PER_INCLUSION_LIST,
+    IlTransaction, IlTransactions, InclusionList, MAX_BYTES_PER_INCLUSION_LIST,
+    MAX_TRANSACTIONS_PER_INCLUSION_LIST, SignedInclusionList,
 };

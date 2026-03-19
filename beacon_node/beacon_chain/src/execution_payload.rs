@@ -231,7 +231,9 @@ pub async fn notify_new_payload<T: BeaconChainTypes>(
             }
             // [New in Heze:EIP7805] Payload is structurally valid but doesn't satisfy IL constraints.
             // This is NOT an error - the payload is accepted but marked as IL unsatisfied.
-            PayloadStatus::InclusionListUnsatisfied { ref validation_error } => {
+            PayloadStatus::InclusionListUnsatisfied {
+                ref validation_error,
+            } => {
                 warn!(
                     ?validation_error,
                     ?execution_block_hash,

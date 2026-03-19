@@ -36,8 +36,14 @@ use tree_hash_derive::TreeHash;
             arbitrary(bound = "E: EthSpec"),
         ),
     ),
-    cast_error(ty = "BeaconStateError", expr = "BeaconStateError::IncorrectStateVariant"),
-    partial_getter_error(ty = "BeaconStateError", expr = "BeaconStateError::IncorrectStateVariant")
+    cast_error(
+        ty = "BeaconStateError",
+        expr = "BeaconStateError::IncorrectStateVariant"
+    ),
+    partial_getter_error(
+        ty = "BeaconStateError",
+        expr = "BeaconStateError::IncorrectStateVariant"
+    )
 )]
 #[derive(Debug, Clone, Serialize, Deserialize, Encode, TreeHash, Educe)]
 #[educe(PartialEq, Hash)]
@@ -135,13 +141,18 @@ impl<E: EthSpec> SignedExecutionPayloadBid<E> {
 impl<E: EthSpec> crate::fork::ForkVersionDecode for SignedExecutionPayloadBid<E> {
     fn from_ssz_bytes_by_fork(bytes: &[u8], fork_name: ForkName) -> Result<Self, ssz::DecodeError> {
         match fork_name {
-            ForkName::Base | ForkName::Altair | ForkName::Bellatrix | ForkName::Capella 
-            | ForkName::Deneb | ForkName::Electra | ForkName::Fulu => {
-                Err(ssz::DecodeError::BytesInvalid(format!(
-                    "unsupported fork for SignedExecutionPayloadBid: {fork_name}",
-                )))
+            ForkName::Base
+            | ForkName::Altair
+            | ForkName::Bellatrix
+            | ForkName::Capella
+            | ForkName::Deneb
+            | ForkName::Electra
+            | ForkName::Fulu => Err(ssz::DecodeError::BytesInvalid(format!(
+                "unsupported fork for SignedExecutionPayloadBid: {fork_name}",
+            ))),
+            ForkName::Gloas => {
+                SignedExecutionPayloadBidGloas::from_ssz_bytes(bytes).map(Self::Gloas)
             }
-            ForkName::Gloas => SignedExecutionPayloadBidGloas::from_ssz_bytes(bytes).map(Self::Gloas),
             ForkName::Heze => SignedExecutionPayloadBidHeze::from_ssz_bytes(bytes).map(Self::Heze),
         }
     }
@@ -153,11 +164,19 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for SignedExecutionPaylo
         D: Deserializer<'de>,
     {
         let convert_err = |e| {
-            serde::de::Error::custom(format!("SignedExecutionPayloadBid failed to deserialize: {:?}", e))
+            serde::de::Error::custom(format!(
+                "SignedExecutionPayloadBid failed to deserialize: {:?}",
+                e
+            ))
         };
         Ok(match context {
-            ForkName::Base | ForkName::Altair | ForkName::Bellatrix | ForkName::Capella 
-            | ForkName::Deneb | ForkName::Electra | ForkName::Fulu => {
+            ForkName::Base
+            | ForkName::Altair
+            | ForkName::Bellatrix
+            | ForkName::Capella
+            | ForkName::Deneb
+            | ForkName::Electra
+            | ForkName::Fulu => {
                 return Err(serde::de::Error::custom(format!(
                     "SignedExecutionPayloadBid failed to deserialize: unsupported fork '{}'",
                     context
@@ -177,10 +196,10 @@ impl<'de, E: EthSpec> ContextDeserialize<'de, ForkName> for SignedExecutionPaylo
 mod tests {
     use super::*;
     use crate::MainnetEthSpec;
-    use rand::rngs::StdRng;
-    use rand::SeedableRng;
-    use ssz::{Decode, Encode};
     use crate::test_utils::TestRandom;
+    use rand::SeedableRng;
+    use rand::rngs::StdRng;
+    use ssz::{Decode, Encode};
 
     mod signed_execution_payload_bid_gloas {
         use super::*;
@@ -196,7 +215,7 @@ mod tests {
     #[test]
     fn test_heze_signed_cannot_decode_as_gloas() {
         let mut rng = StdRng::seed_from_u64(42);
-        
+
         // Create a Heze signed bid with random values
         let heze_bid = SignedExecutionPayloadBidHeze::<MainnetEthSpec>::random_for_test(&mut rng);
         let heze_bytes = heze_bid.as_ssz_bytes();
@@ -213,7 +232,10 @@ mod tests {
         match &result {
             Ok(gloas) => {
                 eprintln!("ERROR: Heze data decoded as Gloas!");
-                eprintln!("Re-encoded Gloas bytes length: {}", gloas.as_ssz_bytes().len());
+                eprintln!(
+                    "Re-encoded Gloas bytes length: {}",
+                    gloas.as_ssz_bytes().len()
+                );
             }
             Err(e) => {
                 eprintln!("CORRECT: Heze data cannot be decoded as Gloas: {:?}", e);
@@ -229,7 +251,7 @@ mod tests {
     #[test]
     fn test_gloas_signed_decode_via_enum() {
         let mut rng = StdRng::seed_from_u64(42);
-        
+
         let gloas_bid = SignedExecutionPayloadBidGloas::<MainnetEthSpec>::random_for_test(&mut rng);
         let gloas_bytes = gloas_bid.as_ssz_bytes();
 
@@ -245,7 +267,7 @@ mod tests {
     #[test]
     fn test_heze_signed_decode_via_enum() {
         let mut rng = StdRng::seed_from_u64(42);
-        
+
         let heze_bid = SignedExecutionPayloadBidHeze::<MainnetEthSpec>::random_for_test(&mut rng);
         let heze_bytes = heze_bid.as_ssz_bytes();
 

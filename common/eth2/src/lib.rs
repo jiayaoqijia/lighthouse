@@ -793,7 +793,8 @@ impl BeaconNodeHttpClient {
         &self,
         state_id: StateId,
         slot: Option<Slot>,
-    ) -> Result<ExecutionOptimisticFinalizedResponse<GetInclusionListCommitteeResponse>, Error> {
+    ) -> Result<ExecutionOptimisticFinalizedResponse<GetInclusionListCommitteeResponse>, Error>
+    {
         let mut path = self.eth_path(V1)?;
 
         path.path_segments_mut()

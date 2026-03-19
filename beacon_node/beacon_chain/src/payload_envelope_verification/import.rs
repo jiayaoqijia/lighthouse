@@ -249,7 +249,9 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         //
         // For pre-Heze blocks or optimistic sync, is_inclusion_list_satisfied will be None,
         // and we default to true (optimistic assumption).
-        let il_satisfied = payload_verification_outcome.is_inclusion_list_satisfied.unwrap_or(true);
+        let il_satisfied = payload_verification_outcome
+            .is_inclusion_list_satisfied
+            .unwrap_or(true);
         {
             let mut fork_choice = self.canonical_head.fork_choice_write_lock();
             fork_choice.set_payload_inclusion_list_satisfaction(block_root, il_satisfied);

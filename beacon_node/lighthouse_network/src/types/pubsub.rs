@@ -17,8 +17,8 @@ use types::{
     SignedBeaconBlockDeneb, SignedBeaconBlockElectra, SignedBeaconBlockFulu,
     SignedBeaconBlockGloas, SignedBeaconBlockHeze, SignedBlsToExecutionChange,
     SignedContributionAndProof, SignedExecutionPayloadBid, SignedExecutionPayloadEnvelope,
-    SignedProposerPreferences, SignedVoluntaryExit, SingleAttestation, SubnetId,
-    SyncCommitteeMessage, SyncSubnetId, SignedInclusionList,
+    SignedInclusionList, SignedProposerPreferences, SignedVoluntaryExit, SingleAttestation,
+    SubnetId, SyncCommitteeMessage, SyncSubnetId,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -439,9 +439,8 @@ impl<E: EthSpec> PubsubMessage<E> {
                         )))
                     }
                     GossipKind::SignedInclusionList => {
-                        let signed_inclusion_list =
-                            SignedInclusionList::from_ssz_bytes(data)
-                                .map_err(|e| format!("{:?}", e))?;
+                        let signed_inclusion_list = SignedInclusionList::from_ssz_bytes(data)
+                            .map_err(|e| format!("{:?}", e))?;
                         Ok(PubsubMessage::SignedInclusionList(Box::new(
                             signed_inclusion_list,
                         )))
@@ -552,7 +551,8 @@ impl<E: EthSpec> std::fmt::Display for PubsubMessage<E> {
                 write!(
                     f,
                     "Execution payload bid: slot: {:?} value: {:?}",
-                    data.message().slot(), data.message().value()
+                    data.message().slot(),
+                    data.message().value()
                 )
             }
             PubsubMessage::ProposerPreferences(data) => {

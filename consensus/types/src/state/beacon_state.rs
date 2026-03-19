@@ -2909,7 +2909,10 @@ impl<E: EthSpec> BeaconState<E> {
             | BeaconState::Bellatrix(_)
             | BeaconState::Capella(_)
             | BeaconState::Deneb(_) => Err(BeaconStateError::IncorrectStateVariant),
-            BeaconState::Electra(_) | BeaconState::Fulu(_) | BeaconState::Gloas(_) | BeaconState::Heze(_) => {
+            BeaconState::Electra(_)
+            | BeaconState::Fulu(_)
+            | BeaconState::Gloas(_)
+            | BeaconState::Heze(_) => {
                 // Consume the balance and update state variables
                 *self.exit_balance_to_consume_mut()? =
                     exit_balance_to_consume.safe_sub(exit_balance)?;
@@ -2956,7 +2959,10 @@ impl<E: EthSpec> BeaconState<E> {
             | BeaconState::Bellatrix(_)
             | BeaconState::Capella(_)
             | BeaconState::Deneb(_) => Err(BeaconStateError::IncorrectStateVariant),
-            BeaconState::Electra(_) | BeaconState::Fulu(_) | BeaconState::Gloas(_) | BeaconState::Heze(_) => {
+            BeaconState::Electra(_)
+            | BeaconState::Fulu(_)
+            | BeaconState::Gloas(_)
+            | BeaconState::Heze(_) => {
                 // Consume the balance and update state variables.
                 *self.consolidation_balance_to_consume_mut()? =
                     consolidation_balance_to_consume.safe_sub(consolidation_balance)?;
@@ -3254,7 +3260,9 @@ impl<E: EthSpec> BeaconState<E> {
             ForkName::Deneb => BeaconStateDeneb::<E>::NUM_FIELDS.next_power_of_two(),
             ForkName::Electra => BeaconStateElectra::<E>::NUM_FIELDS.next_power_of_two(),
             ForkName::Fulu => BeaconStateFulu::<E>::NUM_FIELDS.next_power_of_two(),
-            ForkName::Gloas | ForkName::Heze => BeaconStateGloas::<E>::NUM_FIELDS.next_power_of_two(),
+            ForkName::Gloas | ForkName::Heze => {
+                BeaconStateGloas::<E>::NUM_FIELDS.next_power_of_two()
+            }
         }
     }
 

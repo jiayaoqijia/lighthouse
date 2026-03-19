@@ -301,9 +301,9 @@ mod tests {
     use ssz_types::VariableList;
     use types::{
         BeaconBlock, BeaconBlockBodyGloas, BeaconBlockGloas, Eth1Data, ExecutionBlockHash,
-        ExecutionPayloadBid, ExecutionPayloadBidGloas, ExecutionPayloadEnvelope, ExecutionPayloadGloas, ExecutionRequests,
-        Graffiti, Hash256, MinimalEthSpec, SignedBeaconBlock, SignedExecutionPayloadBid, Slot,
-        SyncAggregate,
+        ExecutionPayloadBid, ExecutionPayloadBidGloas, ExecutionPayloadEnvelope,
+        ExecutionPayloadGloas, ExecutionRequests, Graffiti, Hash256, MinimalEthSpec,
+        SignedBeaconBlock, SignedExecutionPayloadBid, Slot, SyncAggregate,
     };
 
     use super::verify_envelope_consistency;

@@ -19,8 +19,8 @@ use crate::{
         BLOB_KZG_COMMITMENTS_INDEX, BeaconBlock, BeaconBlockAltair, BeaconBlockBase,
         BeaconBlockBellatrix, BeaconBlockBodyBellatrix, BeaconBlockBodyCapella,
         BeaconBlockBodyDeneb, BeaconBlockBodyElectra, BeaconBlockBodyFulu, BeaconBlockCapella,
-        BeaconBlockDeneb, BeaconBlockElectra, BeaconBlockFulu, BeaconBlockGloas, BeaconBlockHeze, BeaconBlockHeader,
-        BeaconBlockRef, BeaconBlockRefMut, SignedBeaconBlockHeader,
+        BeaconBlockDeneb, BeaconBlockElectra, BeaconBlockFulu, BeaconBlockGloas, BeaconBlockHeader,
+        BeaconBlockHeze, BeaconBlockRef, BeaconBlockRefMut, SignedBeaconBlockHeader,
     },
     core::{ChainSpec, Domain, Epoch, EthSpec, Hash256, SignedRoot, SigningData, Slot},
     execution::{
@@ -913,7 +913,7 @@ pub mod ssz_tagged_signed_beacon_block {
                     SignedBeaconBlockGloas::from_ssz_bytes(body)?,
                 )),
                 ForkName::Heze => Err(ssz::DecodeError::BytesInvalid(
-                    "unsupported fork for SignedBeaconBlock: Heze".to_string()
+                    "unsupported fork for SignedBeaconBlock: Heze".to_string(),
                 )),
             }
         }
@@ -996,7 +996,7 @@ mod test {
         chain_spec.electra_fork_epoch = Some(Epoch::new(5));
         chain_spec.fulu_fork_epoch = Some(Epoch::new(6));
         chain_spec.gloas_fork_epoch = Some(Epoch::new(7));
-    chain_spec.heze_fork_epoch = Some(Epoch::new(8));
+        chain_spec.heze_fork_epoch = Some(Epoch::new(8));
         chain_spec.heze_fork_epoch = Some(Epoch::new(8));
 
         // check that we have all forks covered

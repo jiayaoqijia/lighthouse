@@ -14,7 +14,7 @@ use types::{
 
 // Re-export Gloas constants for fork choice
 pub use types::consts::gloas::{
-    PayloadStatus, PAYLOAD_STATUS_EMPTY, PAYLOAD_STATUS_FULL, PAYLOAD_STATUS_PENDING,
+    PAYLOAD_STATUS_EMPTY, PAYLOAD_STATUS_FULL, PAYLOAD_STATUS_PENDING, PayloadStatus,
 };
 
 // Define a "legacy" implementation of `Option<usize>` which uses four bytes for encoding the union

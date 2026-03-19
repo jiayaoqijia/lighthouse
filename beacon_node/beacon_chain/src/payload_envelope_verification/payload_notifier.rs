@@ -8,8 +8,7 @@ use types::{SignedBeaconBlock, SignedExecutionPayloadEnvelope};
 
 use crate::{
     BeaconChain, BeaconChainTypes, BlockError, NotifyExecutionLayer,
-    block_verification::PayloadVerificationOutcome,
-    execution_payload::notify_new_payload,
+    block_verification::PayloadVerificationOutcome, execution_payload::notify_new_payload,
     payload_envelope_verification::EnvelopeError,
 };
 
@@ -68,7 +67,8 @@ impl<T: BeaconChainTypes> PayloadNotifier<T> {
         } else {
             let parent_root = self.block.message().parent_root();
             let request = Self::build_new_payload_request(&self.envelope, &self.block)?;
-            let result = notify_new_payload(&self.chain, self.envelope.slot(), parent_root, request).await?;
+            let result =
+                notify_new_payload(&self.chain, self.envelope.slot(), parent_root, request).await?;
             Ok(PayloadVerificationOutcome {
                 payload_verification_status: result.verification_status,
                 is_inclusion_list_satisfied: result.is_inclusion_list_satisfied,

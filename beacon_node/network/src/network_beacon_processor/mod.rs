@@ -861,7 +861,11 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
     ) -> Result<(), Error<T::EthSpec>> {
         let processor = self.clone();
         let process_fn = move || {
-            processor.handle_inclusion_list_by_committee_indices(peer_id, inbound_request_id, request)
+            processor.handle_inclusion_list_by_committee_indices(
+                peer_id,
+                inbound_request_id,
+                request,
+            )
         };
 
         self.try_send(BeaconWorkEvent {

@@ -13,11 +13,11 @@ use bls::{PublicKeyBytes, Signature};
 use builder_client::BuilderHttpClient;
 pub use engine_api::EngineCapabilities;
 use engine_api::Error as ApiError;
+use engine_api::json_structures::{
+    JsonGetInclusionListV1Response, JsonInclusionListStatusV1Response, JsonInclusionListV1,
+};
 pub use engine_api::*;
 pub use engine_api::{http, http::HttpJsonRpc, http::deposit_methods};
-use engine_api::json_structures::{
-    JsonGetInclusionListV1Response, JsonInclusionListV1, JsonInclusionListStatusV1Response,
-};
 use engines::{Engine, EngineError};
 pub use engines::{EngineState, ForkchoiceState};
 use eth2::types::{BlobsBundle, FullPayloadContents};
@@ -1751,9 +1751,7 @@ impl<E: EthSpec> ExecutionLayer<E> {
     ///
     /// Returns an error if the execution engine does not support the
     /// `engine_getInclusionListV1` method.
-    pub async fn get_inclusion_list_v1(
-        &self,
-    ) -> Result<JsonGetInclusionListV1Response, Error> {
+    pub async fn get_inclusion_list_v1(&self) -> Result<JsonGetInclusionListV1Response, Error> {
         let capabilities = self.get_engine_capabilities(None).await?;
 
         if capabilities.get_inclusion_list_v1 {
@@ -1780,7 +1778,9 @@ impl<E: EthSpec> ExecutionLayer<E> {
 
         if capabilities.new_inclusion_list_v1 {
             self.engine()
-                .request(|engine| async move { engine.api.new_inclusion_list_v1(inclusion_list).await })
+                .request(
+                    |engine| async move { engine.api.new_inclusion_list_v1(inclusion_list).await },
+                )
                 .await
                 .map_err(Box::new)
                 .map_err(Error::EngineError)

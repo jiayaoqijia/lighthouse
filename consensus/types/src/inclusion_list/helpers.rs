@@ -4,8 +4,8 @@
 //! and signature verification as defined in the Heze fork specification.
 
 use crate::{
-    core::{ChainSpec, EthSpec, Hash256, Slot, SignedRoot},
-    inclusion_list::{SignedInclusionList, INCLUSION_LIST_COMMITTEE_SIZE},
+    core::{ChainSpec, EthSpec, Hash256, SignedRoot, Slot},
+    inclusion_list::{INCLUSION_LIST_COMMITTEE_SIZE, SignedInclusionList},
     state::BeaconState,
 };
 use ssz_types::FixedVector;
@@ -91,7 +91,7 @@ pub fn is_valid_inclusion_list_signature<E: EthSpec>(
         .validators()
         .get(validator_index as usize)
         .ok_or_else(|| format!("Validator index {} out of bounds", validator_index))?;
-    
+
     let pubkey = validator
         .pubkey
         .decompress()
@@ -120,7 +120,9 @@ pub fn is_valid_inclusion_list_signature<E: EthSpec>(
     let signing_root = message.signing_root(domain);
 
     // Verify BLS signature
-    Ok(signed_inclusion_list.signature.verify(&pubkey, signing_root))
+    Ok(signed_inclusion_list
+        .signature
+        .verify(&pubkey, signing_root))
 }
 
 /// Check if a validator is a member of the inclusion list committee for the given slot.

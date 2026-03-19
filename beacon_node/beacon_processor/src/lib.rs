@@ -1057,7 +1057,9 @@ impl<E: EthSpec> BeaconProcessor<E> {
                         } else if let Some(item) = work_queues.lc_update_range_queue.pop() {
                             Some(item)
                             // [New in Heze:EIP7805]
-                        } else if let Some(item) = work_queues.inclusion_list_by_committee_indices_queue.pop() {
+                        } else if let Some(item) =
+                            work_queues.inclusion_list_by_committee_indices_queue.pop()
+                        {
                             Some(item)
                             // This statement should always be the final else statement.
                         } else {

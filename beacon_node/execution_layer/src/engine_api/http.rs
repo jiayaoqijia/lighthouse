@@ -751,9 +751,7 @@ impl HttpJsonRpc {
     /// based on the inclusion list committee's submissions.
     ///
     /// Spec: https://eips.ethereum.org/EIPS/eip-7805
-    pub async fn get_inclusion_list_v1(
-        &self,
-    ) -> Result<JsonGetInclusionListV1Response, Error> {
+    pub async fn get_inclusion_list_v1(&self) -> Result<JsonGetInclusionListV1Response, Error> {
         let params = json!([]);
 
         self.rpc_request(

@@ -13,7 +13,7 @@ use test_random_derive::TestRandom;
 use tree_hash_derive::TreeHash;
 
 use crate::{
-    core::{EthSpec, Hash256, Slot, SignedRoot},
+    core::{EthSpec, Hash256, SignedRoot, Slot},
     fork::ForkName,
     test_utils::TestRandom,
 };
@@ -55,7 +55,9 @@ pub struct InclusionList<E: EthSpec> {
 impl<E: EthSpec> InclusionList<E> {
     /// Returns the total byte size of all transactions in the IL.
     pub fn total_bytes(&self) -> usize {
-        self.transactions.iter().fold(0usize, |acc, tx| acc.saturating_add(tx.len()))
+        self.transactions
+            .iter()
+            .fold(0usize, |acc, tx| acc.saturating_add(tx.len()))
     }
 
     /// Returns the number of transactions in the IL.

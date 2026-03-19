@@ -101,8 +101,7 @@ use types::{
     BeaconBlockRef, BeaconState, BeaconStateError, BlobsList, ChainSpec, DataColumnSidecarList,
     Epoch, EthSpec, ForkName, FullPayload, Hash256, InconsistentFork, KzgProofs, RelativeEpoch,
     SignedBeaconBlock, SignedBeaconBlockHeader, Slot, StatePayloadStatus,
-    data::DataColumnSidecarError,
-    inclusion_list::get_inclusion_list_committee,
+    data::DataColumnSidecarError, inclusion_list::get_inclusion_list_committee,
 };
 
 /// Maximum block slot number. Block with slots bigger than this constant will NOT be processed.
@@ -1680,7 +1679,10 @@ impl<T: BeaconChainTypes> ExecutionPendingBlock<T> {
             let key = (il_slot, committee_root);
 
             // Check if the bid's inclusion_list_bits are inclusive of our local view
-            if !chain.inclusion_list_store.is_inclusive(key, &committee, inclusion_list_bits) {
+            if !chain
+                .inclusion_list_store
+                .is_inclusive(key, &committee, inclusion_list_bits)
+            {
                 return Err(BlockError::InvalidInclusionListBits);
             }
         }

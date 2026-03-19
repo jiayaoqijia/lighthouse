@@ -668,33 +668,36 @@ pub fn serve<T: BeaconChainTypes>(
              query: api_types::InclusionListCommitteeQuery| {
                 task_spawner.blocking_json_task(Priority::P1, move || {
                     let (state, execution_optimistic, finalized) = state_id.state(&chain)?;
-                    
+
                     // Get the slot for which to compute the committee
                     let slot = query.slot.unwrap_or(state.slot());
-                    
+
                     // Compute the inclusion list committee using the helper function
-                    let committee = types::inclusion_list::get_inclusion_list_committee(&state, slot)
-                        .map_err(|e| {
-                            warp_utils::reject::custom_not_found(format!(
-                                "Failed to compute inclusion list committee: {:?}",
-                                e
-                            ))
-                        })?;
-                    
+                    let committee = types::inclusion_list::get_inclusion_list_committee(
+                        &state, slot,
+                    )
+                    .map_err(|e| {
+                        warp_utils::reject::custom_not_found(format!(
+                            "Failed to compute inclusion list committee: {:?}",
+                            e
+                        ))
+                    })?;
+
                     // Compute the committee root
-                    let committee_root = types::inclusion_list::get_inclusion_list_committee_root(&state, slot)
-                        .map_err(|e| {
-                            warp_utils::reject::custom_not_found(format!(
-                                "Failed to compute inclusion list committee root: {:?}",
-                                e
-                            ))
-                        })?;
-                    
+                    let committee_root =
+                        types::inclusion_list::get_inclusion_list_committee_root(&state, slot)
+                            .map_err(|e| {
+                                warp_utils::reject::custom_not_found(format!(
+                                    "Failed to compute inclusion list committee root: {:?}",
+                                    e
+                                ))
+                            })?;
+
                     let response = inclusion_list::GetInclusionListCommitteeResponse {
                         validators: committee.into_iter().map(|v| v as u64).collect(),
                         committee_root,
                     };
-                    
+
                     Ok(api_types::GenericResponse::from(response)
                         .add_execution_optimistic_finalized(execution_optimistic, finalized))
                 })
@@ -1544,10 +1547,8 @@ pub fn serve<T: BeaconChainTypes>(
         post_beacon_pool_bls_to_execution_changes(&network_tx_filter, &beacon_pool_path);
 
     // POST beacon/pool/inclusion_lists
-    let post_beacon_pool_inclusion_lists = post_beacon_pool_inclusion_lists(
-        &network_tx_filter,
-        &beacon_pool_path,
-    );
+    let post_beacon_pool_inclusion_lists =
+        post_beacon_pool_inclusion_lists(&network_tx_filter, &beacon_pool_path);
 
     // GET beacon/blocks/{block_id}/inclusion_lists
     let get_beacon_blocks_inclusion_lists = beacon_blocks_path_v1
@@ -1555,17 +1556,19 @@ pub fn serve<T: BeaconChainTypes>(
         .and(warp::path("inclusion_lists"))
         .and(warp::path::end())
         .then(
-            |block_id: BlockId, task_spawner: TaskSpawner<T::EthSpec>, chain: Arc<BeaconChain<T>>| {
+            |block_id: BlockId,
+             task_spawner: TaskSpawner<T::EthSpec>,
+             chain: Arc<BeaconChain<T>>| {
                 task_spawner.blocking_json_task(Priority::P1, move || {
                     // Get the block root from the store
-                    let (block_root, _execution_optimistic, _finalized) = 
+                    let (block_root, _execution_optimistic, _finalized) =
                         block_id.root(&chain).map_err(|e| {
                             warp_utils::reject::custom_bad_request(format!(
                                 "Invalid block ID: {:?}",
                                 e
                             ))
                         })?;
-                    
+
                     let blinded_block = chain
                         .store
                         .get_blinded_block(&block_root)
@@ -1589,7 +1592,7 @@ pub fn serve<T: BeaconChainTypes>(
                             e
                         ))
                     })?;
-                    
+
                     if fork_name != ForkName::Heze {
                         // For non-Heze blocks, return empty inclusion lists
                         return Ok(api_types::GenericResponse::from(
@@ -1603,14 +1606,14 @@ pub fn serve<T: BeaconChainTypes>(
                     // ILs at slot N-1 are included in block at slot N
                     let block_slot = blinded_block.slot();
                     let il_slot = block_slot.saturating_sub(Slot::new(1));
-                    
+
                     // Get all inclusion lists for this slot from the store
                     let signed_ils = chain.inclusion_list_store.get_all_for_slot(il_slot);
-                    
+
                     // Convert to API response format
                     // Convert to API format - types::SignedInclusionList is the same as eth2::types::SignedInclusionList
                     // since eth2::types re-exports all types from the types crate
-                    
+
                     Ok(api_types::GenericResponse::from(
                         inclusion_list::GetInclusionListsResponse::<T::EthSpec> {
                             inclusion_lists: signed_ils,

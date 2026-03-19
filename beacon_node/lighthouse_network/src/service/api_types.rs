@@ -222,8 +222,12 @@ impl<E: EthSpec> std::convert::From<Response<E>> for RpcResponse<E> {
                 }
             },
             Response::InclusionListByCommitteeIndices(il) => match il {
-                Some(il) => RpcResponse::Success(RpcSuccessResponse::InclusionListByCommitteeIndices(il)),
-                None => RpcResponse::StreamTermination(ResponseTermination::InclusionListByCommitteeIndices),
+                Some(il) => {
+                    RpcResponse::Success(RpcSuccessResponse::InclusionListByCommitteeIndices(il))
+                }
+                None => RpcResponse::StreamTermination(
+                    ResponseTermination::InclusionListByCommitteeIndices,
+                ),
             },
         }
     }

@@ -14,7 +14,10 @@ use std::sync::atomic::AtomicBool;
 use task_executor::TaskExecutor;
 use tokio::time::{Duration, sleep};
 use tracing::{error, info, trace, warn};
-use types::{ChainSpec, EthSpec, Hash256, IlTransaction, IlTransactions, InclusionList, SignedInclusionList, Slot};
+use types::{
+    ChainSpec, EthSpec, Hash256, IlTransaction, IlTransactions, InclusionList, SignedInclusionList,
+    Slot,
+};
 use validator_store::ValidatorStore;
 
 /// Basis points for inclusion list submission deadline (~67% of slot duration).
@@ -112,7 +115,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
         executor.spawn(
             async move {
                 info!("Inclusion list service started");
-                
+
                 loop {
                     // Wait for the next slot
                     if let Some(duration_to_next_slot) = self.slot_clock.duration_to_next_slot() {
@@ -137,7 +140,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
 
                     // Get inclusion list committee assignments for this slot
                     let assignments = self.get_inclusion_list_assignments(current_slot).await;
-                    
+
                     if assignments.is_empty() {
                         trace!(slot = %current_slot, "No inclusion list duties for this slot");
                         continue;
@@ -145,19 +148,19 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
 
                     // Calculate submission deadline
                     let submission_due_ms = get_inclusion_list_submission_due_ms(&spec);
-                    
+
                     // Wait until submission deadline
                     if let Some(slot_start) = self.slot_clock.start_of(current_slot) {
                         let now = tokio::time::Instant::now();
                         let deadline_duration = Duration::from_millis(submission_due_ms);
                         let submission_deadline = slot_start + deadline_duration;
-                        
+
                         // Get Duration from Instant
                         let now_duration = now.elapsed();
                         let wait_until_deadline = submission_deadline.saturating_sub(now_duration);
                         let margin = Duration::from_millis(HEAD_CHECK_MARGIN_MS);
                         let actual_wait = wait_until_deadline.saturating_sub(margin);
-                        
+
                         if !actual_wait.is_zero() {
                             sleep(actual_wait).await;
                         }
@@ -165,12 +168,15 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
 
                     // Produce and broadcast inclusion lists
                     for (validator_index, pubkey) in assignments {
-                        match self.produce_and_broadcast_inclusion_list(
-                            current_slot,
-                            validator_index,
-                            pubkey,
-                            &spec,
-                        ).await {
+                        match self
+                            .produce_and_broadcast_inclusion_list(
+                                current_slot,
+                                validator_index,
+                                pubkey,
+                                &spec,
+                            )
+                            .await
+                        {
                             Ok(_) => {
                                 info!(
                                     slot = %current_slot,
@@ -197,14 +203,12 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
     }
 
     /// Get inclusion list committee assignments for the given slot.
-    async fn get_inclusion_list_assignments(
-        &self,
-        slot: Slot,
-    ) -> Vec<(u64, PublicKeyBytes)> {
+    async fn get_inclusion_list_assignments(&self, slot: Slot) -> Vec<(u64, PublicKeyBytes)> {
         use validator_store::DoppelgangerStatus;
-        
+
         // Query beacon node for inclusion list committee assignments
-        let committee_response = self.beacon_nodes
+        let committee_response = self
+            .beacon_nodes
             .first_success(|beacon_node| {
                 let slot = slot;
                 async move {
@@ -215,17 +219,18 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
                 }
             })
             .await;
-        
+
         match committee_response {
             Ok(response) => {
-                let committee_indices: std::collections::HashSet<u64> = 
+                let committee_indices: std::collections::HashSet<u64> =
                     response.data.validators.into_iter().collect();
                 let mut assignments = Vec::new();
-                
+
                 // Get all our voting pubkeys
-                let our_pubkeys: Vec<PublicKeyBytes> = self.validator_store
+                let our_pubkeys: Vec<PublicKeyBytes> = self
+                    .validator_store
                     .voting_pubkeys(DoppelgangerStatus::ignored);
-                
+
                 // Check which of our validators are in the committee
                 for pubkey in our_pubkeys {
                     if let Some(index) = self.validator_store.validator_index(&pubkey) {
@@ -234,7 +239,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
                         }
                     }
                 }
-                
+
                 assignments
             }
             Err(e) => {
@@ -254,41 +259,43 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
     ) -> Result<(), String> {
         // 1. Get the inclusion list committee root from beacon node
         let committee_root = self.get_inclusion_list_committee_root(slot).await?;
-        
+
         // 2. Get inclusion list transactions from execution engine
         let transactions = self.get_inclusion_list_transactions().await?;
-        
+
         // 3. Build the inclusion list
         let il_transactions: Vec<IlTransaction<S::E>> = transactions
             .into_iter()
             .filter_map(|tx| IlTransaction::<S::E>::new(tx).ok())
             .collect();
-        
+
         let il_transactions = IlTransactions::<S::E>::new(il_transactions).unwrap_or_default();
-        
+
         let inclusion_list = InclusionList::<S::E> {
             slot,
             validator_index,
             inclusion_list_committee_root: committee_root,
             transactions: il_transactions,
         };
-        
+
         // 4. Sign the inclusion list using ValidatorStore
-        let signed_inclusion_list = self.validator_store
+        let signed_inclusion_list = self
+            .validator_store
             .sign_inclusion_list(pubkey, inclusion_list)
             .await
             .map_err(|e| format!("Failed to sign inclusion list: {:?}", e))?;
-        
+
         // 5. Broadcast to the network via beacon node
         self.broadcast_inclusion_list(signed_inclusion_list).await?;
-        
+
         Ok(())
     }
 
     /// Get the inclusion list committee root for the given slot.
     async fn get_inclusion_list_committee_root(&self, slot: Slot) -> Result<Hash256, String> {
         // Query beacon node for the committee root
-        let response = self.beacon_nodes
+        let response = self
+            .beacon_nodes
             .first_success(|beacon_node| {
                 let slot = slot;
                 async move {
@@ -300,7 +307,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
             })
             .await
             .map_err(|e| format!("Failed to query beacon node: {}", e))?;
-        
+
         Ok(response.data.committee_root)
     }
 
@@ -308,7 +315,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
     async fn get_inclusion_list_transactions(&self) -> Result<Vec<Vec<u8>>, String> {
         // Query execution engine for inclusion list transactions
         // This would use the engine API: engine_getInclusionListV1
-        
+
         // For now, return empty transactions
         Ok(Vec::new())
     }
@@ -320,8 +327,9 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
     ) -> Result<(), String> {
         // Submit to beacon node for gossip propagation
         let signed_il = Arc::new(signed_inclusion_list);
-        
-        let _result = self.beacon_nodes
+
+        let _result = self
+            .beacon_nodes
             .request(ApiTopic::InclusionList, move |beacon_node| {
                 let signed_il = signed_il.clone();
                 async move {
@@ -332,7 +340,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
                 }
             })
             .await;
-        
+
         Ok(())
     }
 }
@@ -366,15 +374,15 @@ mod tests {
     fn test_time_calculations() {
         // Test with 12 second slot
         let spec = ChainSpec::mainnet();
-        
+
         // Submission due: ~67% of 12s = ~8s = 8000ms
         let submission_due = get_inclusion_list_submission_due_ms(&spec);
         assert!(submission_due > 7000 && submission_due < 9000);
-        
+
         // View freeze cutoff: 75% of 12s = 9s = 9000ms
         let view_freeze = get_view_freeze_cutoff_ms(&spec);
         assert_eq!(view_freeze, 9000);
-        
+
         // Proposer cutoff: ~92% of 12s = ~11s = 11000ms
         let proposer_cutoff = get_proposer_inclusion_list_cutoff_ms(&spec);
         assert!(proposer_cutoff > 10000 && proposer_cutoff < 12000);
