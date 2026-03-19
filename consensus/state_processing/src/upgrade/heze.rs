@@ -11,6 +11,11 @@ pub fn upgrade_to_heze<E: EthSpec>(
     pre_state: &mut BeaconState<E>,
     spec: &ChainSpec,
 ) -> Result<(), Error> {
+    // Skip if already upgraded to Heze (idempotent upgrade)
+    if matches!(pre_state, BeaconState::Heze(_)) {
+        return Ok(());
+    }
+
     let post = upgrade_state_to_heze(pre_state, spec)?;
 
     *pre_state = post;
@@ -108,6 +113,8 @@ pub fn upgrade_state_to_heze<E: EthSpec>(
         pending_deposits: pre.pending_deposits.clone(),
         pending_partial_withdrawals: pre.pending_partial_withdrawals.clone(),
         pending_consolidations: pre.pending_consolidations.clone(),
+        // Fulu
+        proposer_lookahead: pre.proposer_lookahead.clone(),
         // Gloas fields (unchanged in Heze)
         builders: mem::take(&mut pre.builders),
         next_withdrawal_builder_index: pre.next_withdrawal_builder_index,

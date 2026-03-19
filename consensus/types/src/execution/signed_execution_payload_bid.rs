@@ -7,7 +7,7 @@ use context_deserialize::{ContextDeserialize, context_deserialize};
 use educe::Educe;
 use rand::RngCore;
 use serde::{Deserialize, Deserializer, Serialize};
-use ssz::Decode;
+use ssz::{Decode, Encode};
 use ssz_derive::{Decode, Encode};
 use superstruct::superstruct;
 use test_random_derive::TestRandom;
@@ -73,13 +73,35 @@ impl<E: EthSpec> Decode for SignedExecutionPayloadBid<E> {
     }
 
     fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
-        // Try Heze first (longer encoding with inclusion_list_bits in message)
-        // If that fails (missing inclusion_list_bits), try Gloas
-        // This order is critical because the message's blob_kzg_commitments (VariableList)
-        // could consume the inclusion_list_bits bytes from Heze data, causing data corruption.
-        SignedExecutionPayloadBidHeze::from_ssz_bytes(bytes)
-            .map(Self::Heze)
-            .or_else(|_| SignedExecutionPayloadBidGloas::from_ssz_bytes(bytes).map(Self::Gloas))
+        // Try Gloas first (shorter encoding without inclusion_list_bits).
+        // Only try Heze if Gloas fails AND there are enough extra bytes for inclusion_list_bits.
+        // Heze has an extra BitVector<U16> field (2 bytes) compared to Gloas.
+        // This order prevents Gloas data from being incorrectly decoded as Heze.
+        let gloas_result = SignedExecutionPayloadBidGloas::from_ssz_bytes(bytes);
+        
+        match gloas_result {
+            Ok(gloas) => {
+                // Gloas decoded successfully. Check if there might be extra bytes
+                // that could indicate this is actually Heze data.
+                // Re-encode to check consumed bytes.
+                let gloas_bytes = gloas.as_ssz_bytes();
+                if bytes.len() > gloas_bytes.len() + 2 {
+                    // There are more bytes than Gloas would use, try Heze
+                    if let Ok(heze) = SignedExecutionPayloadBidHeze::from_ssz_bytes(bytes) {
+                        let heze_bytes = heze.as_ssz_bytes();
+                        // Use Heze only if it consumes all bytes exactly
+                        if heze_bytes.len() == bytes.len() {
+                            return Ok(Self::Heze(heze));
+                        }
+                    }
+                }
+                Ok(Self::Gloas(gloas))
+            }
+            Err(_) => {
+                // Gloas failed, try Heze
+                SignedExecutionPayloadBidHeze::from_ssz_bytes(bytes).map(Self::Heze)
+            }
+        }
     }
 }
 
