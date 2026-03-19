@@ -25,8 +25,8 @@ use tree_hash::TreeHash;
 use types::consts::gloas::BUILDER_INDEX_SELF_BUILD;
 use types::{
     Address, Attestation, AttestationElectra, AttesterSlashing, AttesterSlashingElectra,
-    BeaconBlock, BeaconBlockBodyGloas, BeaconBlockGloas, BeaconState, BeaconStateError,
-    BuilderIndex, Deposit, Eth1Data, EthSpec, ExecutionBlockHash,
+    BeaconBlock, BeaconBlockBodyGloas, BeaconBlockBodyHeze, BeaconBlockGloas, BeaconBlockHeze,
+    BeaconState, BeaconStateError, BuilderIndex, Deposit, Eth1Data, EthSpec, ExecutionBlockHash,
     ExecutionPayloadBidGloas, ExecutionPayloadBidHeze, ExecutionPayloadEnvelope,
     ExecutionPayloadGloas, ExecutionRequests, ForkName, FullPayload, Graffiti, Hash256,
     PayloadAttestation, ProposerSlashing, RelativeEpoch, SignedBeaconBlock,
@@ -509,11 +509,43 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                 },
             }),
             BeaconState::Heze(_) => {
-                // TODO(heze): Heze block production should handle inclusion_list_bits
-                // For now, return an error indicating Heze block production is not implemented
-                return Err(BlockProductionError::GloasNotImplemented(
-                    "Heze block production not yet implemented".to_owned(),
-                ));
+                // [New in Heze:EIP7805] Heze block production uses BeaconBlockHeze
+                // The signed_execution_payload_bid should be the Heze variant with inclusion_list_bits
+                BeaconBlock::Heze(BeaconBlockHeze {
+                    slot,
+                    proposer_index,
+                    parent_root,
+                    state_root: Hash256::ZERO,
+                    body: BeaconBlockBodyHeze {
+                        randao_reveal,
+                        eth1_data,
+                        graffiti,
+                        proposer_slashings: proposer_slashings
+                            .try_into()
+                            .map_err(BlockProductionError::SszTypesError)?,
+                        attester_slashings: attester_slashings
+                            .try_into()
+                            .map_err(BlockProductionError::SszTypesError)?,
+                        attestations: attestations
+                            .try_into()
+                            .map_err(BlockProductionError::SszTypesError)?,
+                        deposits: deposits
+                            .try_into()
+                            .map_err(BlockProductionError::SszTypesError)?,
+                        voluntary_exits: voluntary_exits
+                            .try_into()
+                            .map_err(BlockProductionError::SszTypesError)?,
+                        sync_aggregate,
+                        bls_to_execution_changes: bls_to_execution_changes
+                            .try_into()
+                            .map_err(BlockProductionError::SszTypesError)?,
+                        signed_execution_payload_bid,
+                        payload_attestations: payload_attestations
+                            .try_into()
+                            .map_err(BlockProductionError::SszTypesError)?,
+                        _phantom: PhantomData::<FullPayload<T::EthSpec>>,
+                    },
+                })
             }
         };
 
