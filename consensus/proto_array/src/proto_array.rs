@@ -135,6 +135,10 @@ impl InvalidationOperation {
 
 pub type ProtoNode = ProtoNodeV17;
 
+// Define a "legacy" implementation of `Option<ExecutionBlockHash>` which uses four bytes for encoding the union
+// selector. This is needed for the Gloas fields in ProtoNode.
+four_byte_option_impl!(four_byte_option_execution_block_hash, ExecutionBlockHash);
+
 #[superstruct(
     variants(V17),
     variant_attributes(derive(Clone, PartialEq, Debug, Encode, Decode, Serialize, Deserialize)),
@@ -174,6 +178,14 @@ pub struct ProtoNode {
     pub unrealized_justified_checkpoint: Option<Checkpoint>,
     #[ssz(with = "four_byte_option_checkpoint")]
     pub unrealized_finalized_checkpoint: Option<Checkpoint>,
+    /// [New in Gloas:EIP7732] The `block_hash` from the signed_execution_payload_bid.
+    /// Used to determine if a child block's parent is FULL or EMPTY.
+    #[ssz(with = "four_byte_option_execution_block_hash")]
+    pub bid_block_hash: Option<ExecutionBlockHash>,
+    /// [New in Gloas:EIP7732] The `parent_block_hash` from the signed_execution_payload_bid.
+    /// Used to determine if this block builds on a FULL or EMPTY parent.
+    #[ssz(with = "four_byte_option_execution_block_hash")]
+    pub bid_parent_block_hash: Option<ExecutionBlockHash>,
 }
 
 #[derive(PartialEq, Debug, Encode, Decode, Serialize, Deserialize, Copy, Clone)]
@@ -397,6 +409,9 @@ impl ProtoArray {
             execution_status: block.execution_status,
             unrealized_justified_checkpoint: block.unrealized_justified_checkpoint,
             unrealized_finalized_checkpoint: block.unrealized_finalized_checkpoint,
+            // [New in Gloas:EIP7732] Store bid hashes for fork choice
+            bid_block_hash: block.bid_block_hash,
+            bid_parent_block_hash: block.bid_parent_block_hash,
         };
 
         // If the parent has an invalid execution status, return an error before adding the block to
@@ -1207,5 +1222,76 @@ impl<'a> Iterator for Iter<'a> {
         let node = self.proto_array.nodes.get(next_node_index)?;
         self.next_node_index = node.parent;
         Some(node)
+    }
+}
+
+// ===== [New in Gloas:EIP7732] Fork Choice Helper Functions =====
+
+impl ProtoArray {
+    /// [New in Gloas:EIP7732] Determine the payload status of a block's parent.
+    ///
+    /// Returns PAYLOAD_STATUS_FULL if the child's bid_parent_block_hash matches the parent's
+    /// bid_block_hash, indicating the child builds on a revealed payload.
+    /// Returns PAYLOAD_STATUS_EMPTY otherwise.
+    ///
+    /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#get_parent_payload_status
+    pub fn get_parent_payload_status(&self, block: &ProtoNode) -> PayloadStatus {
+        let Some(parent_index) = block.parent else {
+            // Genesis block has no parent
+            return PAYLOAD_STATUS_PENDING;
+        };
+
+        let Some(parent) = self.nodes.get(parent_index) else {
+            return PAYLOAD_STATUS_PENDING;
+        };
+
+        // If either block doesn't have bid hashes, we can't determine the status
+        let Some(block_parent_hash) = block.bid_parent_block_hash else {
+            return PAYLOAD_STATUS_PENDING;
+        };
+        let Some(parent_block_hash) = parent.bid_block_hash else {
+            return PAYLOAD_STATUS_PENDING;
+        };
+
+        if block_parent_hash == parent_block_hash {
+            PAYLOAD_STATUS_FULL
+        } else {
+            PAYLOAD_STATUS_EMPTY
+        }
+    }
+
+    /// [New in Gloas:EIP7732] Check if a block's parent is FULL.
+    ///
+    /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#is_parent_node_full
+    pub fn is_parent_node_full(&self, block: &ProtoNode) -> bool {
+        self.get_parent_payload_status(block) == PAYLOAD_STATUS_FULL
+    }
+
+    /// [New in Gloas:EIP7732] Get the ancestor of a block at a given slot with payload status.
+    ///
+    /// See: https://github.com/ethereum/consensus-specs/blob/dev/specs/gloas/fork-choice.md#get_ancestor
+    pub fn get_ancestor(&self, root: Hash256, slot: Slot) -> Option<ForkChoiceNode> {
+        let block_index = self.indices.get(&root)?;
+        let block = self.nodes.get(*block_index)?;
+
+        if block.slot <= slot {
+            // Block is at or before the requested slot
+            return Some(ForkChoiceNode::pending(root));
+        }
+
+        // Walk up the tree to find the ancestor
+        let mut current = block;
+        while current.slot > slot {
+            let parent_index = current.parent?;
+            current = self.nodes.get(parent_index)?;
+        }
+
+        // We've found the ancestor at the requested slot
+        // Return with the parent's payload status from the child's perspective
+        let payload_status = self.get_parent_payload_status(current);
+        Some(ForkChoiceNode {
+            root: current.root,
+            payload_status,
+        })
     }
 }

@@ -211,6 +211,9 @@ impl ForkChoiceTestDefinition {
                         ),
                         unrealized_justified_checkpoint: None,
                         unrealized_finalized_checkpoint: None,
+                        // [Gloas] Not available in test definitions
+                        bid_block_hash: None,
+                        bid_parent_block_hash: None,
                     };
                     fork_choice
                         .process_block::<MainnetEthSpec>(

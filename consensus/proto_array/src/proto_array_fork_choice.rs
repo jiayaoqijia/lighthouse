@@ -168,6 +168,12 @@ pub struct Block {
     pub execution_status: ExecutionStatus,
     pub unrealized_justified_checkpoint: Option<Checkpoint>,
     pub unrealized_finalized_checkpoint: Option<Checkpoint>,
+    /// [New in Gloas:EIP7732] The `block_hash` from the signed_execution_payload_bid.
+    /// Used to determine if a child block's parent is FULL or EMPTY.
+    pub bid_block_hash: Option<ExecutionBlockHash>,
+    /// [New in Gloas:EIP7732] The `parent_block_hash` from the signed_execution_payload_bid.
+    /// Used to determine if this block builds on a FULL or EMPTY parent.
+    pub bid_parent_block_hash: Option<ExecutionBlockHash>,
 }
 
 impl Block {
@@ -454,6 +460,9 @@ impl ProtoArrayForkChoice {
             execution_status,
             unrealized_justified_checkpoint: Some(justified_checkpoint),
             unrealized_finalized_checkpoint: Some(finalized_checkpoint),
+            // [Gloas] Genesis/finalized block - no bid hashes available
+            bid_block_hash: None,
+            bid_parent_block_hash: None,
         };
 
         proto_array
@@ -889,6 +898,9 @@ impl ProtoArrayForkChoice {
             execution_status: block.execution_status,
             unrealized_justified_checkpoint: block.unrealized_justified_checkpoint,
             unrealized_finalized_checkpoint: block.unrealized_finalized_checkpoint,
+            // [Gloas] Include bid hashes
+            bid_block_hash: block.bid_block_hash,
+            bid_parent_block_hash: block.bid_parent_block_hash,
         })
     }
 
