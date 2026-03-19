@@ -575,6 +575,20 @@ impl<E: EthSpec> InclusionListStore<E> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use types::inclusion_list::{InclusionList, IlTransaction};
+
+    fn create_test_il<E: EthSpec>(slot: Slot, validator_index: u64, txs: Vec<Vec<u8>>) -> InclusionList<E> {
+        let transactions: Vec<IlTransaction<E>> = txs
+            .into_iter()
+            .map(|tx| IlTransaction::<E>::new(tx).expect("valid transaction"))
+            .collect();
+        InclusionList {
+            slot,
+            validator_index,
+            inclusion_list_committee_root: Hash256::repeat_byte(0x42),
+            transactions: types::inclusion_list::IlTransactions::<E>::new(transactions).expect("valid transactions"),
+        }
+    }
 
     #[test]
     fn test_inclusion_list_store_basic() {
@@ -596,5 +610,238 @@ mod tests {
     #[test]
     fn test_committee_size() {
         assert_eq!(INCLUSION_LIST_COMMITTEE_SIZE, 16);
+    }
+    
+    #[test]
+    fn test_process_inclusion_list() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        let slot = Slot::new(1);
+        let root = Hash256::repeat_byte(0x42);
+        let key = (slot, root);
+        
+        // Process first IL
+        let il1 = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
+        assert!(store.process_inclusion_list(il1, true));
+        
+        // Check it was stored
+        assert!(!store.is_empty());
+        assert_eq!(store.len(), 1);
+        
+        let ils = store.get_inclusion_lists(key);
+        assert_eq!(ils.len(), 1);
+        assert_eq!(ils[0].validator_index, 0);
+    }
+    
+    #[test]
+    fn test_process_multiple_ils_from_different_validators() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        let slot = Slot::new(1);
+        let root = Hash256::repeat_byte(0x42);
+        let key = (slot, root);
+        
+        // Process IL from validator 0
+        let il0 = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
+        assert!(store.process_inclusion_list(il0, true));
+        
+        // Process IL from validator 1
+        let il1 = create_test_il(slot, 1, vec![vec![4, 5, 6]]);
+        assert!(store.process_inclusion_list(il1, true));
+        
+        // Check both were stored
+        assert_eq!(store.len(), 2);
+        
+        let ils = store.get_inclusion_lists(key);
+        assert_eq!(ils.len(), 2);
+    }
+    
+    #[test]
+    fn test_duplicate_il_ignored() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        let slot = Slot::new(1);
+        let _root = Hash256::repeat_byte(0x42);
+        
+        // Process IL
+        let il = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
+        assert!(store.process_inclusion_list(il.clone(), true));
+        
+        // Process same IL again - should be ignored
+        assert!(!store.process_inclusion_list(il, true));
+        
+        // Still only 1 IL
+        assert_eq!(store.len(), 1);
+    }
+    
+    #[test]
+    fn test_equivocation_detection() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        let slot = Slot::new(1);
+        let root = Hash256::repeat_byte(0x42);
+        let key = (slot, root);
+        
+        // Process first IL from validator 0
+        let il1 = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
+        assert!(store.process_inclusion_list(il1, true));
+        
+        // Process different IL from same validator - equivocation
+        let il2 = create_test_il(slot, 0, vec![vec![4, 5, 6]]);
+        assert!(store.process_inclusion_list(il2, true));
+        
+        // Validator 0 should be marked as equivocator
+        assert!(store.is_equivocator(key, 0));
+        
+        // No ILs should remain for equivocator
+        let ils = store.get_inclusion_lists(key);
+        assert!(ils.is_empty());
+    }
+    
+    #[test]
+    fn test_equivocator_ignored() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        let slot = Slot::new(1);
+        let _root = Hash256::repeat_byte(0x42);
+        
+        // Create equivocation
+        let il1 = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
+        store.process_inclusion_list(il1, true);
+        let il2 = create_test_il(slot, 0, vec![vec![4, 5, 6]]);
+        store.process_inclusion_list(il2, true);
+        
+        // Validator 0 is now an equivocator
+        
+        // New IL from equivocator should be ignored
+        let il3 = create_test_il(slot, 0, vec![vec![7, 8, 9]]);
+        assert!(!store.process_inclusion_list(il3, true));
+    }
+    
+    #[test]
+    fn test_get_inclusion_list_bits() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        let slot = Slot::new(1);
+        let root = Hash256::repeat_byte(0x42);
+        let key = (slot, root);
+        
+        // Committee: validators at indices 0, 1, 2, ...
+        let committee: Vec<u64> = (0..16).collect();
+        
+        // Process ILs from validators 0, 2, 5
+        store.process_inclusion_list(create_test_il(slot, 0, vec![vec![1]]), true);
+        store.process_inclusion_list(create_test_il(slot, 2, vec![vec![2]]), true);
+        store.process_inclusion_list(create_test_il(slot, 5, vec![vec![3]]), true);
+        
+        let bits = store.get_inclusion_list_bits(key, &committee);
+        
+        // Bits at positions 0, 2, 5 should be set
+        assert!(bits.get(0).unwrap());
+        assert!(!bits.get(1).unwrap());
+        assert!(bits.get(2).unwrap());
+        assert!(!bits.get(3).unwrap());
+        assert!(!bits.get(4).unwrap());
+        assert!(bits.get(5).unwrap());
+    }
+    
+    #[test]
+    fn test_get_transactions() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        let slot = Slot::new(1);
+        let root = Hash256::repeat_byte(0x42);
+        let key = (slot, root);
+        
+        // Process ILs with transactions
+        store.process_inclusion_list(create_test_il(slot, 0, vec![vec![1, 2], vec![3, 4]]), true);
+        store.process_inclusion_list(create_test_il(slot, 1, vec![vec![5, 6], vec![1, 2]]), true); // duplicate tx
+        
+        let txs = store.get_transactions(key);
+        
+        // Should have 3 unique transactions (sorted and deduped)
+        assert_eq!(txs.len(), 3);
+        assert!(txs.contains(&vec![1, 2]));
+        assert!(txs.contains(&vec![3, 4]));
+        assert!(txs.contains(&vec![5, 6]));
+    }
+    
+    #[test]
+    fn test_is_inclusive() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        let slot = Slot::new(1);
+        let root = Hash256::repeat_byte(0x42);
+        let key = (slot, root);
+        
+        let committee: Vec<u64> = (0..16).collect();
+        
+        // Process ILs from validators 0, 2
+        store.process_inclusion_list(create_test_il(slot, 0, vec![vec![1]]), true);
+        store.process_inclusion_list(create_test_il(slot, 2, vec![vec![2]]), true);
+        
+        // Create a bitvector that has bits 0, 2, 5 set (superset)
+        let mut incoming_bits = BitVector::<U16>::default();
+        incoming_bits.set(0, true).unwrap();
+        incoming_bits.set(2, true).unwrap();
+        incoming_bits.set(5, true).unwrap();
+        
+        // Should be inclusive (incoming has all local bits)
+        assert!(store.is_inclusive(key, &committee, &incoming_bits));
+        
+        // Create a bitvector that only has bit 5 set (not superset)
+        let mut insufficient_bits = BitVector::<U16>::default();
+        insufficient_bits.set(5, true).unwrap();
+        
+        // Should not be inclusive (missing bits 0, 2)
+        assert!(!store.is_inclusive(key, &committee, &insufficient_bits));
+    }
+    
+    #[test]
+    fn test_prune() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        
+        // Add ILs at slots 1, 2, 3
+        store.process_inclusion_list(create_test_il(Slot::new(1), 0, vec![vec![1]]), true);
+        store.process_inclusion_list(create_test_il(Slot::new(2), 0, vec![vec![2]]), true);
+        store.process_inclusion_list(create_test_il(Slot::new(3), 0, vec![vec![3]]), true);
+        
+        assert_eq!(store.len(), 3);
+        
+        // Prune at slot 4 (should remove slot 1)
+        store.prune(Slot::new(4));
+        
+        // Slots < 2 should be pruned
+        assert_eq!(store.len(), 2);
+        assert!(store.get_all_for_slot(Slot::new(1)).is_empty());
+        assert!(!store.get_all_for_slot(Slot::new(2)).is_empty());
+    }
+    
+    #[test]
+    fn test_not_stored_before_view_freeze_cutoff() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        let slot = Slot::new(1);
+        let root = Hash256::repeat_byte(0x42);
+        let key = (slot, root);
+        
+        // Process IL but indicate it's after view freeze cutoff
+        let il = create_test_il(slot, 0, vec![vec![1, 2, 3]]);
+        assert!(store.process_inclusion_list(il, false));
+        
+        // Should not be stored
+        assert!(store.is_empty());
+        let ils = store.get_inclusion_lists(key);
+        assert!(ils.is_empty());
+    }
+    
+    #[test]
+    fn test_get_all_for_slot() {
+        let store = InclusionListStore::<types::MainnetEthSpec>::new();
+        
+        // Add ILs at different slots
+        store.process_inclusion_list(create_test_il(Slot::new(1), 0, vec![vec![1]]), true);
+        store.process_inclusion_list(create_test_il(Slot::new(1), 1, vec![vec![2]]), true);
+        store.process_inclusion_list(create_test_il(Slot::new(2), 0, vec![vec![3]]), true);
+        
+        let ils_slot1 = store.get_all_for_slot(Slot::new(1));
+        assert_eq!(ils_slot1.len(), 2);
+        
+        let ils_slot2 = store.get_all_for_slot(Slot::new(2));
+        assert_eq!(ils_slot2.len(), 1);
+        
+        let ils_slot3 = store.get_all_for_slot(Slot::new(3));
+        assert!(ils_slot3.is_empty());
     }
 }
