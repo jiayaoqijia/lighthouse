@@ -252,6 +252,15 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         let il_satisfied = payload_verification_outcome
             .is_inclusion_list_satisfied
             .unwrap_or(true);
+        
+        debug!(
+            block_root = ?block_root,
+            slot = %signed_envelope.message().slot,
+            il_satisfied = il_satisfied,
+            il_status_provided = payload_verification_outcome.is_inclusion_list_satisfied.is_some(),
+            "EIP7805: Recording inclusion list satisfaction status"
+        );
+        
         {
             let mut fork_choice = self.canonical_head.fork_choice_write_lock();
             fork_choice.set_payload_inclusion_list_satisfaction(block_root, il_satisfied);

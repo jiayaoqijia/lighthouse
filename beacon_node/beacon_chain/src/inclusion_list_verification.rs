@@ -10,6 +10,7 @@ use bls::Signature;
 use parking_lot::RwLock;
 use slot_clock::SlotClock;
 use ssz_types::BitVector;
+use tracing::{debug, trace, warn};
 use tree_hash::TreeHash;
 use typenum::U16;
 use types::{
@@ -144,6 +145,13 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
         let signed_il = verified.signed_inclusion_list;
         let message = &signed_il.message;
 
+        debug!(
+            slot = %message.slot,
+            validator_index = message.validator_index,
+            tx_count = message.transactions.len(),
+            "EIP7805: Verifying inclusion list for gossip"
+        );
+
         // 4. [IGNORE] Committee root verification
         // Note: This is IGNORE, not REJECT - we skip if mismatch but don't punish
         let expected_committee_root =
@@ -153,6 +161,13 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
 
         if message.inclusion_list_committee_root != expected_committee_root {
             // IGNORE: Committee root mismatch - skip processing
+            debug!(
+                slot = %message.slot,
+                validator_index = message.validator_index,
+                expected = ?expected_committee_root,
+                provided = ?message.inclusion_list_committee_root,
+                "EIP7805: Committee root mismatch"
+            );
             return Err(Error::CommitteeRootMismatch {
                 expected: expected_committee_root,
                 provided: message.inclusion_list_committee_root,
@@ -164,6 +179,12 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
             .map_err(|e| Error::InternalError(format!("Failed to get committee: {}", e)))?;
 
         if !committee.contains(&message.validator_index) {
+            debug!(
+                slot = %message.slot,
+                validator_index = message.validator_index,
+                committee_size = committee.len(),
+                "EIP7805: Validator not in inclusion list committee"
+            );
             return Err(Error::ValidatorNotInCommittee {
                 validator_index: message.validator_index,
             });
@@ -180,6 +201,12 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
 
         if il_count >= 2 {
             // IGNORE: Already have 2 ILs from this validator
+            debug!(
+                slot = %message.slot,
+                validator_index = message.validator_index,
+                il_count = il_count,
+                "EIP7805: Validator already has max ILs (potential equivocation)"
+            );
             return Err(Error::EquivocatedValidator {
                 validator_index: message.validator_index,
             });
@@ -193,8 +220,20 @@ impl<E: EthSpec> VerifiedInclusionList<E> {
                 })?;
 
         if !is_valid_sig {
+            warn!(
+                slot = %message.slot,
+                validator_index = message.validator_index,
+                "EIP7805: Invalid inclusion list signature"
+            );
             return Err(Error::InvalidSignature);
         }
+
+        debug!(
+            slot = %message.slot,
+            validator_index = message.validator_index,
+            tx_count = message.transactions.len(),
+            "EIP7805: Inclusion list verified successfully"
+        );
 
         Ok(Self {
             signed_inclusion_list: signed_il,
@@ -290,8 +329,21 @@ impl<E: EthSpec> InclusionListStore<E> {
         );
         let validator_index = inclusion_list.validator_index;
 
+        trace!(
+            slot = %inclusion_list.slot,
+            validator_index = validator_index,
+            tx_count = inclusion_list.transactions.len(),
+            is_before_view_freeze_cutoff = is_before_view_freeze_cutoff,
+            "EIP7805: Processing inclusion list"
+        );
+
         // Check if this validator is already an equivocator
         if self.is_equivocator(key, validator_index) {
+            debug!(
+                slot = %inclusion_list.slot,
+                validator_index = validator_index,
+                "EIP7805: Ignoring IL from known equivocator"
+            );
             return false; // Ignore ILs from equivocators
         }
 
@@ -319,17 +371,41 @@ impl<E: EthSpec> InclusionListStore<E> {
                 drop(seen); // Release lock before calling remove_il
                 self.remove_il(key, validator_index);
 
+                warn!(
+                    slot = %inclusion_list.slot,
+                    validator_index = validator_index,
+                    "EIP7805: Equivocation detected - validator submitted different ILs"
+                );
+
                 return true;
             }
             // Same IL, ignore duplicate
+            trace!(
+                slot = %inclusion_list.slot,
+                validator_index = validator_index,
+                "EIP7805: Duplicate IL ignored"
+            );
             return false;
         }
 
         // First IL from this validator
         if is_before_view_freeze_cutoff {
             // Store the IL
-            self.store_il(key, inclusion_list);
+            self.store_il(key, inclusion_list.clone());
             validator_map.insert(validator_index, il_hash);
+            debug!(
+                slot = %inclusion_list.slot,
+                validator_index = validator_index,
+                tx_count = inclusion_list.transactions.len(),
+                store_len = self.len(),
+                "EIP7805: Inclusion list stored"
+            );
+        } else {
+            trace!(
+                slot = %inclusion_list.slot,
+                validator_index = validator_index,
+                "EIP7805: IL not stored (after view freeze cutoff)"
+            );
         }
 
         true
@@ -473,6 +549,16 @@ impl<E: EthSpec> InclusionListStore<E> {
             }
         }
 
+        let bit_count = bits.iter().filter(|b| *b).count();
+        debug!(
+            slot = %key.0,
+            committee_size = committee.len(),
+            il_count = validator_indices.len(),
+            equivocator_count = equivocators.len(),
+            bits_set = bit_count,
+            "EIP7805: Computed inclusion list bits"
+        );
+
         bits
     }
 
@@ -486,10 +572,10 @@ impl<E: EthSpec> InclusionListStore<E> {
             .cloned()
             .unwrap_or_default();
 
-        let mut all_txs: Vec<Vec<u8>> = self
-            .inclusion_lists
-            .read()
-            .get(&key)
+        let ils = self.inclusion_lists.read();
+        let ils_for_key = ils.get(&key);
+
+        let mut all_txs: Vec<Vec<u8>> = ils_for_key
             .map(|ils| {
                 ils.iter()
                     .filter(|il| !equivocators.contains(&il.validator_index))
@@ -501,6 +587,14 @@ impl<E: EthSpec> InclusionListStore<E> {
         // Deduplicate transactions
         all_txs.sort();
         all_txs.dedup();
+
+        debug!(
+            slot = %key.0,
+            unique_tx_count = all_txs.len(),
+            equivocator_count = equivocators.len(),
+            "EIP7805: Retrieved inclusion list transactions"
+        );
+
         all_txs
     }
 

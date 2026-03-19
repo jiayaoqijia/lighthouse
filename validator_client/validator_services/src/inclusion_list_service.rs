@@ -13,7 +13,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use task_executor::TaskExecutor;
 use tokio::time::{Duration, sleep};
-use tracing::{error, info, trace, warn};
+use tracing::{debug, error, info, trace, warn};
 use types::{
     ChainSpec, EthSpec, Hash256, IlTransaction, IlTransactions, InclusionList, SignedInclusionList,
     Slot,
@@ -87,14 +87,22 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
     ///
     /// Slot clock errors are mapped to `false`.
     fn heze_fork_activated(&self) -> bool {
-        self.duties_service
+        let result = self.duties_service
             .spec
             .heze_fork_epoch
             .and_then(|fork_epoch| {
                 let current_epoch = self.slot_clock.now()?.epoch(S::E::slots_per_epoch());
-                Some(current_epoch >= fork_epoch)
+                let activated = current_epoch >= fork_epoch;
+                debug!(
+                    current_epoch = %current_epoch,
+                    heze_fork_epoch = %fork_epoch,
+                    activated = activated,
+                    "EIP7805: Checking Heze fork activation"
+                );
+                Some(activated)
             })
-            .unwrap_or(false)
+            .unwrap_or(false);
+        result
     }
 
     pub fn start_update_service(self, spec: &ChainSpec) -> Result<(), String> {
@@ -206,6 +214,8 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
     async fn get_inclusion_list_assignments(&self, slot: Slot) -> Vec<(u64, PublicKeyBytes)> {
         use validator_store::DoppelgangerStatus;
 
+        debug!(slot = %slot, "EIP7805: Fetching inclusion list committee assignments");
+
         // Query beacon node for inclusion list committee assignments
         let committee_response = self
             .beacon_nodes
@@ -224,26 +234,52 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
             Ok(response) => {
                 let committee_indices: std::collections::HashSet<u64> =
                     response.data.validators.into_iter().collect();
-                let mut assignments = Vec::new();
+                
+                debug!(
+                    slot = %slot,
+                    committee_size = committee_indices.len(),
+                    committee_root = ?response.data.committee_root,
+                    "EIP7805: Received inclusion list committee"
+                );
 
                 // Get all our voting pubkeys
                 let our_pubkeys: Vec<PublicKeyBytes> = self
                     .validator_store
                     .voting_pubkeys(DoppelgangerStatus::ignored);
 
+                debug!(
+                    slot = %slot,
+                    our_validator_count = our_pubkeys.len(),
+                    "EIP7805: Checking our validators against committee"
+                );
+
                 // Check which of our validators are in the committee
+                let mut assignments = Vec::new();
                 for pubkey in our_pubkeys {
                     if let Some(index) = self.validator_store.validator_index(&pubkey) {
                         if committee_indices.contains(&index) {
+                            debug!(
+                                slot = %slot,
+                                validator_index = index,
+                                "EIP7805: Our validator is in IL committee"
+                            );
                             assignments.push((index, pubkey));
                         }
                     }
                 }
 
+                if !assignments.is_empty() {
+                    info!(
+                        slot = %slot,
+                        assignment_count = assignments.len(),
+                        "EIP7805: Have inclusion list duties for this slot"
+                    );
+                }
+
                 assignments
             }
             Err(e) => {
-                warn!(%slot, error = %e, "Failed to get inclusion list committee");
+                warn!(%slot, error = %e, "EIP7805: Failed to get inclusion list committee");
                 Vec::new()
             }
         }
@@ -257,11 +293,29 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
         pubkey: PublicKeyBytes,
         _spec: &ChainSpec,
     ) -> Result<(), String> {
+        debug!(
+            slot = %slot,
+            validator_index = validator_index,
+            "EIP7805: Starting inclusion list production"
+        );
+
         // 1. Get the inclusion list committee root from beacon node
         let committee_root = self.get_inclusion_list_committee_root(slot).await?;
+        debug!(
+            slot = %slot,
+            validator_index = validator_index,
+            committee_root = ?committee_root,
+            "EIP7805: Got committee root"
+        );
 
         // 2. Get inclusion list transactions from execution engine
         let transactions = self.get_inclusion_list_transactions().await?;
+        debug!(
+            slot = %slot,
+            validator_index = validator_index,
+            tx_count = transactions.len(),
+            "EIP7805: Got inclusion list transactions"
+        );
 
         // 3. Build the inclusion list
         let il_transactions: Vec<IlTransaction<S::E>> = transactions
@@ -278,6 +332,13 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
             transactions: il_transactions,
         };
 
+        debug!(
+            slot = %slot,
+            validator_index = validator_index,
+            tx_count = inclusion_list.transactions.len(),
+            "EIP7805: Built inclusion list"
+        );
+
         // 4. Sign the inclusion list using ValidatorStore
         let signed_inclusion_list = self
             .validator_store
@@ -285,8 +346,20 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
             .await
             .map_err(|e| format!("Failed to sign inclusion list: {:?}", e))?;
 
+        debug!(
+            slot = %slot,
+            validator_index = validator_index,
+            "EIP7805: Signed inclusion list"
+        );
+
         // 5. Broadcast to the network via beacon node
         self.broadcast_inclusion_list(signed_inclusion_list).await?;
+
+        info!(
+            slot = %slot,
+            validator_index = validator_index,
+            "EIP7805: Successfully produced and broadcast inclusion list"
+        );
 
         Ok(())
     }
@@ -325,6 +398,12 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> InclusionListService<S
         &self,
         signed_inclusion_list: SignedInclusionList<S::E>,
     ) -> Result<(), String> {
+        debug!(
+            slot = %signed_inclusion_list.message.slot,
+            validator_index = signed_inclusion_list.message.validator_index,
+            "EIP7805: Broadcasting inclusion list"
+        );
+
         // Submit to beacon node for gossip propagation
         let signed_il = Arc::new(signed_inclusion_list);
 

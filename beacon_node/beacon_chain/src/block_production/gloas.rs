@@ -759,6 +759,15 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                 .inclusion_list_store
                 .get_inclusion_list_bits(key, &committee);
 
+            let bits_count = inclusion_list_bits.iter().filter(|b| *b).count();
+            debug!(
+                slot = %state.slot(),
+                il_slot = %il_slot,
+                committee_size = committee.len(),
+                bits_set = bits_count,
+                "EIP7805: Got inclusion list bits for Heze block production"
+            );
+
             let bid = ExecutionPayloadBidHeze::<T::EthSpec> {
                 parent_block_hash: state.latest_block_hash()?.to_owned(),
                 parent_block_root: state.get_latest_block_root(state_root),
@@ -857,7 +866,7 @@ fn get_execution_payload_gloas<T: BeaconChainTypes>(
                 debug!(
                     error = %e,
                     slot = ?il_slot,
-                    "Failed to get IL committee for block production"
+                    "EIP7805: Failed to get IL committee for block production"
                 );
                 // Return empty transactions if we can't get the committee
                 FixedVector::default()
@@ -867,8 +876,23 @@ fn get_execution_payload_gloas<T: BeaconChainTypes>(
 
         // Get transactions from the IL store
         let key = (il_slot, committee_root);
-        chain.inclusion_list_store.get_transactions(key)
+        let txs = chain.inclusion_list_store.get_transactions(key);
+        
+        debug!(
+            slot = %state.slot(),
+            il_slot = %il_slot,
+            tx_count = txs.len(),
+            committee_size = committee.len(),
+            "EIP7805: Got inclusion list transactions for Heze block production"
+        );
+        
+        txs
     } else {
+        debug!(
+            slot = %state.slot(),
+            fork = ?fork,
+            "EIP7805: Not Heze fork, skipping inclusion list transactions"
+        );
         Vec::new()
     };
 

@@ -1679,8 +1679,16 @@ where
         // If IL is not satisfied, do not extend the payload
         if let Some(il_satisfied) = self.fc_store.is_payload_inclusion_list_satisfied(root) {
             if !il_satisfied {
+                debug!(
+                    root = ?root,
+                    "EIP7805: Not extending payload - inclusion list not satisfied"
+                );
                 return false;
             }
+            debug!(
+                root = ?root,
+                "EIP7805: Inclusion list satisfied, checking payload extension criteria"
+            );
         }
 
         let proposer_root = self.fc_store.proposer_boost_root();
