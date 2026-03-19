@@ -1345,6 +1345,8 @@ mod test_compute_deltas {
                     execution_status,
                     unrealized_justified_checkpoint: Some(genesis_checkpoint),
                     unrealized_finalized_checkpoint: Some(genesis_checkpoint),
+                    bid_block_hash: None,
+                    bid_parent_block_hash: None,
                 },
                 genesis_slot + 1,
                 genesis_checkpoint,
@@ -1368,8 +1370,10 @@ mod test_compute_deltas {
                     justified_checkpoint: junk_checkpoint,
                     finalized_checkpoint: junk_checkpoint,
                     execution_status,
-                    unrealized_justified_checkpoint: None,
-                    unrealized_finalized_checkpoint: None,
+                    unrealized_justified_checkpoint: Some(junk_checkpoint),
+                    unrealized_finalized_checkpoint: Some(junk_checkpoint),
+                    bid_block_hash: None,
+                    bid_parent_block_hash: None,
                 },
                 genesis_slot + 1,
                 genesis_checkpoint,
@@ -1498,6 +1502,8 @@ mod test_compute_deltas {
                         execution_status,
                         unrealized_justified_checkpoint: Some(genesis_checkpoint),
                         unrealized_finalized_checkpoint: Some(genesis_checkpoint),
+                        bid_block_hash: None,
+                        bid_parent_block_hash: None,
                     },
                     Slot::from(block.slot),
                     genesis_checkpoint,
@@ -1605,6 +1611,7 @@ mod test_compute_deltas {
                 current_root: Hash256::zero(),
                 next_root: Hash256::zero(),
                 next_epoch: Epoch::new(0),
+                next_payload_present: false,
             });
             old_balances.push(0);
             new_balances.push(0);
@@ -1656,6 +1663,7 @@ mod test_compute_deltas {
                 current_root: Hash256::zero(),
                 next_root: hash_from_index(0),
                 next_epoch: Epoch::new(0),
+                next_payload_present: false,
             });
             old_balances.push(BALANCE);
             new_balances.push(BALANCE);
@@ -1714,6 +1722,7 @@ mod test_compute_deltas {
                 current_root: Hash256::zero(),
                 next_root: hash_from_index(i),
                 next_epoch: Epoch::new(0),
+                next_payload_present: false,
             });
             old_balances.push(BALANCE);
             new_balances.push(BALANCE);
@@ -1767,6 +1776,7 @@ mod test_compute_deltas {
                 current_root: hash_from_index(0),
                 next_root: hash_from_index(1),
                 next_epoch: Epoch::new(0),
+                next_payload_present: false,
             });
             old_balances.push(BALANCE);
             new_balances.push(BALANCE);
@@ -1831,6 +1841,7 @@ mod test_compute_deltas {
             current_root: hash_from_index(1),
             next_root: Hash256::zero(),
             next_epoch: Epoch::new(0),
+            next_payload_present: false,
         });
 
         // One validator moves their vote from the block to something outside the tree.
@@ -1838,6 +1849,7 @@ mod test_compute_deltas {
             current_root: hash_from_index(1),
             next_root: Hash256::from_low_u64_be(1337),
             next_epoch: Epoch::new(0),
+            next_payload_present: false,
         });
 
         let deltas = compute_deltas(
@@ -1884,6 +1896,7 @@ mod test_compute_deltas {
                 current_root: hash_from_index(0),
                 next_root: hash_from_index(1),
                 next_epoch: Epoch::new(0),
+                next_payload_present: false,
             });
             old_balances.push(OLD_BALANCE);
             new_balances.push(NEW_BALANCE);
@@ -1953,6 +1966,7 @@ mod test_compute_deltas {
                 current_root: hash_from_index(1),
                 next_root: hash_from_index(2),
                 next_epoch: Epoch::new(0),
+                next_payload_present: false,
             });
         }
 
@@ -2009,6 +2023,7 @@ mod test_compute_deltas {
                 current_root: hash_from_index(1),
                 next_root: hash_from_index(2),
                 next_epoch: Epoch::new(0),
+                next_payload_present: false,
             });
         }
 
@@ -2063,6 +2078,7 @@ mod test_compute_deltas {
                 current_root: hash_from_index(1),
                 next_root: hash_from_index(2),
                 next_epoch: Epoch::new(0),
+                next_payload_present: false,
             });
         }
 
