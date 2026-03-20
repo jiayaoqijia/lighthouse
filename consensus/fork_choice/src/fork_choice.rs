@@ -932,11 +932,21 @@ where
         } else if let Ok(bid) = block.body().signed_execution_payload_bid() {
             // [New in Gloas:EIP7732] For Gloas/Heze blocks, extract block_hash from the bid.
             // The execution status is determined by the bid's block_hash.
+            // Note: Even when payload_verification_status is Irrelevant (which is set for all
+            // Gloas blocks in execution_payload.rs), we still use the block_hash from the bid.
+            // This ensures that finalized_hash is properly set for Gloas/Heze blocks.
             let block_hash = bid.message().block_hash();
-            match payload_verification_status {
-                PayloadVerificationStatus::Verified => ExecutionStatus::Valid(block_hash),
-                PayloadVerificationStatus::Optimistic => ExecutionStatus::Optimistic(block_hash),
-                PayloadVerificationStatus::Irrelevant => ExecutionStatus::irrelevant(),
+            if block_hash == ExecutionBlockHash::zero() {
+                // Zero block hash means no execution (shouldn't happen for Gloas blocks)
+                ExecutionStatus::irrelevant()
+            } else {
+                match payload_verification_status {
+                    PayloadVerificationStatus::Verified => ExecutionStatus::Valid(block_hash),
+                    PayloadVerificationStatus::Optimistic => ExecutionStatus::Optimistic(block_hash),
+                    // For Gloas blocks with Irrelevant status, still track the block_hash
+                    // so that forkchoiceUpdated can properly set finalized_block_hash
+                    PayloadVerificationStatus::Irrelevant => ExecutionStatus::Valid(block_hash),
+                }
             }
         } else {
             // There is no payload to verify (pre-Bellatrix blocks).
