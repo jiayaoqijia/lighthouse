@@ -929,13 +929,31 @@ where
                     }
                 }
             }
+        } else if let Ok(bid) = block.body().signed_execution_payload_bid() {
+            // [New in Gloas:EIP7732] For Gloas/Heze blocks, extract block_hash from the bid.
+            // The execution status is determined by the bid's block_hash.
+            let block_hash = bid.message().block_hash();
+            match payload_verification_status {
+                PayloadVerificationStatus::Verified => ExecutionStatus::Valid(block_hash),
+                PayloadVerificationStatus::Optimistic => ExecutionStatus::Optimistic(block_hash),
+                PayloadVerificationStatus::Irrelevant => ExecutionStatus::irrelevant(),
+            }
         } else {
-            // There is no payload to verify.
+            // There is no payload to verify (pre-Bellatrix blocks).
             ExecutionStatus::irrelevant()
         };
 
         // This does not apply a vote to the block, it just makes fork choice aware of the block so
         // it can still be identified as the head even if it doesn't have any votes.
+        
+        // [New in Gloas:EIP7732] Extract bid hash fields for Gloas/Heze blocks
+        let (bid_block_hash, bid_parent_block_hash) = block
+            .body()
+            .signed_execution_payload_bid()
+            .ok()
+            .map(|bid| (Some(bid.message().block_hash()), Some(bid.message().parent_block_hash())))
+            .unwrap_or((None, None));
+        
         self.proto_array.process_block::<E>(
             ProtoBlock {
                 slot: block.slot(),
@@ -960,9 +978,9 @@ where
                 execution_status,
                 unrealized_justified_checkpoint: Some(unrealized_justified_checkpoint),
                 unrealized_finalized_checkpoint: Some(unrealized_finalized_checkpoint),
-                // [New in Gloas:EIP7732] Bid hash fields - None for pre-Gloas blocks
-                bid_block_hash: None,
-                bid_parent_block_hash: None,
+                // [New in Gloas:EIP7732] Bid hash fields
+                bid_block_hash,
+                bid_parent_block_hash,
             },
             current_slot,
             self.justified_checkpoint(),

@@ -560,6 +560,25 @@ impl<E: EthSpec> Network<E> {
             };
         }
 
+        // Add ENR addresses as external addresses for libp2p identify protocol.
+        // This is necessary in container environments (like kurtosis) where UPnP is not available.
+        // Without this, identify would report 127.0.0.1 instead of the actual container IP.
+        if let (Some(ipv4), Some(tcp_port)) = (config.enr_address.0, config.enr_tcp4_port) {
+            let mut addr: Multiaddr = MProtocol::from(ipv4).into();
+            addr.push(MProtocol::Tcp(tcp_port.get()));
+            self.swarm.add_external_address(addr.clone());
+            debug!(address = %addr, "Added IPv4 TCP external address from ENR config");
+        }
+        if let (Some(ipv4), Some(quic_port)) = (config.enr_address.0, config.enr_quic4_port) {
+            if !config.disable_quic_support {
+                let mut addr: Multiaddr = MProtocol::from(ipv4).into();
+                addr.push(MProtocol::Udp(quic_port.get()));
+                addr.push(MProtocol::QuicV1);
+                self.swarm.add_external_address(addr.clone());
+                debug!(address = %addr, "Added IPv4 QUIC external address from ENR config");
+            }
+        }
+
         // helper closure for dialing peers
         let mut dial = |mut multiaddr: Multiaddr| {
             // strip the p2p protocol if it exists

@@ -2037,7 +2037,7 @@ pub struct Config {
     #[serde(skip_serializing)]
     pub eip7805_fork_epoch: Option<MaybeQuoted<Epoch>>,
     // EIP7805_FORK_VERSION is an alias for HEZE_FORK_VERSION
-    #[serde(default, skip_serializing)]
+    #[serde(default, skip_serializing, deserialize_with = "deserialize_optional_bytes_4_hex")]
     eip7805_fork_version: Option<[u8; 4]>,
 
     #[serde(with = "serde_utils::quoted_u64")]
@@ -2241,6 +2241,85 @@ fn default_gloas_fork_version() -> [u8; 4] {
 fn default_heze_fork_version() -> [u8; 4] {
     // This value shouldn't be used.
     [0xff, 0xff, 0xff, 0xff]
+}
+
+/// Deserializer for Option<[u8; 4]> that accepts hex strings (e.g., "0x90000038") or integers.
+/// This is needed because serde_yaml parses "0x..." as integers by default.
+fn deserialize_optional_bytes_4_hex<'de, D>(deserializer: D) -> Result<Option<[u8; 4]>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{self, Visitor};
+    use std::fmt;
+
+    struct OptionalBytes4HexVisitor;
+
+    impl<'de> Visitor<'de> for OptionalBytes4HexVisitor {
+        type Value = Option<[u8; 4]>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a hex string like \"0x90000038\", an integer, or null")
+        }
+
+        fn visit_none<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_unit<E>(self) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            Ok(None)
+        }
+
+        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            let s = v.strip_prefix("0x").unwrap_or(v);
+            if s.len() != 8 {
+                return Err(de::Error::invalid_length(s.len(), &"8 hex characters"));
+            }
+            let bytes = hex::decode(s).map_err(de::Error::custom)?;
+            let mut arr = [0u8; 4];
+            arr.copy_from_slice(&bytes);
+            Ok(Some(arr))
+        }
+
+        fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            self.visit_str(&v)
+        }
+
+        fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            if v > u32::MAX as u64 {
+                return Err(de::Error::custom("value too large for 4 bytes"));
+            }
+            let bytes = (v as u32).to_be_bytes();
+            Ok(Some(bytes))
+        }
+
+        fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+        where
+            E: de::Error,
+        {
+            if v < 0 || v > u32::MAX as i64 {
+                return Err(de::Error::custom("value out of range for 4 bytes"));
+            }
+            let bytes = (v as u32).to_be_bytes();
+            Ok(Some(bytes))
+        }
+    }
+
+    deserializer.deserialize_any(OptionalBytes4HexVisitor)
 }
 
 /// Placeholder value: 2^256-2^10 (115792089237316195423570985008687907853269984665640564039457584007913129638912).

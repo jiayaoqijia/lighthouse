@@ -18,19 +18,16 @@ use crate::{
     test_utils::TestRandom,
 };
 
-/// Maximum number of transactions in an Inclusion List.
-/// This is bounded by the 8 KiB limit on the total size.
-pub const MAX_TRANSACTIONS_PER_INCLUSION_LIST: usize = 16;
-
 /// Maximum bytes per Inclusion List (8 KiB as per EIP-7805).
 pub const MAX_BYTES_PER_INCLUSION_LIST: usize = 8192;
 
 /// Transaction type alias for Inclusion List.
-/// Each transaction is a variable list of bytes.
+/// Each transaction is a variable list of bytes (same as ExecutionPayload transactions).
 pub type IlTransaction<E> = VariableList<u8, <E as EthSpec>::MaxBytesPerTransaction>;
 
 /// List of transactions in an Inclusion List.
-pub type IlTransactions<E> = VariableList<IlTransaction<E>, typenum::U16>;
+/// Per spec: transactions: List[Transaction, MAX_TRANSACTIONS_PER_PAYLOAD]
+pub type IlTransactions<E> = VariableList<IlTransaction<E>, <E as EthSpec>::MaxTransactionsPerPayload>;
 
 /// InclusionList represents a set of transactions that MUST be included
 /// in a subsequent block. Created by an IL committee member for a given slot.

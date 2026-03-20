@@ -1,7 +1,7 @@
 use crate::execution::{ExecutionPayloadBid, ExecutionPayloadBidGloas, ExecutionPayloadBidHeze};
 use crate::state::BeaconStateError;
 use crate::test_utils::TestRandom;
-use crate::{EthSpec, ForkName};
+use crate::{EthSpec, ExecutionBlockHash, ForkName};
 use bls::Signature;
 use context_deserialize::{ContextDeserialize, context_deserialize};
 use educe::Educe;
@@ -157,6 +157,18 @@ impl<E: EthSpec> SignedExecutionPayloadBid<E> {
             Self::Gloas(bid) => ExecutionPayloadBid::Gloas(bid.message_gloas.clone()),
             Self::Heze(bid) => ExecutionPayloadBid::Heze(bid.message_heze.clone()),
         }
+    }
+
+    /// Get the execution block hash from the bid.
+    /// This is used by fork choice to track execution status for Gloas/Heze blocks.
+    pub fn block_hash(&self) -> ExecutionBlockHash {
+        self.message().block_hash()
+    }
+
+    /// Get the parent block hash from the bid.
+    /// This is used by fork choice to determine if this block builds on a FULL or EMPTY parent.
+    pub fn parent_block_hash(&self) -> ExecutionBlockHash {
+        self.message().parent_block_hash()
     }
 }
 

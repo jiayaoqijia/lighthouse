@@ -13,8 +13,7 @@ pub use helpers::{
     is_inclusion_list_committee_member, is_valid_inclusion_list_signature,
 };
 pub use inclusion_list::{
-    IlTransaction, IlTransactions, InclusionList, MAX_BYTES_PER_INCLUSION_LIST,
-    MAX_TRANSACTIONS_PER_INCLUSION_LIST, SignedInclusionList,
+    IlTransaction, IlTransactions, InclusionList, MAX_BYTES_PER_INCLUSION_LIST, SignedInclusionList,
 };
 
 /// Size of the inclusion list committee as per EIP-7805.
