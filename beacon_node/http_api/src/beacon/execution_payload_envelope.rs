@@ -1,6 +1,6 @@
 use crate::task_spawner::{Priority, TaskSpawner};
 use crate::utils::{ChainFilter, EthV1Filter, NetworkTxFilter, ResponseFilter, TaskSpawnerFilter};
-use beacon_chain::{BeaconChain, BeaconChainTypes};
+use beacon_chain::{BeaconChain, BeaconChainTypes, NotifyExecutionLayer};
 use bytes::Bytes;
 use eth2::{CONTENT_TYPE_HEADER, SSZ_CONTENT_TYPE_HEADER};
 use lighthouse_network::PubsubMessage;
@@ -8,8 +8,8 @@ use network::NetworkMessage;
 use ssz::Decode;
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
-use tracing::{info, warn};
-use types::SignedExecutionPayloadEnvelope;
+use tracing::{debug, info, warn};
+use types::{SignedExecutionPayloadEnvelope, block::BlockImportSource};
 use warp::{Filter, Rejection, Reply, reply::Response};
 
 // POST beacon/execution_payload_envelope (SSZ)
@@ -76,7 +76,10 @@ pub(crate) fn post_beacon_execution_payload_envelope<T: BeaconChainTypes>(
         )
         .boxed()
 }
-/// Publishes a signed execution payload envelope to the network.
+/// Publishes a signed execution payload envelope to the network and processes it locally.
+///
+/// This is critical for locally produced envelopes: they must be processed locally
+/// (sent to the EL via engine_newPayload) just like gossip-received envelopes.
 pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
     envelope: SignedExecutionPayloadEnvelope<T::EthSpec>,
     chain: Arc<BeaconChain<T>>,
@@ -92,7 +95,6 @@ pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
         ));
     }
 
-    // TODO(gloas): We should probably add validation here i.e. BroadcastValidation::Gossip
     info!(
         %slot,
         %beacon_block_root,
@@ -100,10 +102,22 @@ pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
         "Publishing signed execution payload envelope to network"
     );
 
+    // First, verify the envelope (same as gossip verification)
+    let envelope_arc = Arc::new(envelope);
+    let verified_envelope = chain
+        .verify_envelope_for_gossip(envelope_arc.clone())
+        .await
+        .map_err(|e| {
+            warn!(%slot, error = ?e, "Failed to verify execution payload envelope");
+            warp_utils::reject::custom_bad_request(format!(
+                "Invalid execution payload envelope: {e}"
+            ))
+        })?;
+
     // Publish to the network
     crate::utils::publish_pubsub_message(
         network_tx,
-        PubsubMessage::ExecutionPayload(Box::new(envelope)),
+        PubsubMessage::ExecutionPayload(Box::new((*envelope_arc).clone())),
     )
     .map_err(|_| {
         warn!(%slot, "Failed to publish execution payload envelope to network");
@@ -111,6 +125,28 @@ pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
             "Unable to publish execution payload envelope to network".into(),
         )
     })?;
+
+    // Process the envelope locally (this sends it to the EL)
+    debug!(%slot, %beacon_block_root, "Processing locally produced envelope");
+    
+    let result = chain
+        .process_execution_payload_envelope(
+            beacon_block_root,
+            verified_envelope,
+            NotifyExecutionLayer::Yes,
+            BlockImportSource::HttpApi,
+            || Ok(()),
+        )
+        .await;
+
+    match result {
+        Ok(_) => {
+            debug!(%slot, %beacon_block_root, "Locally produced envelope processed successfully");
+        }
+        Err(e) => {
+            warn!(%slot, %beacon_block_root, error = ?e, "Failed to process locally produced envelope");
+        }
+    }
 
     Ok(warp::reply().into_response())
 }

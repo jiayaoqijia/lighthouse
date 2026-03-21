@@ -5,13 +5,13 @@ use state_processing::{
     VerifySignatures,
     envelope_processing::{VerifyStateRoot, process_execution_payload_envelope},
 };
-use types::EthSpec;
+use types::{DataColumnSidecarList, EthSpec};
 
 use crate::{
     BeaconChain, BeaconChainError, BeaconChainTypes, NotifyExecutionLayer,
     block_verification::PayloadVerificationHandle,
     payload_envelope_verification::{
-        EnvelopeError, EnvelopeImportData, MaybeAvailableEnvelope,
+        AvailableEnvelope, EnvelopeError, EnvelopeImportData, MaybeAvailableEnvelope,
         gossip_verified_envelope::GossipVerifiedEnvelope, load_snapshot_from_state_root,
         payload_notifier::PayloadNotifier,
     },
@@ -86,11 +86,48 @@ impl<T: BeaconChainTypes> GossipVerifiedEnvelope<T> {
             &chain.spec,
         )?;
 
-        Ok(ExecutionPendingEnvelope {
-            signed_envelope: MaybeAvailableEnvelope::AvailabilityPending {
+        // Check data availability:
+        // 1. If the block has no kzg_commitments (no blobs), it's immediately available
+        // 2. Otherwise, check if we have the data columns in cache
+        // 
+        // For Gloas/Heze blocks, kzg_commitments are in the signed_execution_payload_bid.
+        let has_blobs = self
+            .block
+            .message()
+            .body()
+            .signed_execution_payload_bid()
+            .ok()
+            .map(|bid| !bid.message().blob_kzg_commitments().is_empty())
+            .unwrap_or(false);
+        
+        let maybe_available_envelope = if !has_blobs {
+            // No blobs means no data columns needed - immediately available
+            MaybeAvailableEnvelope::Available(AvailableEnvelope {
+                execution_block_hash: payload.block_hash,
+                envelope: signed_envelope,
+                columns: DataColumnSidecarList::default(),
+                columns_available_timestamp: chain.slot_clock.now_duration(),
+                spec: chain.spec.clone(),
+            })
+        } else if let Some(columns) = chain.data_availability_checker.get_data_columns(block_root) {
+            // Data columns are available in cache
+            MaybeAvailableEnvelope::Available(AvailableEnvelope {
+                execution_block_hash: payload.block_hash,
+                envelope: signed_envelope,
+                columns,
+                columns_available_timestamp: chain.slot_clock.now_duration(),
+                spec: chain.spec.clone(),
+            })
+        } else {
+            // Data columns not yet available - pending
+            MaybeAvailableEnvelope::AvailabilityPending {
                 block_hash: payload.block_hash,
                 envelope: signed_envelope,
-            },
+            }
+        };
+
+        Ok(ExecutionPendingEnvelope {
+            signed_envelope: maybe_available_envelope,
             import_data: EnvelopeImportData {
                 block_root,
                 post_state: Box::new(state),
