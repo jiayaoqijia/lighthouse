@@ -559,9 +559,29 @@ where
         let justified_hash = self
             .get_block(&justified_root)
             .and_then(|b| b.execution_status.block_hash());
-        let finalized_hash = self
-            .get_block(&finalized_root)
-            .and_then(|b| b.execution_status.block_hash());
+        
+        // Debug: trace why finalized_hash might be None
+        let finalized_block = self.get_block(&finalized_root);
+        let finalized_hash = if let Some(ref block) = finalized_block {
+            let hash = block.execution_status.block_hash();
+            if hash.is_none() {
+                debug!(
+                    finalized_root = ?finalized_root,
+                    slot = %block.slot,
+                    execution_status = ?block.execution_status,
+                    "finalized_hash is None: block exists but execution_status has no block_hash"
+                );
+            }
+            hash
+        } else {
+            debug!(
+                finalized_root = ?finalized_root,
+                is_finalized_or_descendant = self.is_finalized_checkpoint_or_descendant(finalized_root),
+                "finalized_hash is None: get_block returned None for finalized_root"
+            );
+            None
+        };
+        
         self.forkchoice_update_parameters = ForkchoiceUpdateParameters {
             head_root,
             head_hash,
