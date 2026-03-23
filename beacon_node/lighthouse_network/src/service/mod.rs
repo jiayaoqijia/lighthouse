@@ -856,7 +856,16 @@ impl<E: EthSpec> Network<E> {
     /// Publishes a list of messages on the pubsub (gossipsub) behaviour, choosing the encoding.
     pub fn publish(&mut self, messages: Vec<PubsubMessage<E>>) {
         for message in messages {
-            for topic in message.topics(GossipEncoding::default(), self.enr_fork_id.fork_digest) {
+            // For BeaconBlock messages, use the fork digest computed from the block's slot
+            // to ensure correct topic at fork boundaries.
+            let fork_digest = match &message {
+                PubsubMessage::BeaconBlock(block) => {
+                    let epoch = block.slot().epoch(E::slots_per_epoch());
+                    self.fork_context.context_bytes(epoch)
+                }
+                _ => self.enr_fork_id.fork_digest,
+            };
+            for topic in message.topics(GossipEncoding::default(), fork_digest) {
                 let message_data = message.encode(GossipEncoding::default());
                 if let Err(e) = self
                     .gossipsub_mut()

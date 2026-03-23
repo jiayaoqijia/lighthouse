@@ -11,11 +11,12 @@ pub use error::LightClientError;
 pub use light_client_bootstrap::{
     LightClientBootstrap, LightClientBootstrapAltair, LightClientBootstrapCapella,
     LightClientBootstrapDeneb, LightClientBootstrapElectra, LightClientBootstrapFulu,
+    LightClientBootstrapGloas,
 };
 pub use light_client_finality_update::{
     LightClientFinalityUpdate, LightClientFinalityUpdateAltair, LightClientFinalityUpdateCapella,
     LightClientFinalityUpdateDeneb, LightClientFinalityUpdateElectra,
-    LightClientFinalityUpdateFulu,
+    LightClientFinalityUpdateFulu, LightClientFinalityUpdateGloas,
 };
 pub use light_client_header::{
     LightClientHeader, LightClientHeaderAltair, LightClientHeaderCapella, LightClientHeaderDeneb,
@@ -25,11 +26,12 @@ pub use light_client_optimistic_update::{
     LightClientOptimisticUpdate, LightClientOptimisticUpdateAltair,
     LightClientOptimisticUpdateCapella, LightClientOptimisticUpdateDeneb,
     LightClientOptimisticUpdateElectra, LightClientOptimisticUpdateFulu,
+    LightClientOptimisticUpdateGloas,
 };
 pub use light_client_update::{
     CurrentSyncCommitteeProofLen, CurrentSyncCommitteeProofLenElectra, ExecutionPayloadProofLen,
     FinalizedRootProofLen, FinalizedRootProofLenElectra, LightClientUpdate,
     LightClientUpdateAltair, LightClientUpdateCapella, LightClientUpdateDeneb,
-    LightClientUpdateElectra, LightClientUpdateFulu, NextSyncCommitteeProofLen,
-    NextSyncCommitteeProofLenElectra,
+    LightClientUpdateElectra, LightClientUpdateFulu, LightClientUpdateGloas,
+    NextSyncCommitteeProofLen, NextSyncCommitteeProofLenElectra,
 };
