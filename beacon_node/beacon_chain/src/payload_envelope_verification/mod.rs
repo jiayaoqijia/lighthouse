@@ -23,7 +23,7 @@ use std::sync::Arc;
 use store::Error as DBError;
 
 use state_processing::{BlockProcessingError, envelope_processing::EnvelopeProcessingError};
-use tracing::instrument;
+use tracing::{debug, instrument};
 use types::{
     BeaconState, BeaconStateError, ChainSpec, DataColumnSidecarList, EthSpec, ExecutionBlockHash,
     ExecutionPayloadEnvelope, Hash256, SignedExecutionPayloadEnvelope, Slot,
@@ -117,6 +117,10 @@ impl<E: EthSpec> ExecutedEnvelope<E> {
     ) -> Self {
         match envelope {
             MaybeAvailableEnvelope::Available(available_envelope) => {
+                debug!(
+                    block_root = ?import_data.block_root,
+                    "EIP7732: ExecutedEnvelope::Available created"
+                );
                 Self::Available(AvailableExecutedEnvelope::new(
                     available_envelope,
                     import_data,
@@ -125,9 +129,16 @@ impl<E: EthSpec> ExecutedEnvelope<E> {
             }
             // TODO(gloas) implement availability pending
             MaybeAvailableEnvelope::AvailabilityPending {
-                block_hash: _,
+                block_hash,
                 envelope: _,
-            } => Self::AvailabilityPending(),
+            } => {
+                debug!(
+                    block_hash = ?block_hash,
+                    block_root = ?import_data.block_root,
+                    "EIP7732: ExecutedEnvelope::AvailabilityPending created"
+                );
+                Self::AvailabilityPending()
+            }
         }
     }
 }

@@ -610,13 +610,23 @@ impl<E: EthSpec> InclusionListStore<E> {
     ) -> bool {
         let local_bits = self.get_inclusion_list_bits(key, committee);
 
-        for (_i, (bit, local_bit)) in inclusion_list_bits
+        for (i, (bit, local_bit)) in inclusion_list_bits
             .iter()
             .zip(local_bits.iter())
             .enumerate()
         {
             // If local has a bit set, the incoming must also have it set
             if local_bit && !bit {
+                debug!(
+                    il_slot = ?key.0,
+                    committee_root = ?key.1,
+                    bit_index = i,
+                    local_bit = local_bit,
+                    incoming_bit = bit,
+                    local_bits_count = local_bits.iter().filter(|b| *b).count(),
+                    incoming_bits_count = inclusion_list_bits.iter().filter(|b| *b).count(),
+                    "EIP7805: Inclusion list bits mismatch - local bit set but incoming bit not set"
+                );
                 return false;
             }
         }

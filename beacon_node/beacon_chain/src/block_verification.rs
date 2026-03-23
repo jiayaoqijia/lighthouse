@@ -1683,6 +1683,13 @@ impl<T: BeaconChainTypes> ExecutionPendingBlock<T> {
                 .inclusion_list_store
                 .is_inclusive(key, &committee, inclusion_list_bits)
             {
+                debug!(
+                    block_root = ?block_root,
+                    block_slot = %block.slot(),
+                    il_slot = %il_slot,
+                    committee_root = ?committee_root,
+                    "EIP7805: Block rejected due to invalid inclusion list bits"
+                );
                 return Err(BlockError::InvalidInclusionListBits);
             }
         }

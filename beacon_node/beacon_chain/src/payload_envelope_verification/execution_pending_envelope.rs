@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use slot_clock::SlotClock;
+use tracing::debug;
 use state_processing::{
     VerifySignatures,
     envelope_processing::{VerifyStateRoot, process_execution_payload_envelope},
@@ -91,14 +92,24 @@ impl<T: BeaconChainTypes> GossipVerifiedEnvelope<T> {
         // 2. Otherwise, check if we have the data columns in cache
         // 
         // For Gloas/Heze blocks, kzg_commitments are in the signed_execution_payload_bid.
-        let has_blobs = self
+        let bid_result = self
             .block
             .message()
             .body()
-            .signed_execution_payload_bid()
+            .signed_execution_payload_bid();
+        let has_blobs = bid_result
+            .as_ref()
             .ok()
             .map(|bid| !bid.message().blob_kzg_commitments().is_empty())
             .unwrap_or(false);
+        
+        debug!(
+            slot = %slot,
+            block_root = ?block_root,
+            bid_result_ok = bid_result.is_ok(),
+            has_blobs,
+            "EIP7732: Checking envelope data availability"
+        );
         
         let maybe_available_envelope = if !has_blobs {
             // No blobs means no data columns needed - immediately available
