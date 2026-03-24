@@ -2679,29 +2679,49 @@ impl<E: EthSpec, Hot: ItemStore<E>, Cold: ItemStore<E>> HotColdDB<E, Hot, Cold> 
     ) -> Result<Vec<SignedExecutionPayloadEnvelope<E>>, Error> {
         let mut envelopes = vec![];
 
-        for (block, next_block) in blocks.iter().tuple_windows() {
+        // Helper to compute block root for a block at index i in the blocks array.
+        // For most blocks, the root is available from the next block's parent_root.
+        // For the last block, we use end_block_root.
+        let get_block_root = |i: usize| -> Option<Hash256> {
+            if i + 1 < blocks.len() {
+                Some(blocks[i + 1].parent_root())
+            } else {
+                Some(end_block_root)
+            }
+        };
+
+        // Track whether we've already loaded the envelope for the last block
+        let mut loaded_last_block_envelope = false;
+
+        for (i, block) in blocks.iter().enumerate() {
             if block.fork_name_unchecked().gloas_enabled() {
-                // Check next block to see if this block's payload is canonical on this chain.
-                let block_hash = block.payload_bid_block_hash()?;
-                if !next_block.is_parent_block_full(block_hash) {
-                    // No payload at this slot (empty), nothing to load.
+                // Get the block root for this block.
+                let Some(block_root) = get_block_root(i) else {
                     continue;
+                };
+
+                // Check if an envelope exists for this block in the database.
+                // We use the existence of the envelope in the DB to determine if
+                // the block has a payload, rather than relying on the next block's
+                // bid which can be incorrect when there are skipped slots.
+                if let Some(envelope) = self.get_payload_envelope(&block_root)? {
+                    // Track if this is the last block's envelope
+                    if block_root == end_block_root {
+                        loaded_last_block_envelope = true;
+                    }
+                    envelopes.push(envelope);
                 }
-                // Using `parent_root` avoids computation.
-                let block_root = next_block.parent_root();
-                let envelope = self
-                    .get_payload_envelope(&block_root)?
-                    .ok_or(HotColdDBError::MissingExecutionPayloadEnvelope(block_root))?;
-                envelopes.push(envelope);
             }
         }
 
-        // Load the payload for the last block if desired.
+        // Load the payload for the last block if desired and not already loaded.
         if let StatePayloadStatus::Full = desired_payload_status {
-            let envelope = self.get_payload_envelope(&end_block_root)?.ok_or(
-                HotColdDBError::MissingExecutionPayloadEnvelope(end_block_root),
-            )?;
-            envelopes.push(envelope);
+            if !loaded_last_block_envelope {
+                let envelope = self.get_payload_envelope(&end_block_root)?.ok_or(
+                    HotColdDBError::MissingExecutionPayloadEnvelope(end_block_root),
+                )?;
+                envelopes.push(envelope);
+            }
         }
 
         Ok(envelopes)
