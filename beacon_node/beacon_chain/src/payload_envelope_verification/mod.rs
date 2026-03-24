@@ -105,8 +105,15 @@ pub struct EnvelopeProcessingSnapshot<E: EthSpec> {
 ///    fully available.
 pub enum ExecutedEnvelope<E: EthSpec> {
     Available(AvailableExecutedEnvelope<E>),
-    // TODO(gloas) implement availability pending
-    AvailabilityPending(),
+    /// Envelope is pending data availability (blobs/data columns not yet available).
+    /// Contains (slot, block_root, envelope, import_data, payload_verification_outcome) for later processing.
+    AvailabilityPending {
+        slot: Slot,
+        block_root: Hash256,
+        envelope: Arc<SignedExecutionPayloadEnvelope<E>>,
+        import_data: EnvelopeImportData<E>,
+        payload_verification_outcome: PayloadVerificationOutcome,
+    },
 }
 
 impl<E: EthSpec> ExecutedEnvelope<E> {
@@ -127,17 +134,25 @@ impl<E: EthSpec> ExecutedEnvelope<E> {
                     payload_verification_outcome,
                 ))
             }
-            // TODO(gloas) implement availability pending
             MaybeAvailableEnvelope::AvailabilityPending {
                 block_hash,
-                envelope: _,
+                envelope,
             } => {
+                let slot = envelope.slot();
+                let block_root = import_data.block_root;
                 debug!(
                     block_hash = ?block_hash,
-                    block_root = ?import_data.block_root,
+                    block_root = ?block_root,
+                    %slot,
                     "EIP7732: ExecutedEnvelope::AvailabilityPending created"
                 );
-                Self::AvailabilityPending()
+                Self::AvailabilityPending {
+                    slot,
+                    block_root,
+                    envelope,
+                    import_data,
+                    payload_verification_outcome,
+                }
             }
         }
     }

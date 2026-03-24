@@ -98,9 +98,49 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                     self.import_available_execution_payload_envelope(Box::new(envelope))
                         .await
                 }
-                ExecutedEnvelope::AvailabilityPending() => Err(EnvelopeError::InternalError(
-                    "Pending payload envelope not yet implemented".to_owned(),
-                )),
+                ExecutedEnvelope::AvailabilityPending {
+                    slot,
+                    block_root,
+                    envelope,
+                    import_data,
+                    payload_verification_outcome: _,
+                } => {
+                    // Data columns not yet available. We need to store the state now
+                    // so that subsequent blocks can see the correct latest_block_hash.
+                    // The envelope will be stored and processed later when data columns arrive.
+                    let state_root = envelope.message.state_root;
+                    debug!(
+                        ?block_root,
+                        %slot,
+                        ?state_root,
+                        "Payload envelope awaiting data columns, storing state"
+                    );
+
+                    // Store the state immediately so subsequent blocks can validate correctly.
+                    // This is critical because process_execution_payload_envelope updates
+                    // latest_block_hash, and without storing this state, the next block
+                    // will fail ParentBlockHashMismatch validation.
+                    let mut ops = vec![];
+                    ops.push(StoreOp::PutState(state_root, &import_data.post_state));
+                    ops.push(StoreOp::PutPayloadEnvelope(block_root, envelope.clone()));
+
+                    if let Err(e) = self.store.do_atomically_with_block_and_blobs_cache(ops) {
+                        error!(
+                            msg = "Failed to store pending envelope state",
+                            error = ?e,
+                            "Database write failed!"
+                        );
+                        return Err(e.into());
+                    }
+
+                    debug!(
+                        ?block_root,
+                        %slot,
+                        "Pending envelope state stored successfully"
+                    );
+
+                    Ok(AvailabilityProcessingStatus::MissingComponents(slot, block_root))
+                }
             }
         };
 
