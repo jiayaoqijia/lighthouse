@@ -38,7 +38,8 @@ mod validators;
 mod version;
 
 use crate::beacon::execution_payload_envelope::{
-    post_beacon_execution_payload_envelope, post_beacon_execution_payload_envelope_ssz,
+    post_beacon_execution_payload_envelope,
+    post_beacon_execution_payload_envelope_ssz,
 };
 use crate::beacon::pool::*;
 use crate::light_client::{get_light_client_bootstrap, get_light_client_updates};
@@ -1639,6 +1640,39 @@ pub fn serve<T: BeaconChainTypes>(
         chain_filter.clone(),
         network_tx_filter.clone(),
     );
+
+    // GET beacon/blocks/{block_id}/envelope
+    let get_beacon_blocks_envelope = beacon_blocks_path_v1
+        .clone()
+        .and(warp::path("envelope"))
+        .and(warp::path::end())
+        .then(
+            |block_id: BlockId,
+             task_spawner: TaskSpawner<T::EthSpec>,
+             chain: Arc<BeaconChain<T>>| {
+                task_spawner.blocking_json_task(Priority::P1, move || {
+                    let (block_root, _execution_optimistic, _finalized) =
+                        block_id.root(&chain)?;
+
+                    let envelope = chain
+                        .get_payload_envelope(&block_root)
+                        .map_err(|e| {
+                            warp_utils::reject::custom_server_error(format!(
+                                "failed to get payload envelope: {:?}",
+                                e
+                            ))
+                        })?
+                        .ok_or_else(|| {
+                            warp_utils::reject::custom_not_found(format!(
+                                "execution payload envelope not found for block {}",
+                                block_root
+                            ))
+                        })?;
+
+                    Ok(api_types::GenericResponse::from(envelope))
+                })
+            },
+        );
 
     let beacon_rewards_path = eth_v1
         .clone()
@@ -3453,6 +3487,7 @@ pub fn serve<T: BeaconChainTypes>(
                 .uor(get_beacon_block_attestations)
                 .uor(get_beacon_blinded_block)
                 .uor(get_beacon_block_root)
+                .uor(get_beacon_blocks_envelope)
                 .uor(get_blob_sidecars)
                 .uor(get_blobs)
                 .uor(get_beacon_pool_attestations)
