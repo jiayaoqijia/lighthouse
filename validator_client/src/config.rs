@@ -132,7 +132,10 @@ impl Default for Config {
             enable_high_validator_count_metrics: false,
             beacon_nodes_tls_certs: None,
             builder_registration_timestamp_override: None,
-            broadcast_topics: vec![ApiTopic::Subscriptions],
+            // Broadcast Subscriptions and InclusionList to all beacon nodes.
+            // InclusionList is critical for consensus - it must reach all CL nodes
+            // to ensure proper block validation (is_inclusion_list_bits_inclusive check).
+            broadcast_topics: vec![ApiTopic::Subscriptions, ApiTopic::InclusionList],
             enable_latency_measurement_service: true,
             enable_beacon_head_monitor: true,
             validator_registration_batch_size: 500,

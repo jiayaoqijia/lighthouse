@@ -585,7 +585,10 @@ fn monitoring_endpoint() {
 #[test]
 fn no_broadcast_flag() {
     CommandLineTest::new().run().with_config(|config| {
-        assert_eq!(config.broadcast_topics, vec![ApiTopic::Subscriptions]);
+        assert_eq!(
+            config.broadcast_topics,
+            vec![ApiTopic::Subscriptions, ApiTopic::InclusionList]
+        );
     });
 }
 
