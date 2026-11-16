@@ -1955,6 +1955,11 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
 
         match &result {
             Ok(AvailabilityProcessingStatus::Imported(_, block_root)) => {
+                if let Ok(bid) = block.message().body().signed_execution_payload_bid()
+                    && let types::ExecutionPayloadBidRef::Heze(bid) = bid.message()
+                {
+                    self.fetch_missing_bid_inclusion_lists(peer_id, bid);
+                }
                 self.notify_block_imported(*block_root, EnvelopeSource::Gossip);
 
                 debug!(
