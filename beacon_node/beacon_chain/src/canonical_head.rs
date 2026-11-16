@@ -1784,6 +1784,12 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         let persisted_fork_choice = PersistedForkChoice {
             fork_choice: fork_choice.to_persisted(),
             fork_choice_store: fork_choice.fc_store().to_persisted(),
+            unsatisfied_inclusion_lists: fork_choice
+                .proto_array()
+                .unsatisfied_inclusion_lists()
+                .iter()
+                .copied()
+                .collect(),
         };
         persisted_fork_choice.as_kv_store_op(FORK_CHOICE_DB_KEY, store_config)
     }

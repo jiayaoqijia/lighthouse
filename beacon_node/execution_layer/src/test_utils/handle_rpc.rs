@@ -224,7 +224,13 @@ pub async fn handle_rpc<E: EthSpec>(
             // Canned responses set by block hash take priority.
             if let Some(status) = ctx.get_new_payload_status(request.block_hash()) {
                 return status
-                    .map(|status| serde_json::to_value(JsonPayloadStatusV1::from(status)).unwrap())
+                    .map(|status| {
+                        if method == ENGINE_NEW_PAYLOAD_V6 {
+                            serde_json::to_value(JsonPayloadStatusV2::from(status)).unwrap()
+                        } else {
+                            serde_json::to_value(JsonPayloadStatusV1::from(status)).unwrap()
+                        }
+                    })
                     .map_err(|message| (message, GENERIC_ERROR_CODE));
             }
 
@@ -252,10 +258,8 @@ pub async fn handle_rpc<E: EthSpec>(
             let mut response = static_response.or(dynamic_response).unwrap();
 
             if method == ENGINE_NEW_PAYLOAD_V6 {
-                // TODO(heze): make this configurable so enforcement tests can exercise an
-                // unsatisfied payload.
                 if response.status == PayloadStatusV1Status::Valid {
-                    response.inclusion_list_satisfied = Some(true);
+                    response.inclusion_list_satisfied.get_or_insert(true);
                 }
                 Ok(serde_json::to_value(JsonPayloadStatusV2::from(response)).unwrap())
             } else {

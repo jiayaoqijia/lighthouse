@@ -247,6 +247,8 @@ pub enum PayloadVerificationStatus {
     Optimistic,
     /// The block is either pre-merge-fork, or prior to the terminal PoW block.
     Irrelevant,
+    /// The payload executed successfully, but some required transactions were omitted.
+    VerifiedInclusionListUnsatisfied,
 }
 
 /// Calculate how far `slot` lies from the start of its epoch.
@@ -708,7 +710,10 @@ where
         payload_block_hash: ExecutionBlockHash,
     ) -> Result<(), Error<T::Error>> {
         let execution_status = match payload_verification_status {
-            PayloadVerificationStatus::Verified => ExecutionStatus::Valid(payload_block_hash),
+            PayloadVerificationStatus::Verified
+            | PayloadVerificationStatus::VerifiedInclusionListUnsatisfied => {
+                ExecutionStatus::Valid(payload_block_hash)
+            }
             PayloadVerificationStatus::Optimistic => {
                 ExecutionStatus::Optimistic(payload_block_hash)
             }
@@ -727,6 +732,12 @@ where
         self.proto_array
             .on_payload_envelope_received(block_root, execution_status)
             .map_err(Error::FailedToProcessValidExecutionPayload)?;
+        if payload_verification_status
+            == PayloadVerificationStatus::VerifiedInclusionListUnsatisfied
+        {
+            self.proto_array
+                .record_unsatisfied_inclusion_list(block_root);
+        }
 
         Ok(())
     }
@@ -741,6 +752,16 @@ where
         self.proto_array
             .process_execution_payload_validation(block_hash)
             .map_err(Error::FailedToProcessValidExecutionPayload)
+    }
+
+    pub fn on_valid_execution_payload_with_unsatisfied_list(
+        &mut self,
+        block_root: Hash256,
+        block_hash: ExecutionBlockHash,
+    ) -> Result<(), Error<T::Error>> {
+        self.proto_array
+            .record_optimistic_payload_inclusion_failure(block_root, block_hash);
+        self.on_valid_execution_payload(block_hash)
     }
 
     /// See `ProtoArrayForkChoice::process_execution_payload_validation_by_block_root`.
@@ -1033,7 +1054,10 @@ where
                 ExecutionStatus::irrelevant()
             } else {
                 match payload_verification_status {
-                    PayloadVerificationStatus::Verified => ExecutionStatus::Valid(block_hash),
+                    PayloadVerificationStatus::Verified
+                    | PayloadVerificationStatus::VerifiedInclusionListUnsatisfied => {
+                        ExecutionStatus::Valid(block_hash)
+                    }
                     PayloadVerificationStatus::Optimistic => {
                         ExecutionStatus::Optimistic(block_hash)
                     }
@@ -2013,18 +2037,20 @@ where
     /// `Self::to_persisted`.
     pub fn from_persisted(
         persisted: PersistedForkChoice,
+        unsatisfied_inclusion_lists: Vec<Hash256>,
         reset_payload_statuses: ResetPayloadStatuses,
         fc_store: T,
         spec: &ChainSpec,
     ) -> Result<Self, Error<T::Error>> {
         let justified_balances = fc_store.justified_balances().clone();
-        let proto_array = Self::proto_array_from_persisted(
+        let mut proto_array = Self::proto_array_from_persisted(
             persisted.proto_array,
             justified_balances,
             reset_payload_statuses,
             fc_store.equivocating_indices(),
         )?;
 
+        proto_array.restore_unsatisfied_inclusion_lists(unsatisfied_inclusion_lists);
         let current_slot = fc_store.get_current_slot();
 
         let mut fork_choice = Self {

@@ -6,20 +6,21 @@ use superstruct::superstruct;
 use types::Hash256;
 
 // If adding a new version you should update this type alias and fix the breakages.
-pub type PersistedForkChoice = PersistedForkChoiceV29;
+pub type PersistedForkChoice = PersistedForkChoiceV30;
 
 #[superstruct(
-    variants(V28, V29),
+    variants(V28, V29, V30),
     variant_attributes(derive(Encode, Decode)),
     no_enum
 )]
 pub struct PersistedForkChoice {
     #[superstruct(only(V28))]
     pub fork_choice_v28: fork_choice::PersistedForkChoiceV28,
-    #[superstruct(only(V29))]
+    #[superstruct(only(V29, V30))]
     pub fork_choice: fork_choice::PersistedForkChoiceV29,
-    #[superstruct(only(V28, V29))]
     pub fork_choice_store: PersistedForkChoiceStoreV28,
+    #[superstruct(only(V30))]
+    pub unsatisfied_inclusion_lists: Vec<Hash256>,
 }
 
 impl PersistedForkChoiceV28 {
@@ -82,6 +83,42 @@ impl PersistedForkChoiceV29 {
             DBColumn::ForkChoice,
             key.as_slice().to_vec(),
             self.as_bytes(store_config)?,
+        ))
+    }
+}
+
+impl PersistedForkChoiceV30 {
+    pub fn from_bytes(bytes: &[u8], store_config: &StoreConfig) -> Result<Self, Error> {
+        let bytes = store_config
+            .decompress_bytes(bytes)
+            .map_err(Error::Compression)?;
+        match Self::from_ssz_bytes(&bytes) {
+            Ok(snapshot) => Ok(snapshot),
+            Err(v30_error) => PersistedForkChoiceV29::from_ssz_bytes(&bytes)
+                .map(|legacy| Self {
+                    fork_choice: legacy.fork_choice,
+                    fork_choice_store: legacy.fork_choice_store,
+                    unsatisfied_inclusion_lists: Vec::new(),
+                })
+                .map_err(|_| v30_error.into()),
+        }
+    }
+
+    pub fn as_kv_store_op(
+        &self,
+        key: Hash256,
+        store_config: &StoreConfig,
+    ) -> Result<KeyValueStoreOp, Error> {
+        let encode_timer = metrics::start_timer(&metrics::FORK_CHOICE_ENCODE_TIMES);
+        let bytes = self.as_ssz_bytes();
+        drop(encode_timer);
+        let _compress_timer = metrics::start_timer(&metrics::FORK_CHOICE_COMPRESS_TIMES);
+        Ok(KeyValueStoreOp::PutKeyValue(
+            DBColumn::ForkChoice,
+            key.as_slice().to_vec(),
+            store_config
+                .compress_bytes(&bytes)
+                .map_err(Error::Compression)?,
         ))
     }
 }

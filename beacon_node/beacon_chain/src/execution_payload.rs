@@ -150,6 +150,9 @@ pub async fn notify_new_payload<T: BeaconChainTypes>(
     match new_payload_response {
         Ok(status) => match status {
             PayloadStatus::Valid => Ok(PayloadVerificationStatus::Verified),
+            PayloadStatus::ValidInclusionListUnsatisfied => {
+                Ok(PayloadVerificationStatus::VerifiedInclusionListUnsatisfied)
+            }
             PayloadStatus::Syncing | PayloadStatus::Accepted => {
                 Ok(PayloadVerificationStatus::Optimistic)
             }

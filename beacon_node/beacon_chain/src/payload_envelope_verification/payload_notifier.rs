@@ -1,14 +1,15 @@
 use std::sync::Arc;
 
-use execution_layer::{NewPayloadRequest, NewPayloadRequestGloas};
+use execution_layer::{NewPayloadRequest, NewPayloadRequestGloas, NewPayloadRequestHeze};
 use fork_choice::PayloadVerificationStatus;
 use state_processing::per_block_processing::deneb::kzg_commitment_to_versioned_hash;
 use tracing::warn;
-use types::{SignedBeaconBlock, SignedExecutionPayloadEnvelope};
+use types::{ProgressiveTransactions, SignedBeaconBlock, SignedExecutionPayloadEnvelope};
 
 use crate::{
-    BeaconChain, BeaconChainTypes, NotifyExecutionLayer, PayloadVerificationError,
-    execution_payload::notify_new_payload, payload_envelope_verification::EnvelopeError,
+    BeaconChain, BeaconChainError, BeaconChainTypes, NotifyExecutionLayer,
+    PayloadVerificationError, execution_payload::notify_new_payload,
+    payload_envelope_verification::EnvelopeError,
 };
 
 /// Used to await the result of executing payload with a remote EE.
@@ -71,6 +72,34 @@ impl<T: BeaconChainTypes> PayloadNotifier<T> {
             Ok(precomputed_status)
         } else {
             let request = Self::build_new_payload_request(&self.envelope, &self.block)?;
+            let request = if self.block.fork_name_unchecked().heze_enabled() {
+                let NewPayloadRequest::Gloas(base) = request else {
+                    return Err(BeaconChainError::BeaconStateError(
+                        types::BeaconStateError::IncorrectStateVariant,
+                    )
+                    .into());
+                };
+                let chain = self.chain.clone();
+                let parent_root = self.block.parent_root();
+                let list_slot = self.block.slot().saturating_sub(1u64);
+                let list = self
+                    .chain
+                    .spawn_blocking_handle(
+                        move || chain.get_inclusion_list_transactions(parent_root, list_slot, true),
+                        "heze_envelope_inclusion_list_transactions",
+                    )
+                    .await??;
+                NewPayloadRequest::Heze(NewPayloadRequestHeze {
+                    execution_payload: base.execution_payload,
+                    versioned_hashes: base.versioned_hashes,
+                    parent_beacon_block_root: base.parent_beacon_block_root,
+                    execution_requests: base.execution_requests,
+                    inclusion_list_transactions: ProgressiveTransactions::new(list)
+                        .map_err(BeaconChainError::from)?,
+                })
+            } else {
+                request
+            };
             notify_new_payload(&self.chain, self.envelope.slot(), request).await
         }
     }

@@ -605,6 +605,7 @@ impl ProtoArrayForkChoice {
             nodes: Vec::with_capacity(1),
             indices: HashMap::with_capacity(1),
             children: Vec::with_capacity(1),
+            unsatisfied_inclusion_lists: BTreeSet::new(),
         };
 
         let block = Block {
@@ -660,6 +661,40 @@ impl ProtoArrayForkChoice {
     }
 
     /// See `ProtoArray::propagate_execution_payload_validation` for documentation.
+    pub fn record_unsatisfied_inclusion_list(&mut self, block_root: Hash256) {
+        self.proto_array
+            .unsatisfied_inclusion_lists
+            .insert(block_root);
+    }
+
+    pub fn unsatisfied_inclusion_lists(&self) -> &BTreeSet<Hash256> {
+        &self.proto_array.unsatisfied_inclusion_lists
+    }
+
+    pub fn restore_unsatisfied_inclusion_lists(&mut self, roots: Vec<Hash256>) {
+        self.proto_array.unsatisfied_inclusion_lists = roots
+            .into_iter()
+            .filter(|root| self.proto_array.indices.contains_key(root))
+            .collect();
+    }
+
+    pub fn record_optimistic_payload_inclusion_failure(
+        &mut self,
+        root: Hash256,
+        hash: ExecutionBlockHash,
+    ) {
+        let array = &mut self.proto_array;
+        if let Some(node) = array
+            .indices
+            .get(&root)
+            .and_then(|index| array.nodes.get(*index))
+            && node.is_gloas()
+            && node.execution_status() == ExecutionStatus::Optimistic(hash)
+        {
+            array.unsatisfied_inclusion_lists.insert(root);
+        }
+    }
+
     pub fn process_execution_payload_validation(
         &mut self,
         block_hash: ExecutionBlockHash,

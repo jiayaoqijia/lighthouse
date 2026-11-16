@@ -708,6 +708,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
 
         Ok(Some(ForkChoice::from_persisted(
             persisted_fork_choice.fork_choice,
+            persisted_fork_choice.unsatisfied_inclusion_lists,
             reset_payload_statuses,
             fc_store,
             spec,
@@ -7260,7 +7261,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
 
         match forkchoice_updated_response {
             Ok(status) => match status {
-                PayloadStatus::Valid => {
+                PayloadStatus::Valid | PayloadStatus::ValidInclusionListUnsatisfied => {
                     // EIP-8025: only the proofs promote a payload to valid.
                     if self.execution_proofs_enabled() {
                         return Ok(());
@@ -7273,10 +7274,15 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                     let fork_choice_update_result = self
                         .spawn_blocking_handle(
                             move || {
-                                chain
-                                    .canonical_head
-                                    .fork_choice_write_lock()
-                                    .on_valid_execution_payload(head_hash)
+                                let mut choice = chain.canonical_head.fork_choice_write_lock();
+                                if status == PayloadStatus::ValidInclusionListUnsatisfied {
+                                    choice.on_valid_execution_payload_with_unsatisfied_list(
+                                        head_block_root,
+                                        head_hash,
+                                    )
+                                } else {
+                                    choice.on_valid_execution_payload(head_hash)
+                                }
                             },
                             "update_execution_engine_valid_payload",
                         )

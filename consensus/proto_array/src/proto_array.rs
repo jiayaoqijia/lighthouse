@@ -9,7 +9,7 @@ use ssz::BitVector;
 use ssz::Encode;
 use ssz::four_byte_option_impl;
 use ssz_derive::{Decode, Encode};
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::time::Duration;
 use superstruct::superstruct;
 use typenum::U512;
@@ -452,6 +452,8 @@ pub struct ProtoArray {
     pub prune_threshold: usize,
     pub nodes: Vec<ProtoNode>,
     pub indices: HashMap<Hash256, usize>,
+    #[serde(default)]
+    pub(crate) unsatisfied_inclusion_lists: BTreeSet<Hash256>,
     /// Cached parent→children index. `children[i]` holds the node indices of all children of
     /// node `i`. Maintained incrementally by `on_block` and `maybe_prune`.
     #[serde(skip)]
@@ -1979,7 +1981,9 @@ impl ProtoArray {
             });
         }
 
-        if fc_node.payload_status == PayloadStatus::Empty {
+        if fc_node.payload_status == PayloadStatus::Empty
+            || self.unsatisfied_inclusion_lists.contains(&fc_node.root)
+        {
             return Ok(false);
         }
 
@@ -2023,7 +2027,7 @@ impl ProtoArray {
         };
 
         // Spec equivalent to `if not is_payload_verified(store, root): return False`
-        if !node.payload_received {
+        if !node.payload_received || self.unsatisfied_inclusion_lists.contains(&fc_node.root) {
             return Ok(false);
         }
 
@@ -2089,6 +2093,7 @@ impl ProtoArray {
                 .ok_or(Error::InvalidNodeIndex(node_index))?
                 .root();
             self.indices.remove(root);
+            self.unsatisfied_inclusion_lists.remove(root);
         }
 
         // Drop all the nodes prior to finalization.

@@ -9,6 +9,7 @@ use types::ExecutionBlockHash;
 #[derive(Debug, Clone, PartialEq)]
 pub enum PayloadStatus {
     Valid,
+    ValidInclusionListUnsatisfied,
     Invalid {
         /// The EE will provide a `None` LVH when it is unable to determine the
         /// latest valid ancestor.
@@ -40,7 +41,11 @@ pub fn process_payload_status(
                 {
                     // The response is only valid if `latest_valid_hash` is not `null` and
                     // equal to the provided `block_hash`.
-                    Ok(PayloadStatus::Valid)
+                    if response.inclusion_list_satisfied == Some(false) {
+                        Ok(PayloadStatus::ValidInclusionListUnsatisfied)
+                    } else {
+                        Ok(PayloadStatus::Valid)
+                    }
                 } else {
                     let error = format!(
                         "new_payload: response.status = VALID but invalid latest_valid_hash. Expected({:?}) Found({:?})",

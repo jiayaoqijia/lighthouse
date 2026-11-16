@@ -953,7 +953,7 @@ impl HttpJsonRpc {
         new_payload_request_heze: NewPayloadRequestHeze<'_, E>,
     ) -> Result<PayloadStatusV1, Error> {
         let params = json!([
-            JsonExecutionPayload::Heze(
+            JsonExecutionPayload::Gloas(
                 new_payload_request_heze
                     .execution_payload
                     .clone()
@@ -972,7 +972,15 @@ impl HttpJsonRpc {
                 ENGINE_NEW_PAYLOAD_TIMEOUT * self.execution_timeout_multiplier,
             )
             .await?;
-        Ok(response.into())
+        let status: PayloadStatusV1 = response.into();
+        if (status.status == PayloadStatusV1Status::Valid)
+            != status.inclusion_list_satisfied.is_some()
+        {
+            return Err(Error::BadResponse(
+                "Bogotá payload status satisfaction must be present exactly when VALID".into(),
+            ));
+        }
+        Ok(status)
     }
 
     pub async fn get_payload_v1<E: EthSpec>(

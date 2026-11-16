@@ -9,9 +9,8 @@ use types::{
 };
 use types::{
     ExecutionPayloadBellatrix, ExecutionPayloadCapella, ExecutionPayloadDeneb,
-    ExecutionPayloadElectra, ExecutionPayloadFulu, ExecutionPayloadGloas, ExecutionPayloadHeze,
-    ExecutionRequestsElectra, ExecutionRequestsGloas, ExecutionRequestsRef,
-    ProgressiveTransactions,
+    ExecutionPayloadElectra, ExecutionPayloadFulu, ExecutionPayloadGloas, ExecutionRequestsElectra,
+    ExecutionRequestsGloas, ExecutionRequestsRef, ProgressiveTransactions,
 };
 
 #[superstruct(
@@ -46,7 +45,7 @@ pub struct NewPayloadRequest<'block, E: EthSpec> {
     #[superstruct(only(Gloas), partial_getter(rename = "execution_payload_gloas"))]
     pub execution_payload: &'block ExecutionPayloadGloas<E>,
     #[superstruct(only(Heze), partial_getter(rename = "execution_payload_heze"))]
-    pub execution_payload: &'block ExecutionPayloadHeze<E>,
+    pub execution_payload: &'block ExecutionPayloadGloas<E>,
     #[superstruct(only(Deneb, Electra, Fulu, Gloas, Heze))]
     pub versioned_hashes: Vec<VersionedHash>,
     #[superstruct(only(Deneb, Electra, Fulu, Gloas, Heze))]
@@ -83,7 +82,7 @@ impl<'block, E: EthSpec> NewPayloadRequest<'block, E> {
             Self::Electra(request) => ExecutionPayloadRef::Electra(request.execution_payload),
             Self::Fulu(request) => ExecutionPayloadRef::Fulu(request.execution_payload),
             Self::Gloas(request) => ExecutionPayloadRef::Gloas(request.execution_payload),
-            Self::Heze(request) => ExecutionPayloadRef::Heze(request.execution_payload),
+            Self::Heze(request) => ExecutionPayloadRef::Gloas(request.execution_payload),
         }
     }
 
