@@ -77,7 +77,10 @@ fn builder_withdrawal_credentials(pubkey: &bls::PublicKey, spec: &ChainSpec) -> 
 
 impl TestContext {
     fn new() -> Self {
-        let spec = test_spec::<E>();
+        Self::with_spec(test_spec::<E>())
+    }
+
+    fn with_spec(spec: ChainSpec) -> Self {
         let store = Arc::new(
             HotColdDB::open_ephemeral(StoreConfig::default(), Arc::new(spec.clone()))
                 .expect("should open ephemeral store"),
@@ -229,6 +232,7 @@ impl TestContext {
             slot_clock: &self.slot_clock,
             spec: &self.spec,
             store: &self.store,
+            check_inclusion_list_bits: &|_| Ok(true),
         }
     }
 
@@ -1225,6 +1229,55 @@ fn valid_bid_after_empty_genesis_uses_parent_payload_gas_limit() {
         "expected Ok, got: {:?}",
         result.unwrap_err()
     );
+}
+
+#[test]
+fn heze_gossip_ignores_missing_timely_list_bits_before_caching() {
+    let ctx = TestContext::with_spec(ForkName::Heze.make_genesis_spec(E::default_spec()));
+    let slot = Slot::new(1);
+    seed_preferences(&ctx, slot, Address::ZERO, 30_000_000);
+    let head = ctx.canonical_head.cached_head();
+    let state = &head.snapshot.beacon_state;
+    let mut bid = ExecutionPayloadBidHeze {
+        slot,
+        gas_limit: 30_000_000,
+        parent_block_root: ctx.genesis_block_root,
+        parent_block_hash: ctx.execution_parent_hash(),
+        prev_randao: ctx.expected_prev_randao(),
+        ..ExecutionPayloadBidHeze::default()
+    };
+    let parent = BidParent::from_bid(ExecutionPayloadBidRef::Heze(&bid));
+    let domain = ctx.spec.get_domain(
+        slot.epoch(E::slots_per_epoch()),
+        Domain::BeaconBuilder,
+        &state.fork(),
+        state.genesis_validators_root(),
+    );
+    let sign = |bid: ExecutionPayloadBidHeze<E>| {
+        let signature = ctx.keypairs[0]
+            .sk
+            .sign(ExecutionPayloadBidRef::Heze(&bid).signing_root(domain));
+        Arc::new(SignedExecutionPayloadBid::Heze(
+            SignedExecutionPayloadBidHeze {
+                message: bid,
+                signature,
+            },
+        ))
+    };
+    let mut gossip = ctx.gossip_ctx();
+    let require_first_list = |bid: &ExecutionPayloadBidHeze<E>| {
+        assert_eq!(bid.parent_block_root, ctx.genesis_block_root);
+        Ok(bid.inclusion_list_bits.get(0).unwrap())
+    };
+    gossip.check_inclusion_list_bits = &require_first_list;
+    assert!(matches!(
+        GossipVerifiedPayloadBid::new(sign(bid.clone()), &gossip),
+        Err(PayloadBidError::MissingInclusionListBits)
+    ));
+    assert!(ctx.bid_cache.get_highest_bid(slot, parent).is_none());
+    bid.inclusion_list_bits.set(0, true).unwrap();
+    assert!(GossipVerifiedPayloadBid::new(sign(bid), &gossip).is_ok());
+    assert!(ctx.bid_cache.get_highest_bid(slot, parent).is_some());
 }
 
 #[test]

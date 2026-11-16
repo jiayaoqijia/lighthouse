@@ -19,8 +19,8 @@ use state_processing::signature_sets::{
 };
 use tracing::debug;
 use types::{
-    BeaconState, Builder, ChainSpec, EthSpec, ExecutionPayloadBidRef, ExecutionRequestsGloas,
-    SignedExecutionPayloadBid, SignedProposerPreferences, Slot,
+    BeaconState, Builder, ChainSpec, EthSpec, ExecutionPayloadBidHeze, ExecutionPayloadBidRef,
+    ExecutionRequestsGloas, SignedExecutionPayloadBid, SignedProposerPreferences, Slot,
     consts::gloas::PAYLOAD_BUILDER_VERSION,
 };
 
@@ -268,6 +268,8 @@ pub struct GossipVerificationContext<'a, T: BeaconChainTypes> {
     pub slot_clock: &'a T::SlotClock,
     pub spec: &'a ChainSpec,
     pub store: &'a BeaconStore<T>,
+    pub check_inclusion_list_bits:
+        &'a dyn Fn(&ExecutionPayloadBidHeze<T::EthSpec>) -> Result<bool, PayloadBidError>,
 }
 
 /// A wrapper around a `SignedExecutionPayloadBid` that indicates it has been approved for re-gossiping on
@@ -459,6 +461,12 @@ impl<E: EthSpec> GossipVerifiedPayloadBid<E> {
             });
         }
 
+        if let ExecutionPayloadBidRef::Heze(bid) = signed_bid.message()
+            && !(ctx.check_inclusion_list_bits)(bid)?
+        {
+            return Err(PayloadBidError::MissingInclusionListBits);
+        }
+
         execution_payload_bid_signature_set(
             head_state,
             |i| get_builder_pubkey_from_state(head_state, i),
@@ -482,7 +490,12 @@ impl<E: EthSpec> GossipVerifiedPayloadBid<E> {
 
 impl<T: BeaconChainTypes> BeaconChain<T> {
     /// Build a `GossipVerificationContext` from this `BeaconChain` for `GossipVerifiedPayloadBid`.
-    pub fn payload_bid_gossip_verification_context(&self) -> GossipVerificationContext<'_, T> {
+    fn payload_bid_gossip_verification_context<'a>(
+        &'a self,
+        check_inclusion_list_bits: &'a dyn Fn(
+            &ExecutionPayloadBidHeze<T::EthSpec>,
+        ) -> Result<bool, PayloadBidError>,
+    ) -> GossipVerificationContext<'a, T> {
         GossipVerificationContext {
             canonical_head: &self.canonical_head,
             observed_execution_payloads: &self.observed_execution_payloads,
@@ -492,6 +505,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             slot_clock: &self.slot_clock,
             spec: &self.spec,
             store: &self.store,
+            check_inclusion_list_bits,
         }
     }
 
@@ -509,7 +523,16 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         let parent_block_root = bid.message().parent_block_root();
         let parent_block_hash = bid.message().parent_block_hash();
 
-        let ctx = self.payload_bid_gossip_verification_context();
+        let check_inclusion_list_bits = |bid: &ExecutionPayloadBidHeze<T::EthSpec>| {
+            self.is_inclusion_list_bits_inclusive(
+                bid.parent_block_root,
+                bid.slot.saturating_sub(1u64),
+                &bid.inclusion_list_bits,
+                true,
+            )
+            .map_err(|e| PayloadBidError::InternalError(format!("inclusion list view: {e:?}")))
+        };
+        let ctx = self.payload_bid_gossip_verification_context(&check_inclusion_list_bits);
         match GossipVerifiedPayloadBid::new(bid, &ctx) {
             Ok(verified) => {
                 debug!(

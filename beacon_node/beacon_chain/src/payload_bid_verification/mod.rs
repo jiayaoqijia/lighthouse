@@ -96,6 +96,8 @@ pub enum PayloadBidError {
     BeaconStateError(BeaconStateError),
     /// The bid's variant does not match the fork at its slot.
     InconsistentFork(InconsistentFork),
+    /// The Heze bid omits a bit for a timely list in the local view.
+    MissingInclusionListBits,
     /// Internal error
     InternalError(String),
 }

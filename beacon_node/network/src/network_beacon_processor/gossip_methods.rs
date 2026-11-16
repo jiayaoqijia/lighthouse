@@ -4285,6 +4285,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                 | PayloadBidError::BuilderCantCoverBid { .. }
                 | PayloadBidError::BuilderExitPending { .. }
                 | PayloadBidError::InvalidGasLimit
+                | PayloadBidError::MissingInclusionListBits
                 | PayloadBidError::BeaconStateError(_)
                 | PayloadBidError::InternalError(_)
                 | PayloadBidError::InvalidBidSlot { .. }
