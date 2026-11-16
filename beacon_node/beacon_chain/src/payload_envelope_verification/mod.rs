@@ -438,7 +438,7 @@ pub fn verify_envelope_payload_hash<E: EthSpec>(
     block: &types::SignedBeaconBlock<E>,
 ) -> Result<(), EnvelopeError> {
     build_new_payload_request(envelope, block)?
-        .perform_optimistic_sync_verifications()
+        .perform_optimistic_sync_verifications(block.fork_name_unchecked())
         .map_err(|e| EnvelopeError::InvalidPayloadHash(format!("{e:?}")))
 }
 
@@ -531,5 +531,35 @@ mod payload_hash_tests {
         // Tamper a field that only the hash recompute can catch.
         envelope.message.payload.timestamp += 1;
         assert!(verify_envelope_payload_hash::<E>(&envelope, &block).is_err());
+    }
+
+    #[test]
+    fn verifies_frame_in_heze_historical_envelope_only() {
+        use types::{BeaconBlockHeze, EmptyBlock, EthSpec, ForkName};
+
+        let slot = Slot::new(10);
+        let spec = ForkName::Heze.make_genesis_spec(E::default_spec());
+        let heze = SignedBeaconBlock::from_block(
+            BeaconBlock::Heze(BeaconBlockHeze {
+                slot,
+                ..BeaconBlockHeze::empty(&spec)
+            }),
+            Signature::empty(),
+        );
+        let mut envelope = make_consistent_envelope(slot);
+        let payload = &mut envelope.message.payload;
+        let frame = hex::decode(
+            "06eb0180941111111111111111111111111111111111111111cbca010380c4822710808080c0c5830f424001c0",
+        ).unwrap();
+        payload.transactions = vec![frame.try_into().unwrap()].try_into().unwrap();
+        (payload.block_hash, _) = calculate_execution_block_hash::<E>(
+            ExecutionPayloadRef::Gloas(payload),
+            Some(envelope.message.parent_beacon_block_root),
+            Some(ExecutionRequestsRef::Gloas(
+                &envelope.message.execution_requests,
+            )),
+        );
+        assert!(verify_envelope_payload_hash(&envelope, &heze).is_ok());
+        assert!(verify_envelope_payload_hash(&envelope, &make_block(slot)).is_err());
     }
 }

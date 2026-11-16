@@ -1,7 +1,10 @@
 use alloy_consensus::TxEnvelope;
-use alloy_rlp::Decodable;
+use alloy_primitives::{Address, U256};
+use alloy_rlp::{Decodable, Header};
 use typenum::Unsigned;
-use types::{EthSpec, ExecutionPayloadRef, Hash256, VersionedHash};
+use types::{EthSpec, ExecutionPayloadRef, ForkName, Hash256, VersionedHash};
+
+const FRAME_TX_TYPE: u8 = 0x06;
 
 #[derive(Debug)]
 pub enum Error {
@@ -13,9 +16,10 @@ pub enum Error {
 pub fn verify_versioned_hashes<E: EthSpec>(
     execution_payload: ExecutionPayloadRef<E>,
     expected_versioned_hashes: &[VersionedHash],
+    fork: ForkName,
 ) -> Result<(), Error> {
     let versioned_hashes =
-        extract_versioned_hashes_from_transactions::<E>(execution_payload.transactions())?;
+        extract_versioned_hashes_from_transactions::<E>(execution_payload.transactions(), fork)?;
     if versioned_hashes.len() != expected_versioned_hashes.len() {
         return Err(Error::LengthMismatch {
             expected: expected_versioned_hashes.len(),
@@ -39,10 +43,18 @@ pub fn verify_versioned_hashes<E: EthSpec>(
 
 pub fn extract_versioned_hashes_from_transactions<E: EthSpec>(
     transactions: types::TransactionsRef<E>,
+    fork: ForkName,
 ) -> Result<Vec<VersionedHash>, Error> {
     let mut versioned_hashes = Vec::new();
 
     for tx in transactions.iter() {
+        if fork.heze_enabled()
+            && let Some(frame) = tx.strip_prefix(&[FRAME_TX_TYPE])
+        {
+            extract_frame_blob_hashes(frame, &mut versioned_hashes)
+                .map_err(|error| Error::DecodingTransaction(error.to_string()))?;
+            continue;
+        }
         // TxEnvelope is non-exhaustive so unforunately we can (no longer) write an exhaustive
         // match here.
         if let TxEnvelope::Eip4844(signed_tx_eip4844) = tx_bytes_to_tx_envelope(tx)? {
@@ -58,6 +70,35 @@ pub fn extract_versioned_hashes_from_transactions<E: EthSpec>(
     }
 
     Ok(versioned_hashes)
+}
+
+/// Read EIP-8141's hash list without changing the bytes used for the transaction trie.
+/// Frame execution and authorization remain the execution client's responsibility.
+fn extract_frame_blob_hashes(
+    mut transaction: &[u8],
+    hashes: &mut Vec<VersionedHash>,
+) -> alloy_rlp::Result<()> {
+    let mut fields = Header::decode_bytes(&mut transaction, true)?;
+    U256::decode(&mut fields)?; // chain_id
+    u64::decode(&mut fields)?; // nonce
+    Address::decode(&mut fields)?; // sender
+    Header::decode_bytes(&mut fields, true)?; // frames
+    Header::decode_bytes(&mut fields, true)?; // signatures
+    let mut fees = Header::decode_bytes(&mut fields, true)?;
+    U256::decode(&mut fees)?;
+    U256::decode(&mut fees)?;
+    let mut versioned_hashes = Header::decode_bytes(&mut fields, true)?;
+    if !(transaction.is_empty() && fields.is_empty() && fees.is_empty()) {
+        return Err(alloy_rlp::Error::Custom("extra frame transaction fields"));
+    }
+    while !versioned_hashes.is_empty() {
+        let versioned_hash = <[u8; 32]>::decode(&mut versioned_hashes)?;
+        if versioned_hash.first() != Some(&0x01) {
+            return Err(alloy_rlp::Error::Custom("invalid frame blob hash version"));
+        }
+        hashes.push(Hash256::from(versioned_hash));
+    }
+    Ok(())
 }
 
 pub fn beacon_tx_to_tx_envelope<N: Unsigned>(
@@ -79,6 +120,10 @@ mod test {
     use types::Spec;
 
     type E = Spec;
+
+    // EIP-8141 typed RLP fixtures from the pinned seven-field draft.
+    const FRAME_WITHOUT_BLOBS: &str = "06eb0180941111111111111111111111111111111111111111cbca010380c4822710808080c0c5830f424001c0";
+    const FRAME_WITH_BLOBS: &str = "06f86e0180941111111111111111111111111111111111111111cbca010380c4822710808080c0c5830f424001f842a00102020202020202020202020202020202020202020202020202020202020202a00103030303030303030303030303030303030303030303030303030303030303";
 
     #[test]
     fn test_decode_static_transaction() {
@@ -126,9 +171,57 @@ mod test {
         .map(|tx| Hash256::from_slice(&hex::decode(&tx[2..]).expect("should decode hex")))
         .collect::<Vec<_>>();
 
-        let versioned_hashes =
-            extract_versioned_hashes_from_transactions::<E>((&raw_transactions).into())
-                .expect("should get versioned hashes");
+        let versioned_hashes = extract_versioned_hashes_from_transactions::<E>(
+            (&raw_transactions).into(),
+            ForkName::Deneb,
+        )
+        .expect("should get versioned hashes");
         assert_eq!(versioned_hashes, expected_versioned_hashes);
+
+        let mixed = types::ProgressiveTransactions::new(
+            [FRAME_WITHOUT_BLOBS, FRAME_WITH_BLOBS]
+                .into_iter()
+                .map(|raw| hex::decode(raw).unwrap())
+                .chain(raw_transactions.iter().map(|tx| tx.to_vec()))
+                .map(|tx| tx.try_into().unwrap())
+                .collect(),
+        )
+        .unwrap();
+        let expected = [2, 3]
+            .map(|fill| {
+                let mut hash = [fill; 32];
+                hash[0] = 1;
+                Hash256::from(hash)
+            })
+            .into_iter()
+            .chain(expected_versioned_hashes)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            extract_versioned_hashes_from_transactions::<E>((&mixed).into(), ForkName::Heze)
+                .unwrap(),
+            expected
+        );
+        assert!(matches!(
+            extract_versioned_hashes_from_transactions::<E>((&mixed).into(), ForkName::Gloas),
+            Err(Error::DecodingTransaction(_))
+        ));
+    }
+
+    #[test]
+    fn frame_hash_extraction_rejects_malformed_wire_bytes() {
+        let valid = hex::decode(FRAME_WITH_BLOBS).unwrap();
+        let mut extra = valid.clone();
+        extra.push(0);
+        let mut wrong_version = valid.clone();
+        let final_hash_start = wrong_version.len() - 32;
+        wrong_version[final_hash_start] = 0;
+        for raw in [&valid[..valid.len() - 1], &extra, &wrong_version] {
+            let txs = types::ProgressiveTransactions::new(vec![raw.to_vec().try_into().unwrap()])
+                .unwrap();
+            assert!(matches!(
+                extract_versioned_hashes_from_transactions::<E>((&txs).into(), ForkName::Heze),
+                Err(Error::DecodingTransaction(_))
+            ));
+        }
     }
 }

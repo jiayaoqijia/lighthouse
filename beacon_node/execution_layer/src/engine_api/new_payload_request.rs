@@ -98,9 +98,12 @@ impl<'block, E: EthSpec> NewPayloadRequest<'block, E> {
     /// Performs the verifications in the `verify_and_notify_new_payload` function:
     ///
     /// https://github.com/ethereum/consensus-specs/blob/v1.4.0-beta.2/specs/deneb/beacon-chain.md#modified-verify_and_notify_new_payload
-    pub fn perform_optimistic_sync_verifications(&self) -> Result<(), Error> {
+    pub fn perform_optimistic_sync_verifications(
+        &self,
+        fork: types::ForkName,
+    ) -> Result<(), Error> {
         self.verify_payload_block_hash()?;
-        self.verify_versioned_hashes()?;
+        self.verify_versioned_hashes(fork)?;
 
         Ok(())
     }
@@ -155,9 +158,9 @@ impl<'block, E: EthSpec> NewPayloadRequest<'block, E> {
     ///
     /// Equivalent to `is_valid_versioned_hashes` in the spec:
     /// https://github.com/ethereum/consensus-specs/blob/v1.4.0-beta.2/specs/deneb/beacon-chain.md#is_valid_versioned_hashes
-    pub fn verify_versioned_hashes(&self) -> Result<(), Error> {
+    pub fn verify_versioned_hashes(&self, fork: types::ForkName) -> Result<(), Error> {
         if let Ok(versioned_hashes) = self.versioned_hashes() {
-            verify_versioned_hashes(self.execution_payload_ref(), versioned_hashes)
+            verify_versioned_hashes(self.execution_payload_ref(), versioned_hashes, fork)
                 .map_err(Error::VerifyingVersionedHashes)?;
         }
         Ok(())
@@ -261,7 +264,7 @@ mod test {
 
         assert!(
             new_payload_request
-                .perform_optimistic_sync_verifications()
+                .perform_optimistic_sync_verifications(types::ForkName::Deneb)
                 .is_ok(),
             "validations should pass"
         );
@@ -287,7 +290,8 @@ mod test {
 
         let new_payload_request = NewPayloadRequest::try_from(beacon_block.to_ref())
             .expect("should create new payload request");
-        let verification_result = new_payload_request.perform_optimistic_sync_verifications();
+        let verification_result =
+            new_payload_request.perform_optimistic_sync_verifications(types::ForkName::Deneb);
         println!("verification_result: {:?}", verification_result);
         let got_expected_result = match verification_result {
             Err(Error::BlockHashMismatch {
@@ -331,7 +335,8 @@ mod test {
 
         let new_payload_request = NewPayloadRequest::try_from(beacon_block.to_ref())
             .expect("should create new payload request");
-        let verification_result = new_payload_request.perform_optimistic_sync_verifications();
+        let verification_result =
+            new_payload_request.perform_optimistic_sync_verifications(types::ForkName::Deneb);
         println!("verification_result: {:?}", verification_result);
 
         let got_expected_result = match verification_result {

@@ -33,7 +33,9 @@ impl<T: BeaconChainTypes> PayloadNotifier<T> {
                 NotifyExecutionLayer::No if chain.config.optimistic_finalized_sync => {
                     let new_payload_request = Self::build_new_payload_request(&envelope, &block)?;
                     // TODO(gloas): check and test RLP block hash calculation post-Gloas
-                    if let Err(e) = new_payload_request.perform_optimistic_sync_verifications() {
+                    if let Err(e) = new_payload_request
+                        .perform_optimistic_sync_verifications(block.fork_name_unchecked())
+                    {
                         warn!(
                             block_number = ?payload_message.payload.block_number,
                             info = "you can silence this warning with --disable-optimistic-finalized-sync",
