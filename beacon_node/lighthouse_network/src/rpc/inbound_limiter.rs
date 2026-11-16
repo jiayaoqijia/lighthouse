@@ -55,7 +55,7 @@ pub(super) enum ReadyRequest<E: EthSpec> {
     Execute {
         peer_id: PeerId,
         request_id: InboundRequestId,
-        request_type: RequestType<E>,
+        request_type: Box<RequestType<E>>,
     },
     /// The request cannot be executed within [`MAX_REQUEST_DELAY`] of being received and should
     /// be answered with a rate limited error instead.
@@ -288,7 +288,7 @@ impl<E: EthSpec> InboundRateLimiter<E> {
                         ready_requests.push(ReadyRequest::Execute {
                             peer_id: request.peer_id,
                             request_id: request.request_id,
-                            request_type: request.request_type,
+                            request_type: Box::new(request.request_type),
                         });
                     }
                     Err(RateLimitedErr::TooLarge) => {
