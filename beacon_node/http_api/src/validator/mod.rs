@@ -1538,6 +1538,92 @@ fn publish_proposer_preferences<T: BeaconChainTypes>(
     }
 }
 
+/// Get an unsigned Heze inclusion list from the local execution engine.
+pub fn get_validator_inclusion_list<T: BeaconChainTypes>(
+    eth_v1: EthV1Filter,
+    not_while_syncing_filter: NotWhileSyncingFilter,
+    task_spawner_filter: TaskSpawnerFilter<T>,
+    chain_filter: ChainFilter<T>,
+) -> ResponseFilter {
+    eth_v1
+        .and(warp::path("validator"))
+        .and(warp::path("inclusion_list"))
+        .and(warp::path::param::<u64>())
+        .and(warp::path::param::<u64>())
+        .and(warp::path::param::<types::Hash256>())
+        .and(warp::path::end())
+        .and(not_while_syncing_filter)
+        .and(task_spawner_filter)
+        .and(chain_filter)
+        .then(
+            |slot: u64,
+             validator_index,
+             expected_root,
+             not_synced: Result<(), Rejection>,
+             task_spawner: TaskSpawner<T::EthSpec>,
+             chain: Arc<BeaconChain<T>>| {
+                task_spawner.spawn_async_with_rejection(Priority::P0, async move {
+                    not_synced?;
+                    let slot = Slot::new(slot);
+                    ensure_post_heze_consensus_version(
+                        chain.spec.fork_name_at_slot::<T::EthSpec>(slot),
+                    )?;
+                    if chain.slot_clock.now() != Some(slot) {
+                        return Err(warp_utils::reject::custom_bad_request(
+                            "Inclusion list slot is not current".into(),
+                        ));
+                    }
+                    let candidate_chain = chain.clone();
+                    let (head_root, committee, dependent_root) =
+                        warp_utils::task::blocking_task(move || {
+                            let head_root = candidate_chain.head_beacon_block_root();
+                            let (committee, dependent_root) = candidate_chain
+                                .inclusion_list_committee(head_root, slot)
+                                .map_err(warp_utils::reject::unhandled_error)?;
+                            Ok((head_root, committee, dependent_root))
+                        })
+                        .await?;
+                    if expected_root != dependent_root
+                        || !committee.iter().any(|index| *index == validator_index)
+                    {
+                        return Err(warp_utils::reject::custom_bad_request(
+                            "Inclusion list duty is no longer current".into(),
+                        ));
+                    }
+                    let execution_layer = chain.execution_layer.as_ref().ok_or_else(|| {
+                        warp_utils::reject::custom_server_error(
+                            "Execution engine unavailable".into(),
+                        )
+                    })?;
+                    let transactions = execution_layer
+                        .get_inclusion_list_v1()
+                        .await
+                        .map_err(warp_utils::reject::unhandled_error)?;
+                    beacon_chain::inclusion_list_verification::verify_inclusion_list_transactions_bounds(
+                        &transactions, &chain.spec,
+                    ).map_err(warp_utils::reject::unhandled_error)?;
+                    if chain.slot_clock.now() != Some(slot)
+                        || chain.head_beacon_block_root() != head_root
+                    {
+                        return Err(warp_utils::reject::custom_bad_request(
+                            "Inclusion list slot or head changed".into(),
+                        ));
+                    }
+                    Ok(
+                        warp::reply::json(&GenericResponse::from(types::InclusionList {
+                            slot,
+                            validator_index,
+                            dependent_root,
+                            transactions,
+                        }))
+                        .into_response(),
+                    )
+                })
+            },
+        )
+        .boxed()
+}
+
 /// POST validator/inclusion_list (JSON)
 pub fn post_validator_inclusion_list<T: BeaconChainTypes>(
     eth_v1: EthV1Filter,

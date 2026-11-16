@@ -707,6 +707,8 @@ impl<E: EthSpec> ProductionValidatorClient<E> {
 
         duties_service::start_update_service(self.duties_service.clone(), block_service_tx);
 
+        validator_services::inclusion_list_service::start(self.duties_service.clone());
+
         self.block_service
             .clone()
             .start_update_service(block_service_rx)

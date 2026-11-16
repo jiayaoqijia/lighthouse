@@ -213,6 +213,13 @@ pub trait ValidatorStore: Send + Sync {
         data: PayloadAttestationData,
     ) -> impl Future<Output = Result<PayloadAttestationMessage, Error<Self::Error>>> + Send;
 
+    /// Sign an assigned Heze inclusion list.
+    fn sign_inclusion_list(
+        &self,
+        validator_pubkey: PublicKeyBytes,
+        message: types::InclusionList,
+    ) -> impl Future<Output = Result<types::SignedInclusionList, Error<Self::Error>>> + Send;
+
     /// Sign a `ProposerPreferences` message.
     fn sign_proposer_preferences(
         &self,

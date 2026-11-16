@@ -221,6 +221,16 @@ impl<S: ValidatorStore + 'static> ValidatorStore for RecordingValidatorStore<S> 
             .await
     }
 
+    async fn sign_inclusion_list(
+        &self,
+        validator_pubkey: PublicKeyBytes,
+        message: types::InclusionList,
+    ) -> Result<types::SignedInclusionList, StoreError<Self::Error>> {
+        self.inner
+            .sign_inclusion_list(validator_pubkey, message)
+            .await
+    }
+
     async fn sign_proposer_preferences(
         &self,
         validator_pubkey: PublicKeyBytes,

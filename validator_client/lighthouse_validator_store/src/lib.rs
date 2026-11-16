@@ -1501,6 +1501,31 @@ impl<T: SlotClock + 'static, E: EthSpec> ValidatorStore for LighthouseValidatorS
         })
     }
 
+    async fn sign_inclusion_list(
+        &self,
+        validator_pubkey: PublicKeyBytes,
+        message: types::InclusionList,
+    ) -> Result<types::SignedInclusionList, Error> {
+        if self.validator_index(&validator_pubkey) != Some(message.validator_index) {
+            return Err(ValidatorStoreError::UnknownPubkey(validator_pubkey));
+        }
+        let context = self.signing_context(
+            Domain::InclusionListCommittee,
+            message.slot.epoch(E::slots_per_epoch()),
+        );
+        let signing_method = self.doppelganger_checked_signing_method(validator_pubkey)?;
+        let signature = signing_method
+            .get_signature::<E, FullPayload<E>>(
+                SignableMessage::InclusionList(&message),
+                context,
+                &self.spec,
+                &self.task_executor,
+            )
+            .await
+            .map_err(Error::SpecificError)?;
+        Ok(types::SignedInclusionList { message, signature })
+    }
+
     async fn sign_proposer_preferences(
         &self,
         validator_pubkey: PublicKeyBytes,

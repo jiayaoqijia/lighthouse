@@ -3816,6 +3816,24 @@ impl BeaconNodeHttpClient {
         AttestationData::from_ssz_bytes(&response_bytes).map_err(Error::InvalidSsz)
     }
 
+    /// Retrieve an unsigned Heze inclusion list for an assigned duty.
+    pub async fn get_validator_inclusion_list(
+        &self,
+        slot: Slot,
+        validator_index: u64,
+        dependent_root: Hash256,
+    ) -> Result<GenericResponse<types::InclusionList>, Error> {
+        let mut path = self.eth_path(V1)?;
+        path.path_segments_mut()
+            .map_err(|()| Error::InvalidUrl(self.server.clone()))?
+            .push("validator")
+            .push("inclusion_list")
+            .push(&slot.to_string())
+            .push(&validator_index.to_string())
+            .push(&dependent_root.to_string());
+        Ok(self.get_response(path, |b| b).await?.json().await?)
+    }
+
     /// `POST validator/inclusion_list`
     pub async fn post_validator_inclusion_list(
         &self,

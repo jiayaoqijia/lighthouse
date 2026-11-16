@@ -10551,6 +10551,50 @@ impl ApiTester {
         self
     }
 
+    pub async fn test_inclusion_list_candidate_and_publication(mut self) -> Self {
+        let slot = self.chain.slot().unwrap();
+        let signed = self.make_signed_inclusion_list_with_transaction(slot, 0x42);
+        let expected = &signed.message;
+        self.harness
+            .execution_block_generator()
+            .set_inclusion_list(expected.transactions.clone());
+        let error = self
+            .client
+            .get_validator_inclusion_list(
+                slot,
+                expected.validator_index,
+                Hash256::repeat_byte(0x99),
+            )
+            .await
+            .unwrap_err();
+        assert_eq!(error.status(), Some(StatusCode::BAD_REQUEST));
+        let candidate = self
+            .client
+            .get_validator_inclusion_list(slot, expected.validator_index, expected.dependent_root)
+            .await
+            .unwrap()
+            .data;
+        assert_eq!(candidate, *expected);
+        self.client
+            .post_validator_inclusion_list(&signed, ForkName::Heze)
+            .await
+            .unwrap();
+        assert!(self.network_rx.network_recv.recv().await.is_some());
+        assert_eq!(
+            self.chain
+                .inclusion_list_store
+                .read()
+                .get_signed_inclusion_lists(
+                    slot,
+                    expected.dependent_root,
+                    &[expected.validator_index],
+                ),
+            vec![signed],
+        );
+        self.chain.slot_clock.set_slot(slot.as_u64() + 1);
+        self
+    }
+
     pub async fn test_inclusion_list_post_known_is_not_republished(mut self) -> Self {
         if !self.chain.spec.is_heze_scheduled() {
             return self;
@@ -12771,6 +12815,8 @@ async fn inclusion_list_api() {
     }
 
     ApiTester::new_with_hard_forks()
+        .await
+        .test_inclusion_list_candidate_and_publication()
         .await
         .test_inclusion_list_post_fork_name_invalid_returns_400()
         .await

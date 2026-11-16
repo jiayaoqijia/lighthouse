@@ -2013,6 +2013,13 @@ pub async fn serve<T: BeaconChainTypes>(
      * inclusion lists
      */
 
+    let get_validator_inclusion_list = get_validator_inclusion_list(
+        eth_v1.clone(),
+        not_while_syncing_filter.clone(),
+        task_spawner_filter.clone(),
+        chain_filter.clone(),
+    );
+
     // POST validator/inclusion_list (JSON)
     let post_validator_inclusion_list = post_validator_inclusion_list(
         eth_v1.clone(),
@@ -3602,6 +3609,7 @@ pub async fn serve<T: BeaconChainTypes>(
                 .uor(get_validator_blinded_blocks)
                 .uor(get_validator_execution_payload_envelopes)
                 .uor(get_validator_attestation_data)
+                .uor(get_validator_inclusion_list)
                 .uor(get_validator_payload_attestation_data)
                 .uor(get_validator_aggregate_attestation)
                 .uor(get_validator_sync_committee_contribution)

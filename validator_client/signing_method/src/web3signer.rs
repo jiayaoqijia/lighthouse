@@ -22,6 +22,7 @@ pub enum MessageType {
     ValidatorRegistration,
     ExecutionPayloadEnvelope,
     PayloadAttestationMessage,
+    InclusionList,
     ProposerPreferences,
     BuilderRequestAuth,
 }
@@ -100,6 +101,7 @@ pub enum Web3SignerObject<'a, E: EthSpec, Payload: AbstractExecPayload<E>> {
     ValidatorRegistration(&'a ValidatorRegistrationData),
     ExecutionPayloadEnvelope(VersionedForkData<'a, ExecutionPayloadEnvelope<E>>),
     PayloadAttestationMessage(VersionedForkData<'a, PayloadAttestationData>),
+    InclusionList(VersionedForkData<'a, InclusionList>),
     ProposerPreferences(VersionedForkData<'a, ProposerPreferences>),
     BuilderRequestAuth(VersionedForkData<'a, RequestAuth>),
 }
@@ -171,6 +173,13 @@ impl<'a, E: EthSpec, Payload: AbstractExecPayload<E>> Web3SignerObject<'a, E, Pa
         Web3SignerObject::BuilderRequestAuth(VersionedForkData::gloas(request_auth))
     }
 
+    pub fn inclusion_list(data: &'a InclusionList) -> Self {
+        Self::InclusionList(VersionedForkData {
+            version: ForkName::Heze,
+            data,
+        })
+    }
+
     pub fn message_type(&self) -> MessageType {
         match self {
             Web3SignerObject::AggregationSlot { .. } => MessageType::AggregationSlot,
@@ -192,6 +201,7 @@ impl<'a, E: EthSpec, Payload: AbstractExecPayload<E>> Web3SignerObject<'a, E, Pa
             Web3SignerObject::PayloadAttestationMessage(_) => {
                 MessageType::PayloadAttestationMessage
             }
+            Web3SignerObject::InclusionList(_) => MessageType::InclusionList,
             Web3SignerObject::ProposerPreferences(_) => MessageType::ProposerPreferences,
             Web3SignerObject::BuilderRequestAuth(_) => MessageType::BuilderRequestAuth,
         }
@@ -291,6 +301,24 @@ mod tests {
         );
         assert!(value.get("payload_attestation_data").is_none());
         assert!(value.get("PAYLOAD_ATTESTATION").is_none());
+    }
+
+    #[test]
+    fn inclusion_list_request_binds_heze_duty() {
+        let list = InclusionList {
+            slot: Slot::new(12),
+            validator_index: 4,
+            dependent_root: Hash256::repeat_byte(0x48),
+            transactions: vec![vec![0xc1].try_into().unwrap()].try_into().unwrap(),
+        };
+        let object = Web3SignerObject::inclusion_list(&list);
+        let value = serialize(object.message_type(), Some(dummy_fork_info()), object);
+        assert_eq!(value["type"], "INCLUSION_LIST");
+        assert_eq!(value["inclusion_list"]["version"], "HEZE");
+        assert_eq!(
+            value["inclusion_list"]["data"],
+            serde_json::to_value(list).unwrap()
+        );
     }
 
     #[test]

@@ -178,6 +178,14 @@ impl ValidatorStore for MockValidatorStore {
         panic!("MockValidatorStore::sign_execution_payload_envelope called without a hook")
     }
 
+    async fn sign_inclusion_list(
+        &self,
+        _validator_pubkey: PublicKeyBytes,
+        _message: types::InclusionList,
+    ) -> Result<types::SignedInclusionList, StoreError<Self::Error>> {
+        panic!("MockValidatorStore::sign_inclusion_list called without a hook")
+    }
+
     async fn sign_proposer_preferences(
         &self,
         _validator_pubkey: PublicKeyBytes,
