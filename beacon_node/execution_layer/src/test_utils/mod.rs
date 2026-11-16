@@ -372,6 +372,18 @@ impl<E: EthSpec> MockServer<E> {
         self.all_payloads_syncing_on_forkchoice_updated();
     }
 
+    pub fn all_payloads_accepted_on_new_payload(&self, should_import: bool) {
+        self.set_new_payload_response(StaticNewPayloadResponse {
+            status: PayloadStatusV1 {
+                status: PayloadStatusV1Status::Accepted,
+                latest_valid_hash: None,
+                validation_error: None,
+                inclusion_list_satisfied: None,
+            },
+            should_import,
+        });
+    }
+
     pub fn all_payloads_syncing_on_new_payload(&self, should_import: bool) {
         self.set_new_payload_response(Self::syncing_new_payload_response(should_import));
     }

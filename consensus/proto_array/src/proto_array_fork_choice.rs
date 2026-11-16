@@ -681,17 +681,30 @@ impl ProtoArrayForkChoice {
     pub fn record_optimistic_payload_inclusion_failure(
         &mut self,
         root: Hash256,
+        status: PayloadStatus,
         hash: ExecutionBlockHash,
-    ) {
+    ) -> Result<Option<Hash256>, String> {
         let array = &mut self.proto_array;
-        if let Some(node) = array
-            .indices
-            .get(&root)
-            .and_then(|index| array.nodes.get(*index))
-            && node.is_gloas()
-            && node.execution_status() == ExecutionStatus::Optimistic(hash)
-        {
-            array.unsatisfied_inclusion_lists.insert(root);
+        let executed_node = if status == PayloadStatus::Full {
+            array.get_block(root)
+        } else {
+            array
+                .inherited_execution_node(root)
+                .map_err(|error| format!("Failed to resolve execution head: {error:?}"))?
+        };
+        let Some(node) = executed_node else {
+            return Ok(None);
+        };
+        let root = node.root();
+        match node.execution_status() {
+            ExecutionStatus::Optimistic(node_hash) if node_hash == hash => {
+                if node.is_gloas() {
+                    array.unsatisfied_inclusion_lists.insert(root);
+                }
+                Ok(Some(root))
+            }
+            ExecutionStatus::Valid(node_hash) if node_hash == hash => Ok(Some(root)),
+            _ => Ok(None),
         }
     }
 

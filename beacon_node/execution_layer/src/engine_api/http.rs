@@ -1288,7 +1288,16 @@ impl HttpJsonRpc {
             )
             .await?;
 
-        Ok(response.into())
+        let response: ForkchoiceUpdatedResponse = response.into();
+        let status = &response.payload_status;
+        if (status.status == PayloadStatusV1Status::Valid)
+            != status.inclusion_list_satisfied.is_some()
+        {
+            return Err(Error::BadResponse(
+                "Bogotá forkchoice status satisfaction must be present exactly when VALID".into(),
+            ));
+        }
+        Ok(response)
     }
 
     pub async fn get_payload_bodies_by_hash_v1<E: EthSpec>(

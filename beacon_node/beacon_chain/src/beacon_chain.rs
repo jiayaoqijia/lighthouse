@@ -7255,10 +7255,8 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             .await
             .map_err(Error::ExecutionForkChoiceUpdateFailed);
 
-        // The head has been read and the execution layer has been updated. It is now valid to send
-        // another fork choice update.
-        drop(forkchoice_lock);
-
+        // Keep VALID responses ordered through their fork-choice update. A later
+        // response must not promote the optimistic payload before we record this verdict.
         match forkchoice_updated_response {
             Ok(status) => match status {
                 PayloadStatus::Valid | PayloadStatus::ValidInclusionListUnsatisfied => {
@@ -7278,6 +7276,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                                 if status == PayloadStatus::ValidInclusionListUnsatisfied {
                                     choice.on_valid_execution_payload_with_unsatisfied_list(
                                         head_block_root,
+                                        head_payload_status,
                                         head_hash,
                                     )
                                 } else {
@@ -7315,6 +7314,8 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                     latest_valid_hash,
                     ref validation_error,
                 } => {
+                    // Invalidation can recompute the head and schedule another Engine update.
+                    drop(forkchoice_lock);
                     warn!(
                         ?validation_error,
                         ?latest_valid_hash,
@@ -7366,6 +7367,8 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                 PayloadStatus::InvalidBlockHash {
                     ref validation_error,
                 } => {
+                    // Invalidation can recompute the head and schedule another Engine update.
+                    drop(forkchoice_lock);
                     warn!(
                         ?validation_error,
                         ?head_hash,

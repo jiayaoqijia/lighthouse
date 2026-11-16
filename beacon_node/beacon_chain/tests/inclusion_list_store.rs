@@ -141,6 +141,156 @@ async fn assert_heze_v6_fork_choice_after_reload(satisfied: bool) -> Hash256 {
     hash.into_root()
 }
 
+#[tokio::test]
+async fn heze_fcu_resolves_deferred_verdict_from_empty_head() {
+    use beacon_chain::payload_envelope_verification::EnvelopeSource;
+    use beacon_chain::{BeaconChain, NotifyExecutionLayer, OverrideForkchoiceUpdate};
+    use execution_layer::{PayloadStatusV1, PayloadStatusV1Status};
+    use fork_choice::{PayloadStatus, ResetPayloadStatuses};
+    use proto_array::ExecutionStatus;
+    use types::BlockImportSource;
+
+    let harness = BeaconChainHarness::builder(E::default())
+        .spec(Arc::new(
+            ForkName::Heze.make_genesis_spec(E::default_spec()),
+        ))
+        .deterministic_keypairs(VALIDATOR_COUNT)
+        .fresh_ephemeral_store()
+        .mock_execution_layer()
+        .build();
+    harness.extend_to_slot(Slot::new(1)).await;
+
+    let ancestor = harness.head_block_root();
+    let (committee, dependent_root) = harness
+        .chain
+        .inclusion_list_committee(ancestor, Slot::new(1))
+        .unwrap();
+    harness
+        .chain
+        .inclusion_list_store
+        .write()
+        .process_inclusion_list(GossipVerifiedInclusionList {
+            signed_inclusion_list: signed_inclusion_list(
+                Slot::new(1),
+                committee[0],
+                dependent_root,
+                0xc1,
+            ),
+            is_timely: true,
+        });
+
+    let state = harness.get_current_state();
+    harness.advance_slot();
+    let slot = Slot::new(2);
+    let (contents, envelope, state_after_parent) =
+        harness.make_block_with_envelope(state, slot).await;
+    let parent = contents.0.canonical_root();
+    harness.process_block(slot, parent, contents).await.unwrap();
+    let envelope = Arc::new(envelope.unwrap());
+    let execution_hash = envelope.message.payload.block_hash;
+    let mock = &harness.mock_execution_layer.as_ref().unwrap().server;
+    mock.all_payloads_syncing_on_forkchoice_updated();
+    mock.all_payloads_accepted_on_new_payload(true);
+    let verified = harness
+        .chain
+        .verify_envelope_for_gossip(envelope, EnvelopeSource::Gossip)
+        .await
+        .unwrap();
+    harness
+        .chain
+        .process_execution_payload_envelope(
+            parent,
+            verified,
+            NotifyExecutionLayer::Yes,
+            BlockImportSource::Lookup,
+            || Ok(()),
+        )
+        .await
+        .unwrap();
+    {
+        let choice = harness.chain.canonical_head.fork_choice_read_lock();
+        assert_eq!(
+            choice.get_block(&parent).unwrap().execution_status,
+            ExecutionStatus::Optimistic(execution_hash)
+        );
+        assert!(
+            !choice
+                .proto_array()
+                .unsatisfied_inclusion_lists()
+                .contains(&parent)
+        );
+    }
+
+    harness.advance_slot();
+    let child_slot = slot + 1;
+    let (contents, _, _) = harness
+        .make_block_with_envelope_on(state_after_parent, child_slot, PayloadStatus::Full)
+        .await;
+    let child = contents.0.canonical_root();
+    harness
+        .process_block(child_slot, child, contents)
+        .await
+        .unwrap();
+    harness.chain.recompute_head_at_current_slot().await;
+    let head = harness.chain.canonical_head.cached_head();
+    assert_eq!(head.head_block_root(), child);
+    assert_eq!(head.head_payload_status(), PayloadStatus::Empty);
+    let params = head.forkchoice_update_parameters();
+    assert_eq!(params.head_hash, Some(execution_hash));
+
+    mock.take_previous_request();
+    mock.set_fcu_payload_status(
+        execution_hash,
+        PayloadStatusV1 {
+            status: PayloadStatusV1Status::Valid,
+            latest_valid_hash: Some(execution_hash),
+            validation_error: None,
+            inclusion_list_satisfied: Some(false),
+        },
+    );
+    harness
+        .chain
+        .update_execution_engine_forkchoice(
+            child_slot,
+            params,
+            PayloadStatus::Empty,
+            OverrideForkchoiceUpdate::AlreadyApplied,
+        )
+        .await
+        .unwrap();
+    let wire = mock.take_previous_request().unwrap();
+    assert_eq!(wire["method"], "engine_forkchoiceUpdatedV5");
+    assert_eq!(
+        wire["params"][0]["headBlockHash"],
+        serde_json::json!(execution_hash)
+    );
+
+    {
+        let choice = harness.chain.canonical_head.fork_choice_read_lock();
+        assert_eq!(
+            choice.get_block(&parent).unwrap().execution_status,
+            ExecutionStatus::Valid(execution_hash)
+        );
+        let failures = choice.proto_array().unsatisfied_inclusion_lists();
+        assert!(failures.contains(&parent));
+        assert!(!failures.contains(&child));
+        assert!(!failures.contains(&ancestor));
+    }
+    harness.chain.persist_fork_choice().unwrap();
+    let restored = BeaconChain::<EphemeralHarnessType<E>>::load_fork_choice(
+        harness.chain.store.clone(),
+        ResetPayloadStatuses::OnlyWithInvalidPayload,
+        &harness.spec,
+    )
+    .unwrap()
+    .unwrap();
+    assert!(
+        !restored
+            .should_build_on_full(&parent, PayloadStatus::Full, child_slot)
+            .unwrap()
+    );
+}
+
 fn get_harness() -> BeaconChainHarness<EphemeralHarnessType<E>> {
     BeaconChainHarness::builder(E::default())
         .default_spec()

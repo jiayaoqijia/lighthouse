@@ -13,6 +13,29 @@ pub const BAD_PARAMS_ERROR_CODE: i64 = -32602;
 pub const UNKNOWN_PAYLOAD_ERROR_CODE: i64 = -38001;
 pub const FORK_REQUEST_MISMATCH_ERROR_CODE: i64 = -32000;
 
+fn mock_forkchoice_response(
+    method: &str,
+    mut payload_status: PayloadStatusV1,
+    payload_id: Option<TransparentJsonPayloadId>,
+) -> JsonValue {
+    if method == ENGINE_FORKCHOICE_UPDATED_V5 {
+        if payload_status.status == PayloadStatusV1Status::Valid {
+            payload_status.inclusion_list_satisfied.get_or_insert(true);
+        }
+        serde_json::to_value(JsonForkchoiceUpdatedV2Response {
+            payload_status: payload_status.into(),
+            payload_id,
+        })
+        .unwrap()
+    } else {
+        serde_json::to_value(JsonForkchoiceUpdatedV1Response {
+            payload_status: payload_status.into(),
+            payload_id,
+        })
+        .unwrap()
+    }
+}
+
 pub async fn handle_rpc<E: EthSpec>(
     body: JsonValue,
     ctx: Arc<Context<E>>,
@@ -738,7 +761,11 @@ pub async fn handle_rpc<E: EthSpec>(
                 .lock()
                 .on_forkchoice_updated(forkchoice_state.clone(), payload_attributes.clone())
             {
-                return Ok(serde_json::to_value(hook_response).unwrap());
+                return Ok(mock_forkchoice_response(
+                    method,
+                    hook_response.payload_status.into(),
+                    hook_response.payload_id,
+                ));
             }
 
             let head_block_hash = forkchoice_state.head_block_hash;
@@ -746,17 +773,11 @@ pub async fn handle_rpc<E: EthSpec>(
             // Canned responses set by block hash take priority.
             if let Some(status) = ctx.get_fcu_payload_status(&head_block_hash) {
                 return status
-                    .map(|status| {
-                        let response = JsonForkchoiceUpdatedV1Response {
-                            payload_status: JsonPayloadStatusV1::from(status),
-                            payload_id: None,
-                        };
-                        serde_json::to_value(response).unwrap()
-                    })
+                    .map(|status| mock_forkchoice_response(method, status, None))
                     .map_err(|message| (message, GENERIC_ERROR_CODE));
             }
 
-            let mut response = ctx
+            let response = ctx
                 .execution_block_generator
                 .write()
                 .forkchoice_updated(
@@ -765,15 +786,20 @@ pub async fn handle_rpc<E: EthSpec>(
                 )
                 .map_err(|s| (s, GENERIC_ERROR_CODE))?;
 
-            if let Some(mut status) = ctx.static_forkchoice_updated_response.lock().clone() {
-                if status.status == PayloadStatusV1Status::Valid {
-                    status.latest_valid_hash = Some(head_block_hash)
+            let mut status = response.payload_status.into();
+            if let Some(mut override_status) = ctx.static_forkchoice_updated_response.lock().clone()
+            {
+                if override_status.status == PayloadStatusV1Status::Valid {
+                    override_status.latest_valid_hash = Some(head_block_hash);
                 }
-
-                response.payload_status = status.into();
+                status = override_status;
             }
 
-            Ok(serde_json::to_value(response).unwrap())
+            Ok(mock_forkchoice_response(
+                method,
+                status,
+                response.payload_id,
+            ))
         }
         ENGINE_EXCHANGE_CAPABILITIES => {
             let engine_capabilities = ctx.engine_capabilities.read();

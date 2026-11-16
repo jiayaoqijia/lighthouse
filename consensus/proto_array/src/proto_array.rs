@@ -1632,33 +1632,8 @@ impl ProtoArray {
         &self,
         block_root: Hash256,
     ) -> Result<ExecutionVerdict, Error> {
-        let mut node = self
-            .get_block(block_root)
-            .ok_or(Error::NodeUnknown(block_root))?;
-
-        let executed_node = loop {
-            // A pre-Gloas (V17) block carries its payload inside the block, so a V17 node ran its
-            // own payload — it is the executed node.
-            let ProtoNode::V29(gloas_node) = node else {
-                break node;
-            };
-
-            // Reached the array root (the finalized block or an ancestor): VALID by definition.
-            let Some(parent_index) = gloas_node.parent else {
-                return Ok(ExecutionVerdict::Valid);
-            };
-            let parent = self
-                .nodes
-                .get(parent_index)
-                .ok_or(Error::InvalidNodeIndex(parent_index))?;
-
-            match gloas_node.parent_payload_status {
-                // The parent's own payload is in this branch (a `Full` edge, or a pre-Gloas parent
-                // that ran its payload in-block): the parent is the executed node.
-                ParentPayloadStatus::Full | ParentPayloadStatus::PreGloas => break parent,
-                // An EMPTY edge is a gap in the chain, not the end of it.
-                ParentPayloadStatus::Empty => node = parent,
-            }
+        let Some(executed_node) = self.inherited_execution_node(block_root)? else {
+            return Ok(ExecutionVerdict::Valid);
         };
 
         match executed_node.execution_status() {
@@ -1673,6 +1648,43 @@ impl ProtoArray {
                 "inherited execution walk reached an unrevealed payload: {:?}",
                 executed_node.root()
             ))),
+        }
+    }
+
+    /// Resolve the ancestor whose payload this branch executed.
+    pub(crate) fn inherited_execution_node(
+        &self,
+        block_root: Hash256,
+    ) -> Result<Option<&ProtoNode>, Error> {
+        let mut node = self
+            .get_block(block_root)
+            .ok_or(Error::NodeUnknown(block_root))?;
+
+        loop {
+            // A pre-Gloas (V17) block carries its payload inside the block, so a V17 node ran its
+            // own payload — it is the executed node.
+            let ProtoNode::V29(gloas_node) = node else {
+                return Ok(Some(node));
+            };
+
+            // Reached the array root (the finalized block or an ancestor): VALID by definition.
+            let Some(parent_index) = gloas_node.parent else {
+                return Ok(None);
+            };
+            let parent = self
+                .nodes
+                .get(parent_index)
+                .ok_or(Error::InvalidNodeIndex(parent_index))?;
+
+            match gloas_node.parent_payload_status {
+                // The parent's own payload is in this branch (a `Full` edge, or a pre-Gloas parent
+                // that ran its payload in-block): the parent is the executed node.
+                ParentPayloadStatus::Full | ParentPayloadStatus::PreGloas => {
+                    return Ok(Some(parent));
+                }
+                // An EMPTY edge is a gap in the chain, not the end of it.
+                ParentPayloadStatus::Empty => node = parent,
+            }
         }
     }
 

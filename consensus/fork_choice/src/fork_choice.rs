@@ -757,11 +757,17 @@ where
     pub fn on_valid_execution_payload_with_unsatisfied_list(
         &mut self,
         block_root: Hash256,
+        status: PayloadStatus,
         block_hash: ExecutionBlockHash,
     ) -> Result<(), Error<T::Error>> {
-        self.proto_array
-            .record_optimistic_payload_inclusion_failure(block_root, block_hash);
-        self.on_valid_execution_payload(block_hash)
+        let executed_root = self
+            .proto_array
+            .record_optimistic_payload_inclusion_failure(block_root, status, block_hash)
+            .map_err(Error::FailedToProcessValidExecutionPayload)?;
+        if let Some(root) = executed_root {
+            self.on_valid_execution_payload_by_block_root(root)?;
+        }
+        Ok(())
     }
 
     /// See `ProtoArrayForkChoice::process_execution_payload_validation_by_block_root`.
