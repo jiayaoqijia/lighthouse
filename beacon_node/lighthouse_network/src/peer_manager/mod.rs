@@ -611,6 +611,7 @@ impl<E: EthSpec> PeerManager<E> {
                     | Protocol::BlobsByRoot
                     | Protocol::PayloadEnvelopesByRange
                     | Protocol::PayloadEnvelopesByRoot
+                    | Protocol::InclusionListsByIndices
                     | Protocol::DataColumnsByRoot
                     | Protocol::DataColumnsByRange => PeerAction::MidToleranceError,
                     Protocol::LightClientBootstrap
@@ -643,6 +644,7 @@ impl<E: EthSpec> PeerManager<E> {
                     | Protocol::BlocksByHead
                     | Protocol::PayloadEnvelopesByRange
                     | Protocol::PayloadEnvelopesByRoot
+                    | Protocol::InclusionListsByIndices
                     | Protocol::BlobsByRange
                     | Protocol::BlobsByRoot
                     | Protocol::DataColumnsByRoot
@@ -667,6 +669,7 @@ impl<E: EthSpec> PeerManager<E> {
                     | Protocol::BlocksByHead
                     | Protocol::PayloadEnvelopesByRange
                     | Protocol::PayloadEnvelopesByRoot
+                    | Protocol::InclusionListsByIndices
                     | Protocol::BlobsByRange
                     | Protocol::BlobsByRoot
                     | Protocol::DataColumnsByRoot

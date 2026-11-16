@@ -5,7 +5,7 @@ use std::sync::Arc;
 use types::{
     BlobSidecar, DataColumnSidecar, Epoch, EthSpec, LightClientBootstrap,
     LightClientFinalityUpdate, LightClientOptimisticUpdate, LightClientUpdate, SignedBeaconBlock,
-    SignedExecutionPayloadEnvelope,
+    SignedExecutionPayloadEnvelope, SignedInclusionList,
 };
 
 pub type Id = u32;
@@ -20,9 +20,13 @@ pub struct SingleLookupReqId {
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub enum SyncRequestId {
     /// Request searching for a block given a hash.
-    SingleBlock { id: SingleLookupReqId },
+    SingleBlock {
+        id: SingleLookupReqId,
+    },
     /// Request searching for a payload envelope given a hash.
-    SinglePayloadEnvelope { id: SingleLookupReqId },
+    SinglePayloadEnvelope {
+        id: SingleLookupReqId,
+    },
     /// Request searching for a set of data columns given a hash and list of column indices.
     DataColumnsByRoot(DataColumnsByRootRequestId),
     /// Blocks by range request
@@ -33,6 +37,7 @@ pub enum SyncRequestId {
     DataColumnsByRange(DataColumnsByRangeRequestId),
     /// Payload envelopes by range request
     PayloadEnvelopesByRange(PayloadEnvelopesByRangeRequestId),
+    InclusionListsByIndices(Id),
 }
 
 /// Request ID for data_columns_by_root requests. Block lookups do not issue this request directly.
@@ -168,6 +173,7 @@ pub enum Response<E: EthSpec> {
     BlocksByHead(Option<Arc<SignedBeaconBlock<E>>>),
     /// A response to a get `EXECUTION_PAYLOAD_ENVELOPES_BY_ROOT` request.
     PayloadEnvelopesByRoot(Option<Arc<SignedExecutionPayloadEnvelope<E>>>),
+    InclusionListsByIndices(Option<Arc<SignedInclusionList>>),
     /// A response to a get `EXECUTION_PAYLOAD_ENVELOPES_BY_RANGE` request.
     PayloadEnvelopesByRange(Option<Arc<SignedExecutionPayloadEnvelope<E>>>),
     /// A response to a get BLOBS_BY_ROOT request.
@@ -198,6 +204,14 @@ impl<E: EthSpec> std::convert::From<Response<E>> for RpcResponse<E> {
             Response::BlocksByRange(r) => match r {
                 Some(b) => RpcResponse::Success(RpcSuccessResponse::BlocksByRange(b)),
                 None => RpcResponse::StreamTermination(ResponseTermination::BlocksByRange),
+            },
+            Response::InclusionListsByIndices(r) => match r {
+                Some(list) => {
+                    RpcResponse::Success(RpcSuccessResponse::InclusionListsByIndices(list))
+                }
+                None => {
+                    RpcResponse::StreamTermination(ResponseTermination::InclusionListsByIndices)
+                }
             },
             Response::PayloadEnvelopesByRoot(r) => match r {
                 Some(p) => RpcResponse::Success(RpcSuccessResponse::PayloadEnvelopesByRoot(p)),

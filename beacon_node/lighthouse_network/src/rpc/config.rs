@@ -110,6 +110,7 @@ pub struct RateLimiterConfig {
     pub(super) blocks_by_head_quota: Quota,
     pub(super) payload_envelopes_by_range_quota: Quota,
     pub(super) payload_envelopes_by_root_quota: Quota,
+    pub(super) inclusion_lists_by_indices_quota: Quota,
     pub(super) blobs_by_range_quota: Quota,
     pub(super) blobs_by_root_quota: Quota,
     pub(super) data_columns_by_root_quota: Quota,
@@ -167,6 +168,7 @@ impl Default for RateLimiterConfig {
             blocks_by_head_quota: Self::DEFAULT_BLOCKS_BY_HEAD_QUOTA,
             payload_envelopes_by_range_quota: Self::DEFAULT_PAYLOAD_ENVELOPES_BY_RANGE_QUOTA,
             payload_envelopes_by_root_quota: Self::DEFAULT_PAYLOAD_ENVELOPES_BY_ROOT_QUOTA,
+            inclusion_lists_by_indices_quota: Self::DEFAULT_PAYLOAD_ENVELOPES_BY_ROOT_QUOTA,
             blobs_by_range_quota: Self::DEFAULT_BLOBS_BY_RANGE_QUOTA,
             blobs_by_root_quota: Self::DEFAULT_BLOBS_BY_ROOT_QUOTA,
             data_columns_by_root_quota: Self::DEFAULT_DATA_COLUMNS_BY_ROOT_QUOTA,
@@ -237,6 +239,7 @@ impl RateLimiterConfig {
         let mut blocks_by_head_quota = None;
         let mut payload_envelopes_by_range_quota = None;
         let mut payload_envelopes_by_root_quota = None;
+        let mut inclusion_lists_by_indices_quota = None;
         let mut blobs_by_range_quota = None;
         let mut blobs_by_root_quota = None;
         let mut data_columns_by_root_quota = None;
@@ -260,6 +263,9 @@ impl RateLimiterConfig {
                 }
                 Protocol::PayloadEnvelopesByRoot => {
                     payload_envelopes_by_root_quota = payload_envelopes_by_root_quota.or(quota)
+                }
+                Protocol::InclusionListsByIndices => {
+                    inclusion_lists_by_indices_quota = inclusion_lists_by_indices_quota.or(quota)
                 }
                 Protocol::BlobsByRange => blobs_by_range_quota = blobs_by_range_quota.or(quota),
                 Protocol::BlobsByRoot => blobs_by_root_quota = blobs_by_root_quota.or(quota),
@@ -300,6 +306,8 @@ impl RateLimiterConfig {
                 .unwrap_or(default.payload_envelopes_by_range_quota),
             payload_envelopes_by_root_quota: payload_envelopes_by_root_quota
                 .unwrap_or(default.payload_envelopes_by_root_quota),
+            inclusion_lists_by_indices_quota: inclusion_lists_by_indices_quota
+                .unwrap_or(default.inclusion_lists_by_indices_quota),
             blobs_by_range_quota: blobs_by_range_quota.unwrap_or(default.blobs_by_range_quota),
             blobs_by_root_quota: blobs_by_root_quota.unwrap_or(default.blobs_by_root_quota),
             data_columns_by_root_quota: data_columns_by_root_quota

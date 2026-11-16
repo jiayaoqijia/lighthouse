@@ -29,6 +29,7 @@ use lighthouse_network::{
 };
 use logging::crit;
 use rand::prelude::SliceRandom;
+use slot_clock::SlotClock;
 use ssz_types::{ProgressiveVariableList, VariableList};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -756,6 +757,39 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         self.try_send(BeaconWorkEvent {
             drop_during_sync: false,
             work: Work::BlocksByRootsRequest(Box::pin(process_fn)),
+        })
+    }
+
+    pub fn send_inclusion_lists_request(
+        self: &Arc<Self>,
+        peer_id: PeerId,
+        id: InboundRequestId,
+        request: lighthouse_network::rpc::methods::InclusionListsByIndicesRequest,
+    ) -> Result<(), Error<T::EthSpec>> {
+        let processor = self.clone();
+        self.try_send(BeaconWorkEvent {
+            drop_during_sync: false,
+            work: Work::InclusionListsRpc(Box::new(move || {
+                processor.handle_inclusion_lists_request(peer_id, id, request);
+            })),
+        })
+    }
+
+    pub fn send_recovered_inclusion_list(
+        self: &Arc<Self>,
+        list: Arc<types::SignedInclusionList>,
+    ) -> Result<(), Error<T::EthSpec>> {
+        let chain = self.chain.clone();
+        self.try_send(BeaconWorkEvent {
+            drop_during_sync: false,
+            work: Work::InclusionListsRpc(Box::new(move || {
+                if let Some(seen) = chain.slot_clock.now_duration()
+                    && let Ok(verified) =
+                        chain.verify_inclusion_list_from_rpc((*list).clone(), seen)
+                {
+                    chain.import_inclusion_list(verified);
+                }
+            })),
         })
     }
 

@@ -41,6 +41,15 @@ impl GossipVerifiedInclusionList {
         seen_timestamp: Duration,
         ctx: &GossipVerificationContext<'_, T>,
     ) -> Result<Self, InclusionListVerificationError> {
+        Self::verify(signed_inclusion_list, seen_timestamp, ctx, false)
+    }
+
+    fn verify<T: BeaconChainTypes>(
+        signed_inclusion_list: SignedInclusionList,
+        seen_timestamp: Duration,
+        ctx: &GossipVerificationContext<'_, T>,
+        from_rpc: bool,
+    ) -> Result<Self, InclusionListVerificationError> {
         let inclusion_list = &signed_inclusion_list.message;
         let slot = inclusion_list.slot;
         let validator_index = inclusion_list.validator_index;
@@ -60,7 +69,27 @@ impl GossipVerifiedInclusionList {
         }
 
         // [IGNORE] `slot` is within the `MAXIMUM_GOSSIP_CLOCK_DISPARITY` allowance.
-        verify_propagation_slot_range(ctx.slot_clock, slot, ctx.spec)?;
+        if from_rpc {
+            let current = ctx
+                .slot_clock
+                .now()
+                .ok_or(BeaconChainError::UnableToReadSlot)?;
+            let earliest = current.saturating_sub(ctx.spec.min_slots_for_inclusion_lists_requests);
+            if slot < earliest {
+                return Err(InclusionListVerificationError::PastSlot {
+                    message_slot: slot,
+                    earliest_permissible_slot: earliest,
+                });
+            }
+            if slot > current {
+                return Err(InclusionListVerificationError::FutureSlot {
+                    message_slot: slot,
+                    latest_permissible_slot: current,
+                });
+            }
+        } else {
+            verify_propagation_slot_range(ctx.slot_clock, slot, ctx.spec)?;
+        }
 
         // [IGNORE] The size of the inclusion list transactions is non-zero.
         let transactions_size: u64 = inclusion_list
@@ -218,6 +247,45 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             spec: &self.spec,
             genesis_validators_root: self.genesis_validators_root,
         }
+    }
+
+    pub fn verify_inclusion_list_from_rpc(
+        &self,
+        list: SignedInclusionList,
+        seen: Duration,
+    ) -> Result<GossipVerifiedInclusionList, InclusionListVerificationError> {
+        GossipVerifiedInclusionList::verify(
+            list,
+            seen,
+            &self.inclusion_list_gossip_verification_context(),
+            true,
+        )
+    }
+
+    pub fn inclusion_list_validators_for_shuffling_root(
+        &self,
+        root: Hash256,
+        slot: Slot,
+    ) -> Result<Vec<usize>, InclusionListVerificationError> {
+        let ctx = self.inclusion_list_gossip_verification_context();
+        with_cached_shuffling(
+            ctx.canonical_head,
+            ctx.shuffling_cache,
+            ctx.store,
+            ctx.builder_onboarding_cache,
+            ctx.spec,
+            root,
+            slot.epoch(T::EthSpec::slots_per_epoch()),
+            |cached, _| {
+                cached
+                    .committee_cache
+                    .get_inclusion_list_committee_at_slot(
+                        slot,
+                        T::EthSpec::inclusion_list_committee_size(),
+                    )
+                    .map_err(InclusionListVerificationError::from)
+            },
+        )
     }
 
     pub fn verify_inclusion_list_for_gossip(

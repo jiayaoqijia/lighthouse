@@ -4237,6 +4237,51 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         }
     }
 
+    fn fetch_missing_bid_inclusion_lists(
+        &self,
+        peer_id: PeerId,
+        bid: &types::ExecutionPayloadBidHeze<T::EthSpec>,
+    ) {
+        let slot = bid.slot.saturating_sub(1u64);
+        let Ok((committee, dependent_root)) = self
+            .chain
+            .inclusion_list_committee(bid.parent_block_root, slot)
+        else {
+            return;
+        };
+        let existing = self
+            .chain
+            .inclusion_list_store
+            .read()
+            .get_inclusion_list_bits(slot, dependent_root, &committee, false);
+        let Ok(existing) = existing else { return };
+        let mut indices = ssz::BitVector::<typenum::U16>::new();
+        let mut validators = Vec::new();
+        for (position, validator) in committee.iter().enumerate() {
+            if bid.inclusion_list_bits.get(position) == Ok(true)
+                && existing.get(position) == Ok(false)
+            {
+                if indices.set(position, true).is_err() {
+                    return;
+                }
+                validators.push(*validator);
+            }
+        }
+        if !validators.is_empty() {
+            validators.sort_unstable();
+            validators.dedup();
+            self.send_network_message(NetworkMessage::FetchInclusionLists {
+                peer_id,
+                request: lighthouse_network::rpc::methods::InclusionListsByIndicesRequest {
+                    slot,
+                    dependent_root,
+                    indices,
+                },
+                validators,
+            });
+        }
+    }
+
     #[instrument(
         name = "lh_process_execution_payload_bid",
         parent = None,
@@ -4254,6 +4299,9 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
 
         match verification_result {
             Ok(_) => {
+                if let types::ExecutionPayloadBidRef::Heze(bid) = bid.message() {
+                    self.fetch_missing_bid_inclusion_lists(peer_id, bid);
+                }
                 self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Accept);
             }
             Err(

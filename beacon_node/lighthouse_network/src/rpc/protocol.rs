@@ -272,6 +272,8 @@ pub enum Protocol {
     /// The `ExecutionPayloadEnvelopesByRoot` protocol name.
     #[strum(serialize = "execution_payload_envelopes_by_root")]
     PayloadEnvelopesByRoot,
+    #[strum(serialize = "inclusion_lists_by_indices")]
+    InclusionListsByIndices,
     /// The `ExecutionPayloadEnvelopesByRange` protocol name.
     #[strum(serialize = "execution_payload_envelopes_by_range")]
     PayloadEnvelopesByRange,
@@ -313,6 +315,7 @@ impl Protocol {
             Protocol::BlocksByHead => Some(ResponseTermination::BlocksByHead),
             Protocol::PayloadEnvelopesByRange => Some(ResponseTermination::PayloadEnvelopesByRange),
             Protocol::PayloadEnvelopesByRoot => Some(ResponseTermination::PayloadEnvelopesByRoot),
+            Protocol::InclusionListsByIndices => Some(ResponseTermination::InclusionListsByIndices),
             Protocol::BlobsByRange => Some(ResponseTermination::BlobsByRange),
             Protocol::BlobsByRoot => Some(ResponseTermination::BlobsByRoot),
             Protocol::DataColumnsByRoot => Some(ResponseTermination::DataColumnsByRoot),
@@ -348,6 +351,7 @@ pub enum SupportedProtocol {
     BlocksByHeadV1,
     PayloadEnvelopesByRangeV1,
     PayloadEnvelopesByRootV1,
+    InclusionListsByIndicesV1,
     BlobsByRangeV1,
     BlobsByRootV1,
     DataColumnsByRootV1,
@@ -372,6 +376,7 @@ impl SupportedProtocol {
             SupportedProtocol::BlocksByRangeV2 => "2",
             SupportedProtocol::PayloadEnvelopesByRangeV1 => "1",
             SupportedProtocol::PayloadEnvelopesByRootV1 => "1",
+            SupportedProtocol::InclusionListsByIndicesV1 => "1",
             SupportedProtocol::BlocksByRootV1 => "1",
             SupportedProtocol::BlocksByRootV2 => "2",
             SupportedProtocol::BlocksByHeadV1 => "1",
@@ -402,6 +407,7 @@ impl SupportedProtocol {
             SupportedProtocol::BlocksByHeadV1 => Protocol::BlocksByHead,
             SupportedProtocol::PayloadEnvelopesByRangeV1 => Protocol::PayloadEnvelopesByRange,
             SupportedProtocol::PayloadEnvelopesByRootV1 => Protocol::PayloadEnvelopesByRoot,
+            SupportedProtocol::InclusionListsByIndicesV1 => Protocol::InclusionListsByIndices,
             SupportedProtocol::BlobsByRangeV1 => Protocol::BlobsByRange,
             SupportedProtocol::BlobsByRootV1 => Protocol::BlobsByRoot,
             SupportedProtocol::DataColumnsByRootV1 => Protocol::DataColumnsByRoot,
@@ -467,6 +473,12 @@ impl SupportedProtocol {
                     Encoding::SSZSnappy,
                 ),
             ]);
+        }
+        if fork_context.fork_exists(ForkName::Heze) {
+            supported.push(ProtocolId::new(
+                SupportedProtocol::InclusionListsByIndicesV1,
+                Encoding::SSZSnappy,
+            ));
         }
         // BeaconBlocksByHead is new in Fulu (consensus-specs PR 5181).
         if fork_context.fork_exists(ForkName::Fulu) {
@@ -589,6 +601,10 @@ impl ProtocolId {
                 <PayloadEnvelopesByRangeRequest as Encode>::ssz_fixed_len(),
                 <PayloadEnvelopesByRangeRequest as Encode>::ssz_fixed_len(),
             ),
+            Protocol::InclusionListsByIndices => {
+                let len = <InclusionListsByIndicesRequest as Encode>::ssz_fixed_len();
+                RpcLimits::new(len, len)
+            }
             Protocol::PayloadEnvelopesByRoot => {
                 RpcLimits::new(0, spec.max_payload_envelopes_by_root_request)
             }
@@ -633,6 +649,7 @@ impl ProtocolId {
             Protocol::BlocksByHead => rpc_block_limits_by_fork(fork_context.current_fork_name()),
             Protocol::PayloadEnvelopesByRange => rpc_payload_limits(),
             Protocol::PayloadEnvelopesByRoot => rpc_payload_limits(),
+            Protocol::InclusionListsByIndices => RpcLimits::new(152, 41_112),
             Protocol::BlobsByRange => rpc_blob_limits::<E>(),
             Protocol::BlobsByRoot => rpc_blob_limits::<E>(),
             Protocol::DataColumnsByRoot => {
@@ -673,6 +690,7 @@ impl ProtocolId {
             | SupportedProtocol::BlocksByHeadV1
             | SupportedProtocol::PayloadEnvelopesByRangeV1
             | SupportedProtocol::PayloadEnvelopesByRootV1
+            | SupportedProtocol::InclusionListsByIndicesV1
             | SupportedProtocol::BlobsByRangeV1
             | SupportedProtocol::BlobsByRootV1
             | SupportedProtocol::DataColumnsByRootV1
@@ -834,6 +852,7 @@ pub enum RequestType<E: EthSpec> {
     BlocksByHead(BlocksByHeadRequest),
     PayloadEnvelopesByRange(PayloadEnvelopesByRangeRequest),
     PayloadEnvelopesByRoot(PayloadEnvelopesByRootRequest),
+    InclusionListsByIndices(InclusionListsByIndicesRequest),
     BlobsByRange(BlobsByRangeRequest),
     BlobsByRoot(BlobsByRootRequest),
     DataColumnsByRoot(DataColumnsByRootRequest<E>),
@@ -860,6 +879,7 @@ impl<E: EthSpec> RequestType<E> {
             RequestType::BlocksByHead(req) => req.count,
             RequestType::PayloadEnvelopesByRange(req) => req.count,
             RequestType::PayloadEnvelopesByRoot(req) => req.beacon_block_roots.len() as u64,
+            RequestType::InclusionListsByIndices(req) => req.indices.num_set_bits() as u64,
             RequestType::BlobsByRange(req) => req.max_blobs_requested(digest_epoch, spec),
             RequestType::BlobsByRoot(req) => req.blob_ids.len() as u64,
             RequestType::DataColumnsByRoot(req) => req.max_requested() as u64,
@@ -892,6 +912,7 @@ impl<E: EthSpec> RequestType<E> {
             RequestType::BlocksByHead(_) => SupportedProtocol::BlocksByHeadV1,
             RequestType::PayloadEnvelopesByRange(_) => SupportedProtocol::PayloadEnvelopesByRangeV1,
             RequestType::PayloadEnvelopesByRoot(_) => SupportedProtocol::PayloadEnvelopesByRootV1,
+            RequestType::InclusionListsByIndices(_) => SupportedProtocol::InclusionListsByIndicesV1,
             RequestType::BlobsByRange(_) => SupportedProtocol::BlobsByRangeV1,
             RequestType::BlobsByRoot(_) => SupportedProtocol::BlobsByRootV1,
             RequestType::DataColumnsByRoot(_) => SupportedProtocol::DataColumnsByRootV1,
@@ -926,6 +947,7 @@ impl<E: EthSpec> RequestType<E> {
             RequestType::BlocksByHead(_) => ResponseTermination::BlocksByHead,
             RequestType::PayloadEnvelopesByRange(_) => ResponseTermination::PayloadEnvelopesByRange,
             RequestType::PayloadEnvelopesByRoot(_) => ResponseTermination::PayloadEnvelopesByRoot,
+            RequestType::InclusionListsByIndices(_) => ResponseTermination::InclusionListsByIndices,
             RequestType::BlobsByRange(_) => ResponseTermination::BlobsByRange,
             RequestType::BlobsByRoot(_) => ResponseTermination::BlobsByRoot,
             RequestType::DataColumnsByRoot(_) => ResponseTermination::DataColumnsByRoot,
@@ -968,6 +990,10 @@ impl<E: EthSpec> RequestType<E> {
             )],
             RequestType::PayloadEnvelopesByRange(_) => vec![ProtocolId::new(
                 SupportedProtocol::PayloadEnvelopesByRangeV1,
+                Encoding::SSZSnappy,
+            )],
+            RequestType::InclusionListsByIndices(_) => vec![ProtocolId::new(
+                SupportedProtocol::InclusionListsByIndicesV1,
                 Encoding::SSZSnappy,
             )],
             RequestType::PayloadEnvelopesByRoot(_) => vec![ProtocolId::new(
@@ -1028,6 +1054,7 @@ impl<E: EthSpec> RequestType<E> {
             RequestType::BlobsByRange(_) => false,
             RequestType::PayloadEnvelopesByRange(_) => false,
             RequestType::PayloadEnvelopesByRoot(_) => false,
+            RequestType::InclusionListsByIndices(_) => false,
             RequestType::BlobsByRoot(_) => false,
             RequestType::DataColumnsByRoot(_) => false,
             RequestType::DataColumnsByRange(_) => false,
@@ -1142,6 +1169,9 @@ impl<E: EthSpec> std::fmt::Display for RequestType<E> {
             RequestType::PayloadEnvelopesByRange(req) => {
                 write!(f, "Payload envelopes by range: {:?}", req)
             }
+            RequestType::InclusionListsByIndices(req) => {
+                write!(f, "Inclusion lists by indices: {req:?}")
+            }
             RequestType::PayloadEnvelopesByRoot(req) => {
                 write!(f, "Payload envelopes by root: {:?}", req)
             }
@@ -1213,6 +1243,7 @@ mod tests {
                 fork_context.fork_exists(ForkName::Gloas)
             }
 
+            InclusionListsByIndicesV1 => fork_context.fork_exists(ForkName::Heze),
             BlocksByHeadV1 => fork_context.fork_exists(ForkName::Fulu),
 
             // Light client protocols are not in currently_supported()
