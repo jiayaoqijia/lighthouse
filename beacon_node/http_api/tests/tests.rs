@@ -12812,6 +12812,94 @@ async fn post_beacon_execution_payload_bids() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn heze_inclusion_view_is_bound_to_the_proposal_parent() {
+    let harness = BeaconChainHarness::builder(E::default())
+        .spec(Arc::new(
+            types::ForkName::Heze.make_genesis_spec(E::default_spec()),
+        ))
+        .deterministic_keypairs(VALIDATOR_COUNT)
+        .fresh_ephemeral_store()
+        .mock_execution_layer()
+        .build();
+
+    harness.extend_to_slot(Slot::new(1)).await;
+    let parent = harness.head_block_root();
+    let slot = Slot::new(1);
+    let (committee, dependent_root) = harness
+        .chain
+        .inclusion_list_committee(parent, slot)
+        .unwrap();
+    let validator = committee[0];
+    let transaction = |byte: u8, root| SignedInclusionList {
+        message: InclusionList {
+            slot,
+            validator_index: validator,
+            dependent_root: root,
+            transactions: vec![vec![byte].try_into().unwrap()].try_into().unwrap(),
+        },
+        signature: Signature::empty(),
+    };
+    for (byte, root) in [
+        (0xba, dependent_root),
+        (0xbb, dependent_root),
+        (0xcc, Hash256::repeat_byte(92)),
+    ] {
+        harness.chain.inclusion_list_store.write().process_inclusion_list(
+            beacon_chain::inclusion_list_verification::gossip_verified_inclusion_list::GossipVerifiedInclusionList {
+                signed_inclusion_list: transaction(byte, root),
+                is_timely: false,
+            },
+        );
+    }
+
+    harness.extend_to_slot(Slot::new(2)).await;
+    let root = harness.head_block_root();
+    let api = create_api_server(harness.chain.clone(), &harness.runtime).await;
+    let url = format!(
+        "http://127.0.0.1:{}/eth/v1/beacon/blocks/{root}/inclusion_lists",
+        api.listening_socket.port()
+    );
+    harness
+        .runtime
+        .task_executor
+        .spawn(api.server, "api_server");
+    let result = reqwest::get(&url)
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap()
+        .json::<serde_json::Value>()
+        .await
+        .unwrap();
+    let view = &result["data"];
+    assert_eq!(view["block_root"], serde_json::json!(root));
+    assert_eq!(view["slot"], "1");
+    assert_eq!(view["dependent_root"], serde_json::json!(dependent_root));
+    assert_eq!(
+        view["committee"],
+        serde_json::json!(committee.iter().map(u64::to_string).collect::<Vec<_>>())
+    );
+    let observations = view["inclusion_lists"].as_array().unwrap();
+    assert_eq!(observations.len(), 1);
+    assert_eq!(
+        observations[0]["signed_inclusion_list"]["message"]["transactions"],
+        serde_json::json!(["0xba"])
+    );
+    assert_eq!(observations[0]["timely"], false);
+    assert_eq!(observations[0]["equivocated"], true);
+
+    harness
+        .chain
+        .inclusion_list_store
+        .write()
+        .prune(Slot::new(4));
+    assert_eq!(
+        reqwest::get(url).await.unwrap().status(),
+        StatusCode::NOT_FOUND
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn inclusion_list_publish_pre_heze() {
     if fork_name_from_env().is_some_and(|f| f.heze_enabled()) {
         return;

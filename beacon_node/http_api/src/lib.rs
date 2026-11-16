@@ -16,6 +16,7 @@ mod builders;
 mod caches;
 mod custody;
 mod database;
+mod inclusion_list_view;
 mod light_client;
 mod metrics;
 mod peer;
@@ -1182,6 +1183,21 @@ pub async fn serve<T: BeaconChainTypes>(
         .and(block_id_or_err)
         .and(task_spawner_filter.clone())
         .and(chain_filter.clone());
+
+    // GET beacon/blocks/{block_id}/inclusion_lists
+    let get_beacon_inclusion_lists = beacon_blocks_path_v1
+        .clone()
+        .and(warp::path("inclusion_lists"))
+        .and(warp::path::end())
+        .then(
+            |block_id: BlockId,
+             task_spawner: TaskSpawner<T::EthSpec>,
+             chain: Arc<BeaconChain<T>>| {
+                task_spawner.blocking_json_task(Priority::P1, move || {
+                    inclusion_list_view::for_block(block_id, &chain)
+                })
+            },
+        );
 
     // GET beacon/blocks/{block_id}
     let get_beacon_block = beacon_blocks_path_any
@@ -3582,6 +3598,7 @@ pub async fn serve<T: BeaconChainTypes>(
                 .uor(get_beacon_headers)
                 .uor(get_beacon_headers_block_id)
                 .uor(get_beacon_block)
+                .uor(get_beacon_inclusion_lists)
                 .uor(get_beacon_block_attestations)
                 .uor(get_beacon_blinded_block)
                 .uor(get_beacon_block_root)

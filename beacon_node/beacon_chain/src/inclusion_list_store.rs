@@ -19,6 +19,14 @@ use types::{
 /// The shuffling `dependent_root` an inclusion list was produced against.
 pub type DependentRoot = Hash256;
 
+/// A signed list as observed by this node, including equivocation and arrival time.
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ObservedInclusionList {
+    pub signed_inclusion_list: SignedInclusionList,
+    pub timely: bool,
+    pub equivocated: bool,
+}
+
 pub struct ProposerInclusionLists<E: EthSpec> {
     pub transactions: ProgressiveTransactions,
     pub bits: BitVector<E::InclusionListCommitteeSize>,
@@ -278,6 +286,41 @@ impl<E: EthSpec> InclusionListStore<E> {
             .filter(|(validator, _)| !equivocators.is_some_and(|set| set.contains(validator)))
             .map(|(_, (il, _))| il.clone())
             .collect()
+    }
+
+    /// Read retained observations in committee order, including the first list from equivocators.
+    /// A missing retained entry is distinct from a slot the node has already pruned.
+    pub fn observed_inclusion_lists(
+        &self,
+        slot: Slot,
+        dependent_root: DependentRoot,
+        committee: &InclusionListCommittee<E>,
+    ) -> Option<Vec<ObservedInclusionList>> {
+        if slot < self.lowest_permissible_slot {
+            return None;
+        }
+        let Some(stored) = self
+            .slots
+            .get(&slot)
+            .and_then(|entry| entry.by_dependent_root.get(&dependent_root))
+        else {
+            return Some(Vec::new());
+        };
+        let mut seen = HashSet::new();
+        Some(
+            committee
+                .iter()
+                .filter(|validator| seen.insert(**validator))
+                .filter_map(|validator| {
+                    let (list, timely) = stored.get(validator)?;
+                    Some(ObservedInclusionList {
+                        signed_inclusion_list: list.clone(),
+                        timely: *timely,
+                        equivocated: self.seen_twice(slot, dependent_root, *validator),
+                    })
+                })
+                .collect(),
+        )
     }
 
     /// Drop every slot below `current_slot - slots_retained`. Hooked into the per-slot timer.
