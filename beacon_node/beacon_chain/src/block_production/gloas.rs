@@ -32,9 +32,9 @@ use types::{
     BeaconStateError, BlobsList, BuilderIndex, Deposit, Eth1Data, EthSpec, ExecutionBlockHash,
     ExecutionPayloadBidGloas, ExecutionPayloadBidHeze, ExecutionPayloadEnvelope,
     ExecutionRequestsGloas, FullPayload, Graffiti, Hash256, IndexedAttestation, KzgProofs,
-    PayloadAttestation, ProposerSlashing, RelativeEpoch, SignedBeaconBlock,
-    SignedBlsToExecutionChange, SignedExecutionPayloadBid, SignedExecutionPayloadBidGloas,
-    SignedExecutionPayloadBidHeze, SignedExecutionPayloadEnvelope,
+    PayloadAttestation, ProgressiveTransactions, ProposerSlashing, RelativeEpoch,
+    SignedBeaconBlock, SignedBlsToExecutionChange, SignedExecutionPayloadBid,
+    SignedExecutionPayloadBidGloas, SignedExecutionPayloadBidHeze, SignedExecutionPayloadEnvelope,
     SignedExecutionPayloadEnvelopeSummary, SignedProposerPreferences, SignedVoluntaryExit, Slot,
     SyncAggregate, Uint256, Withdrawal, Withdrawals,
 };
@@ -44,6 +44,7 @@ use eth2::types::BuilderConfig;
 use sensitive_url::SensitiveUrl;
 
 use crate::block_production::bid_selection::{self, BidCandidate, BidSource, ExecutionPayloadData};
+use crate::inclusion_list_store::ProposerInclusionLists;
 use crate::payload_bid_verification::PayloadBidError;
 use crate::payload_bid_verification::direct_verified_bid::verify_direct_bid;
 use crate::payload_bid_verification::gossip_verified_bid::{
@@ -83,8 +84,12 @@ type BlockProductionResult<E> = (
     Option<SensitiveUrl>,
 );
 
-pub type PreparePayloadResult<E> = Result<BlockProposalContentsGloas<E>, BlockProductionError>;
-pub type PreparePayloadHandle<E> = JoinHandle<Option<PreparePayloadResult<E>>>;
+struct PreparedPayload<E: EthSpec> {
+    contents: BlockProposalContentsGloas<E>,
+    inclusion_list_bits: BitVector<E::InclusionListCommitteeSize>,
+}
+
+type PreparePayloadHandle<E> = JoinHandle<Option<Result<PreparedPayload<E>, BlockProductionError>>>;
 
 pub struct PartialBeaconBlock<E: EthSpec> {
     slot: Slot,
@@ -1009,7 +1014,10 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             preferred_gas_limit,
         )?;
 
-        let block_proposal_contents = prepare_payload_handle
+        let PreparedPayload {
+            contents,
+            inclusion_list_bits,
+        } = prepare_payload_handle
             .await
             .map_err(BlockProductionError::TokioJoin)?
             .ok_or(BlockProductionError::ShuttingDown)??;
@@ -1021,7 +1029,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             blob_kzg_commitments,
             blobs_and_proofs,
             should_override_builder,
-        } = block_proposal_contents;
+        } = contents;
 
         let signature = Signature::infinity().map_err(BlockProductionError::BlsError)?;
         let signed_execution_payload_bid = match state {
@@ -1071,9 +1079,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
                     execution_payment: EXECUTION_PAYMENT_TRUSTLESS_BUILD,
                     blob_kzg_commitments,
                     execution_requests_root: execution_requests.tree_hash_root(),
-                    // TODO(heze): set the bits based on the IL committee members whose
-                    // inclusion lists were considered when building the payload
-                    inclusion_list_bits: BitVector::new(),
+                    inclusion_list_bits,
                 };
                 SignedExecutionPayloadBid::Heze(SignedExecutionPayloadBidHeze {
                     message: bid,
@@ -1495,7 +1501,7 @@ async fn prepare_execution_payload<T>(
     target_gas_limit: u64,
     withdrawals: Vec<Withdrawal>,
     parent_beacon_block_root: Hash256,
-) -> Result<BlockProposalContentsGloas<T::EthSpec>, BlockProductionError>
+) -> Result<PreparedPayload<T::EthSpec>, BlockProductionError>
 where
     T: BeaconChainTypes,
 {
@@ -1528,25 +1534,35 @@ where
     let suggested_fee_recipient = execution_layer
         .get_suggested_fee_recipient(proposer_index)
         .await;
-    let inclusion_list_transactions = if fork.heze_enabled() {
+    let (inclusion_list_transactions, inclusion_list_bits) = if fork.heze_enabled() {
         let inner_chain = chain.clone();
-        let transactions = chain
+        let ProposerInclusionLists { transactions, bits } = chain
             .spawn_blocking_handle(
-                move || {
-                    inner_chain.proposer_inclusion_list_transactions(parent_beacon_block_root, slot)
-                },
-                "prepare_execution_payload_inclusion_list_transactions",
+                move || inner_chain.proposer_inclusion_lists(parent_beacon_block_root, slot),
+                "prepare_execution_payload_inclusion_lists",
             )
-            .instrument(debug_span!("proposer_inclusion_list_transactions"))
+            .instrument(debug_span!("proposer_inclusion_lists"))
             .await
-            .map_err(|e| BlockProductionError::BeaconChain(Box::new(e)))?;
+            .map_err(|e| BlockProductionError::BeaconChain(Box::new(e)))?
+            .unwrap_or_else(|error| {
+                warn!(
+                    ?parent_beacon_block_root,
+                    %slot,
+                    ?error,
+                    "Failed to read inclusion lists, building payload without them"
+                );
+                ProposerInclusionLists {
+                    transactions: ProgressiveTransactions::empty(),
+                    bits: BitVector::new(),
+                }
+            });
         metrics::inc_counter_by(
             &metrics::INCLUSION_LIST_TRANSACTIONS_PREPARE_EXECUTION_PAYLOAD_TOTAL,
             transactions.len() as u64,
         );
-        Some(transactions)
+        (Some(transactions), bits)
     } else {
-        None
+        (None, BitVector::new())
     };
 
     let payload_attributes = PayloadAttributes::new(
@@ -1573,7 +1589,10 @@ where
         .await
         .map_err(BlockProductionError::GetPayloadFailed)?;
 
-    Ok(block_contents)
+    Ok(PreparedPayload {
+        contents: block_contents,
+        inclusion_list_bits,
+    })
 }
 
 /// Drop voluntary exits whose target validators will be made ineligible to exit by the parent

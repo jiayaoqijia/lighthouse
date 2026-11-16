@@ -11,10 +11,18 @@ use ssz_types::{BitVector, ProgressiveVariableList};
 use std::collections::{HashMap, HashSet};
 use std::marker::PhantomData;
 use tree_hash::TreeHash;
-use types::{ChainSpec, EthSpec, Hash256, InclusionListCommittee, SignedInclusionList, Slot};
+use types::{
+    ChainSpec, EthSpec, Hash256, InclusionListCommittee, ProgressiveTransactions,
+    SignedInclusionList, Slot,
+};
 
 /// The shuffling `dependent_root` an inclusion list was produced against.
 pub type DependentRoot = Hash256;
+
+pub struct ProposerInclusionLists<E: EthSpec> {
+    pub transactions: ProgressiveTransactions,
+    pub bits: BitVector<E::InclusionListCommitteeSize>,
+}
 
 /// The result of inserting a `SignedInclusionList`. Drives the gossip accept/ignore verdict.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -5,6 +5,7 @@ mod block_verification;
 mod circuit_breaker;
 mod column_verification;
 mod gloas_pre_import_rpc_cache;
+mod inclusion_list_store;
 mod payload_invalidation;
 mod schema_stability;
 mod sync_committee_verification;

@@ -41,7 +41,7 @@ use crate::execution_payload::{NotifyExecutionLayer, PreparePayloadHandle, get_e
 use crate::execution_proof_verification::ObservedExecutionProofs;
 use crate::fork_choice_signal::{ForkChoiceSignalRx, ForkChoiceSignalTx};
 use crate::graffiti_calculator::{GraffitiCalculator, GraffitiSettings};
-use crate::inclusion_list_store::{DependentRoot, InclusionListStore};
+use crate::inclusion_list_store::{DependentRoot, InclusionListStore, ProposerInclusionLists};
 use crate::light_client_finality_update_verification::{
     Error as LightClientFinalityUpdateError, VerifiedLightClientFinalityUpdate,
 };
@@ -7717,26 +7717,21 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             .map_err(Into::into)
     }
 
-    /// Provides the inclusion list transactions for a
-    /// payload built on `parent_root` for `proposal_slot`
-    /// The return value falls back to an empty list if fetching the inclusion list transactions fails
-    pub fn proposer_inclusion_list_transactions(
+    /// Returns the transactions and committee bits from the same previous-slot list view.
+    pub fn proposer_inclusion_lists(
         &self,
         parent_root: Hash256,
         proposal_slot: Slot,
-    ) -> ProgressiveTransactions {
+    ) -> Result<ProposerInclusionLists<T::EthSpec>, Error> {
         let il_slot = proposal_slot.saturating_sub(1u64);
-        self.get_inclusion_list_transactions(parent_root, il_slot, false)
-            .and_then(|transactions| ProgressiveTransactions::new(transactions).map_err(Into::into))
-            .unwrap_or_else(|e| {
-                warn!(
-                    ?parent_root,
-                    %il_slot,
-                    error = ?e,
-                    "Failed to read inclusion lists, building payload without them"
-                );
-                ProgressiveTransactions::empty()
-            })
+        let (committee, dependent_root) = self.inclusion_list_committee(parent_root, il_slot)?;
+        let store = self.inclusion_list_store.read();
+        let transactions = store.get_inclusion_list_transactions(il_slot, dependent_root, false);
+        let bits = store.get_inclusion_list_bits(il_slot, dependent_root, &committee, false)?;
+        Ok(ProposerInclusionLists {
+            transactions: ProgressiveTransactions::new(transactions)?,
+            bits,
+        })
     }
 
     /// Dumps the entire canonical chain, from the head to genesis to a vector for analysis.
