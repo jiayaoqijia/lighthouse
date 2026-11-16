@@ -562,4 +562,64 @@ mod payload_hash_tests {
         assert!(verify_envelope_payload_hash(&envelope, &heze).is_ok());
         assert!(verify_envelope_payload_hash(&envelope, &make_block(slot)).is_err());
     }
+    #[test]
+    fn heze_historical_envelope_binds_frame_blob_commitments_in_order() {
+        use execution_layer::test_utils::generate_blobs;
+        use state_processing::per_block_processing::deneb::kzg_commitment_to_versioned_hash;
+        use types::{BeaconBlockHeze, EmptyBlock, EthSpec, ForkName};
+
+        let slot = Slot::new(10);
+        let spec = ForkName::Heze.make_genesis_spec(E::default_spec());
+        let (bundle, _) = generate_blobs::<E>(1, ForkName::Heze).unwrap();
+        let kzg = crate::test_utils::get_kzg(&spec);
+        let empty_commitment =
+            crate::kzg_utils::blob_to_kzg_commitment::<E>(&kzg, &types::Blob::<E>::default())
+                .unwrap();
+        let commitments = vec![bundle.commitments[0], empty_commitment];
+        assert_ne!(commitments[0], commitments[1]);
+        let mut block = BeaconBlockHeze {
+            slot,
+            ..BeaconBlockHeze::empty(&spec)
+        };
+        let mut envelope = make_consistent_envelope(slot);
+        // Seven-field Frame envelope through the RLP header of the two-item blob list.
+        let mut frame = hex::decode(
+            "06f86e0180941111111111111111111111111111111111111111cbca010380c4822710808080c0c5830f424001f842",
+        ).unwrap();
+        for commitment in &commitments {
+            frame.push(0xa0);
+            frame.extend_from_slice(kzg_commitment_to_versioned_hash(commitment).as_slice());
+        }
+
+        let payload = &mut envelope.message.payload;
+        payload.transactions = vec![frame.try_into().unwrap()].try_into().unwrap();
+        (payload.block_hash, _) = calculate_execution_block_hash::<E>(
+            ExecutionPayloadRef::Gloas(payload),
+            Some(envelope.message.parent_beacon_block_root),
+            Some(ExecutionRequestsRef::Gloas(
+                &envelope.message.execution_requests,
+            )),
+        );
+        block
+            .body
+            .signed_execution_payload_bid
+            .message
+            .blob_kzg_commitments = ProgressiveVariableList::new(commitments.clone()).unwrap();
+        let signed =
+            SignedBeaconBlock::from_block(BeaconBlock::Heze(block.clone()), Signature::empty());
+        assert!(verify_envelope_payload_hash(&envelope, &signed).is_ok());
+
+        let mut reversed = commitments;
+        reversed.reverse();
+        block
+            .body
+            .signed_execution_payload_bid
+            .message
+            .blob_kzg_commitments = ProgressiveVariableList::new(reversed).unwrap();
+        let reordered = SignedBeaconBlock::from_block(BeaconBlock::Heze(block), Signature::empty());
+        assert!(verify_envelope_payload_hash(&envelope, &reordered).is_err());
+
+        envelope.message.payload.timestamp += 1;
+        assert!(verify_envelope_payload_hash(&envelope, &signed).is_err());
+    }
 }
