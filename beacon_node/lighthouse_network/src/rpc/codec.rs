@@ -77,6 +77,7 @@ impl<E: EthSpec> SSZSnappyInboundCodec<E> {
                 RpcSuccessResponse::BlocksByHead(res) => res.as_ssz_bytes(),
                 RpcSuccessResponse::PayloadEnvelopesByRange(res) => res.as_ssz_bytes(),
                 RpcSuccessResponse::PayloadEnvelopesByRoot(res) => res.as_ssz_bytes(),
+                RpcSuccessResponse::InclusionListsByIndices(res) => res.as_ssz_bytes(),
                 RpcSuccessResponse::BlobsByRange(res) => res.as_ssz_bytes(),
                 RpcSuccessResponse::BlobsByRoot(res) => res.as_ssz_bytes(),
                 RpcSuccessResponse::DataColumnsByRoot(res) => res.as_ssz_bytes(),
@@ -360,6 +361,7 @@ impl<E: EthSpec> Encoder<RequestType<E>> for SSZSnappyOutboundCodec<E> {
             RequestType::BlocksByHead(req) => req.as_ssz_bytes(),
             RequestType::PayloadEnvelopesByRange(req) => req.as_ssz_bytes(),
             RequestType::PayloadEnvelopesByRoot(req) => req.beacon_block_roots.as_ssz_bytes(),
+            RequestType::InclusionListsByIndices(req) => req.as_ssz_bytes(),
             RequestType::BlobsByRange(req) => req.as_ssz_bytes(),
             RequestType::BlobsByRoot(req) => req.blob_ids.as_ssz_bytes(),
             RequestType::DataColumnsByRange(req) => req.as_ssz_bytes(),
@@ -560,6 +562,11 @@ fn handle_rpc_request<E: EthSpec>(
                 PayloadEnvelopesByRangeRequest::from_ssz_bytes(decoded_buffer)?,
             )))
         }
+        SupportedProtocol::InclusionListsByIndicesV1 => {
+            Ok(Some(RequestType::InclusionListsByIndices(
+                InclusionListsByIndicesRequest::from_ssz_bytes(decoded_buffer)?,
+            )))
+        }
         SupportedProtocol::PayloadEnvelopesByRootV1 => Ok(Some(
             RequestType::PayloadEnvelopesByRoot(PayloadEnvelopesByRootRequest {
                 beacon_block_roots: RuntimeVariableList::from_ssz_bytes(
@@ -689,6 +696,15 @@ fn handle_rpc_response<E: EthSpec>(
                     "No context bytes provided for {:?} response",
                     versioned_protocol
                 ),
+            )),
+        },
+        SupportedProtocol::InclusionListsByIndicesV1 => match fork_name {
+            Some(ForkName::Heze) => Ok(Some(RpcSuccessResponse::InclusionListsByIndices(
+                Arc::new(types::SignedInclusionList::from_ssz_bytes(decoded_buffer)?),
+            ))),
+            _ => Err(RPCError::ErrorResponse(
+                RpcErrorResponse::InvalidRequest,
+                "inclusion list response needs Heze context".into(),
             )),
         },
         SupportedProtocol::PayloadEnvelopesByRootV1 => match fork_name {
@@ -1280,6 +1296,9 @@ mod tests {
             RequestType::PayloadEnvelopesByRoot(peroot) => {
                 assert_eq!(decoded, RequestType::PayloadEnvelopesByRoot(peroot))
             }
+            RequestType::InclusionListsByIndices(request) => {
+                assert_eq!(decoded, RequestType::InclusionListsByIndices(request))
+            }
             RequestType::BlobsByRoot(bbroot) => {
                 assert_eq!(decoded, RequestType::BlobsByRoot(bbroot))
             }
@@ -1309,6 +1328,42 @@ mod tests {
                 )
             }
         }
+    }
+
+    #[test]
+    fn heze_inclusion_list_request_and_response_roundtrip() {
+        let spec = ForkName::Heze.make_genesis_spec(Spec::default_spec());
+        let slot = types::Slot::new(7);
+        let root = types::Hash256::repeat_byte(0x34);
+        let mut indices = ssz::BitVector::new();
+        indices.set(3, true).unwrap();
+        encode_then_decode_request(
+            RequestType::InclusionListsByIndices(InclusionListsByIndicesRequest {
+                slot,
+                dependent_root: root,
+                indices,
+            }),
+            ForkName::Heze,
+            &spec,
+        );
+        let list = Arc::new(types::SignedInclusionList {
+            message: types::InclusionList {
+                slot,
+                dependent_root: root,
+                validator_index: 12,
+                transactions: vec![vec![0x01].try_into().unwrap()].try_into().unwrap(),
+            },
+            signature: bls::Signature::empty(),
+        });
+        assert_eq!(
+            encode_then_decode_response(
+                SupportedProtocol::InclusionListsByIndicesV1,
+                RpcResponse::Success(RpcSuccessResponse::InclusionListsByIndices(list.clone())),
+                ForkName::Heze,
+                &spec,
+            ),
+            Ok(Some(RpcSuccessResponse::InclusionListsByIndices(list)))
+        );
     }
 
     // Test RPCResponse encoding/decoding for V1 messages

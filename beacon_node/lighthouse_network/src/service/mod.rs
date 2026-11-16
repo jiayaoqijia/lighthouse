@@ -1721,6 +1721,17 @@ impl<E: EthSpec> Network<E> {
                             request_type,
                         })
                     }
+                    RequestType::InclusionListsByIndices(_) => {
+                        metrics::inc_counter_vec(
+                            &metrics::TOTAL_RPC_REQUESTS,
+                            &["inclusion_lists_by_indices"],
+                        );
+                        Some(NetworkEvent::RequestReceived {
+                            peer_id,
+                            inbound_request_id,
+                            request_type,
+                        })
+                    }
                     RequestType::PayloadEnvelopesByRoot(_) => {
                         metrics::inc_counter_vec(
                             &metrics::TOTAL_RPC_REQUESTS,
@@ -1854,6 +1865,11 @@ impl<E: EthSpec> Network<E> {
                         peer_id,
                         Response::PayloadEnvelopesByRange(Some(resp)),
                     )),
+                    RpcSuccessResponse::InclusionListsByIndices(resp) => Some(self.build_response(
+                        id,
+                        peer_id,
+                        Response::InclusionListsByIndices(Some(resp)),
+                    )),
                     RpcSuccessResponse::PayloadEnvelopesByRoot(resp) => Some(self.build_response(
                         id,
                         peer_id,
@@ -1906,6 +1922,9 @@ impl<E: EthSpec> Network<E> {
                     ResponseTermination::BlocksByHead => Response::BlocksByHead(None),
                     ResponseTermination::PayloadEnvelopesByRange => {
                         Response::PayloadEnvelopesByRange(None)
+                    }
+                    ResponseTermination::InclusionListsByIndices => {
+                        Response::InclusionListsByIndices(None)
                     }
                     ResponseTermination::PayloadEnvelopesByRoot => {
                         Response::PayloadEnvelopesByRoot(None)

@@ -36,7 +36,7 @@ use lighthouse_network::{
 };
 use logging::{TimeLatch, crit};
 use slot_clock::SlotClock;
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 use std::{collections::HashSet, pin::Pin, sync::Arc, time::Duration};
 use store::HotColdDB;
 use strum::IntoStaticStr;
@@ -76,6 +76,12 @@ pub enum NetworkMessage<E: EthSpec> {
         peer_id: PeerId,
         request: RequestType<E>,
         sync_request_id: Option<SyncRequestId>,
+    },
+    /// Attempt to recover lists missing from the local view of a verified Heze bid.
+    FetchInclusionLists {
+        peer_id: PeerId,
+        request: methods::InclusionListsByIndicesRequest,
+        validators: Vec<u64>,
     },
     /// Send a successful Response to the libp2p service.
     SendResponse {
@@ -197,6 +203,12 @@ impl<E: EthSpec> NetworkSenders<E> {
     }
 }
 
+struct PendingInclusionLists {
+    peer: PeerId,
+    request: methods::InclusionListsByIndicesRequest,
+    validators: Vec<u64>,
+}
+
 /// Service that handles communication between internal services and the `lighthouse_network` network service.
 pub struct NetworkService<T: BeaconChainTypes> {
     /// A reference to the underlying beacon chain.
@@ -233,6 +245,8 @@ pub struct NetworkService<T: BeaconChainTypes> {
     metrics_update: tokio::time::Interval,
     /// gossipsub_parameter_update timer
     gossipsub_parameter_update: tokio::time::Interval,
+    inclusion_list_request_id: u32,
+    pending_inclusion_lists: HashMap<u32, PendingInclusionLists>,
     /// Provides fork specific info.
     fork_context: Arc<ForkContext>,
 }
@@ -407,6 +421,8 @@ impl<T: BeaconChainTypes> NetworkService<T> {
             metrics_update,
             gossipsub_parameter_update,
             fork_context,
+            inclusion_list_request_id: 0,
+            pending_inclusion_lists: HashMap::new(),
         };
 
         Ok((network_service, network_globals, network_senders))
@@ -630,6 +646,13 @@ impl<T: BeaconChainTypes> NetworkService<T> {
                 {
                     self.on_rpc_error(peer_id, sync_request_id, error);
                 }
+            }
+            NetworkMessage::FetchInclusionLists {
+                peer_id,
+                request,
+                validators,
+            } => {
+                self.fetch_inclusion_lists(peer_id, request, validators);
             }
             NetworkMessage::SendResponse {
                 peer_id,
@@ -986,6 +1009,51 @@ impl<T: BeaconChainTypes> NetworkService<T> {
         }
     }
 
+    fn fetch_inclusion_lists(
+        &mut self,
+        peer: PeerId,
+        request: methods::InclusionListsByIndicesRequest,
+        validators: Vec<u64>,
+    ) {
+        let Some(current) = self.beacon_chain.slot_clock.now() else {
+            return;
+        };
+        let oldest = current.saturating_sub(
+            self.beacon_chain
+                .spec
+                .min_slots_for_inclusion_lists_requests,
+        );
+        self.pending_inclusion_lists
+            .retain(|_, pending| pending.request.slot >= oldest);
+        if request.slot < oldest
+            || request.slot > current
+            || self.pending_inclusion_lists.len() >= 32
+            || self
+                .pending_inclusion_lists
+                .values()
+                .any(|pending| pending.peer == peer && pending.request.slot == request.slot)
+        {
+            return;
+        }
+        let id = self.inclusion_list_request_id;
+        self.inclusion_list_request_id = id.wrapping_add(1);
+        self.pending_inclusion_lists.insert(
+            id,
+            PendingInclusionLists {
+                peer,
+                request: request.clone(),
+                validators,
+            },
+        );
+        if let Err((id, error)) = self.libp2p.send_request(
+            peer,
+            Some(SyncRequestId::InclusionListsByIndices(id)),
+            RequestType::InclusionListsByIndices(request),
+        ) {
+            self.on_rpc_error(peer, id, error);
+        }
+    }
+
     /// An error occurred during an RPC request. The state is maintained by the sync manager, so
     /// this function notifies the sync manager of the error.
     fn on_rpc_error(
@@ -994,6 +1062,10 @@ impl<T: BeaconChainTypes> NetworkService<T> {
         sync_request_id: Option<SyncRequestId>,
         error: RPCError,
     ) {
+        if let Some(SyncRequestId::InclusionListsByIndices(id)) = sync_request_id {
+            self.pending_inclusion_lists.remove(&id);
+            return;
+        }
         // Check if the failed RPC belongs to sync
         if let Some(sync_request_id) = sync_request_id {
             self.send_to_sync(SyncMessage::RpcError {
@@ -1055,6 +1127,14 @@ impl<T: BeaconChainTypes> NetworkService<T> {
                     request,
                 ),
             ),
+            RequestType::InclusionListsByIndices(request) => self
+                .handle_beacon_processor_send_result(
+                    self.network_beacon_processor.send_inclusion_lists_request(
+                        peer_id,
+                        inbound_request_id,
+                        request,
+                    ),
+                ),
             RequestType::PayloadEnvelopesByRoot(request) => self
                 .handle_beacon_processor_send_result(
                     self.network_beacon_processor
@@ -1176,6 +1256,29 @@ impl<T: BeaconChainTypes> NetworkService<T> {
             }
             Response::DataColumnsByRange(data_column) => {
                 self.on_data_columns_by_range_response(peer_id, sync_request_id, data_column);
+            }
+            Response::InclusionListsByIndices(list) => {
+                if let Some(SyncRequestId::InclusionListsByIndices(id)) = sync_request_id {
+                    if let Some(list) = list {
+                        if let Some(pending) = self.pending_inclusion_lists.get_mut(&id)
+                            && pending.peer == peer_id
+                            && pending.request.slot == list.message.slot
+                            && pending.request.dependent_root == list.message.dependent_root
+                            && let Some(position) = pending
+                                .validators
+                                .iter()
+                                .position(|validator| *validator == list.message.validator_index)
+                        {
+                            pending.validators.swap_remove(position);
+                            self.handle_beacon_processor_send_result(
+                                self.network_beacon_processor
+                                    .send_recovered_inclusion_list(list),
+                            );
+                        }
+                    } else {
+                        self.pending_inclusion_lists.remove(&id);
+                    }
+                }
             }
             Response::PayloadEnvelopesByRoot(envelope) => {
                 self.on_payload_envelopes_by_root_response(peer_id, sync_request_id, envelope);

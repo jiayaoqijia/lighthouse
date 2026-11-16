@@ -546,6 +546,73 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
         Ok(roots)
     }
 
+    pub fn handle_inclusion_lists_request(
+        &self,
+        peer_id: PeerId,
+        id: InboundRequestId,
+        request: methods::InclusionListsByIndicesRequest,
+    ) {
+        let chain = &self.chain;
+        let spec = &chain.spec;
+        let count = request.indices.num_set_bits() as u64;
+        let Some(current) = chain.slot_clock.now() else {
+            self.send_error_response(
+                peer_id,
+                RpcErrorResponse::ResourceUnavailable,
+                "Slot unavailable".into(),
+                id,
+            );
+            return;
+        };
+        if request.slot > current
+            || count == 0
+            || count > spec.max_request_inclusion_list
+            || !spec
+                .fork_name_at_slot::<T::EthSpec>(request.slot)
+                .heze_enabled()
+        {
+            self.send_error_response(
+                peer_id,
+                RpcErrorResponse::InvalidRequest,
+                "Invalid inclusion list request".into(),
+                id,
+            );
+            return;
+        }
+        if request.slot < current.saturating_sub(spec.min_slots_for_inclusion_lists_requests) {
+            self.send_error_response(
+                peer_id,
+                RpcErrorResponse::ResourceUnavailable,
+                "Inclusion list slot pruned".into(),
+                id,
+            );
+            return;
+        }
+        if let Ok(committee) =
+            chain.inclusion_list_validators_for_shuffling_root(request.dependent_root, request.slot)
+        {
+            let validators: Vec<_> = committee
+                .iter()
+                .enumerate()
+                .filter(|(position, _)| request.indices.get(*position).unwrap_or(false))
+                .map(|(_, validator)| *validator as u64)
+                .unique()
+                .collect();
+            let lists = chain
+                .inclusion_list_store
+                .read()
+                .get_signed_inclusion_lists(request.slot, request.dependent_root, &validators);
+            for list in lists {
+                self.send_response(
+                    peer_id,
+                    id,
+                    Response::InclusionListsByIndices(Some(Arc::new(list))),
+                );
+            }
+        }
+        self.send_response(peer_id, id, Response::InclusionListsByIndices(None));
+    }
+
     /// Handle a `ExecutionPayloadEnvelopesByRoot` request from the peer.
     #[instrument(
         name = "lh_handle_payload_envelopes_by_root_request",

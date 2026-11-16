@@ -3191,6 +3191,75 @@ fn assert_validation_result(network_message: &NetworkMessage<E>, expected: Messa
     }
 }
 
+#[tokio::test]
+async fn heze_reqresp_imports_and_serves_previous_slot_inclusion_list() {
+    let mut rig = TestRig::new_parametric(TestRigParams {
+        chain_length: 1,
+        beacon_processor_config: BeaconProcessorConfig::default(),
+        node_custody_type: NodeCustodyType::Fullnode,
+        generate_blobs: false,
+        spec: types::ForkName::Heze.make_genesis_spec(E::default_spec()),
+    })
+    .await;
+    let list = Arc::new(inclusion_list_for_current_slot(&rig, 0x42));
+    let slot = list.message.slot;
+    let root = list.message.dependent_root;
+    rig.chain.slot_clock.set_slot(slot.as_u64() + 1);
+    rig.network_beacon_processor
+        .send_recovered_inclusion_list(list.clone())
+        .unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while rig
+            .chain
+            .inclusion_list_store
+            .read()
+            .get_signed_inclusion_lists(slot, root, &[list.message.validator_index])
+            .is_empty()
+        {
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    })
+    .await
+    .expect("previous-slot RPC response should reach list storage");
+    // Retrieval does not make an old list part of the timely view.
+    assert!(
+        rig.chain
+            .inclusion_list_store
+            .read()
+            .get_inclusion_list_transactions(slot, root, true,)
+            .is_empty()
+    );
+    let mut indices = ssz::BitVector::new();
+    indices.set(0, true).unwrap();
+    rig.network_beacon_processor
+        .send_inclusion_lists_request(
+            junk_peer_id(),
+            InboundRequestId::new_unchecked(42, 24),
+            lighthouse_network::rpc::methods::InclusionListsByIndicesRequest {
+                slot,
+                dependent_root: root,
+                indices,
+            },
+        )
+        .unwrap();
+    let messages = rig
+        .receive_network_messages_with_timeout(Duration::from_secs(5), Some(2))
+        .await
+        .unwrap();
+    assert!(
+        matches!(messages.first(), Some(NetworkMessage::SendResponse {
+        response: Response::InclusionListsByIndices(Some(recovered)), ..
+    }) if **recovered == *list)
+    );
+    assert!(matches!(
+        messages.get(1),
+        Some(NetworkMessage::SendResponse {
+            response: Response::InclusionListsByIndices(None),
+            ..
+        })
+    ));
+}
+
 // A verified list that the store has already seen is ignored rather than propagated.
 #[tokio::test]
 async fn test_gossip_inclusion_list_propagation_follows_the_store_outcome() {

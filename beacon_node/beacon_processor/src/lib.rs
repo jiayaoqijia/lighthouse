@@ -463,6 +463,7 @@ pub enum Work<E: EthSpec> {
     BlocksByHeadRequest(AsyncFn),
     PayloadEnvelopesByRangeRequest(AsyncFn),
     PayloadEnvelopesByRootRequest(AsyncFn),
+    InclusionListsRpc(BlockingFn),
     BlobsByRangeRequest(BlockingFn),
     BlobsByRootsRequest(BlockingFn),
     DataColumnsByRootsRequest(BlockingFn),
@@ -527,6 +528,7 @@ pub enum WorkType {
     BlocksByHeadRequest,
     PayloadEnvelopesByRangeRequest,
     PayloadEnvelopesByRootRequest,
+    InclusionListsRpc,
     BlobsByRangeRequest,
     BlobsByRootsRequest,
     DataColumnsByRootsRequest,
@@ -594,6 +596,7 @@ impl<E: EthSpec> Work<E> {
             Work::BlocksByHeadRequest(_) => WorkType::BlocksByHeadRequest,
             Work::PayloadEnvelopesByRangeRequest(_) => WorkType::PayloadEnvelopesByRangeRequest,
             Work::PayloadEnvelopesByRootRequest(_) => WorkType::PayloadEnvelopesByRootRequest,
+            Work::InclusionListsRpc(_) => WorkType::InclusionListsRpc,
             Work::BlobsByRangeRequest(_) => WorkType::BlobsByRangeRequest,
             Work::BlobsByRootsRequest(_) => WorkType::BlobsByRootsRequest,
             Work::DataColumnsByRootsRequest(_) => WorkType::DataColumnsByRootsRequest,
@@ -1144,6 +1147,8 @@ impl<E: EthSpec> BeaconProcessor<E> {
                         } else if let Some(item) = work_queues.payload_envelopes_brange_queue.pop()
                         {
                             Some(item)
+                        } else if let Some(item) = work_queues.inclusion_lists_rpc_queue.pop() {
+                            Some(item)
                         } else if let Some(item) = work_queues.payload_envelopes_broots_queue.pop()
                         {
                             Some(item)
@@ -1390,6 +1395,9 @@ impl<E: EthSpec> BeaconProcessor<E> {
                             Work::PayloadEnvelopesByRangeRequest { .. } => work_queues
                                 .payload_envelopes_brange_queue
                                 .push(work, work_id),
+                            Work::InclusionListsRpc(_) => {
+                                work_queues.inclusion_lists_rpc_queue.push(work, work_id)
+                            }
                             Work::PayloadEnvelopesByRootRequest { .. } => work_queues
                                 .payload_envelopes_broots_queue
                                 .push(work, work_id),
@@ -1533,6 +1541,7 @@ impl<E: EthSpec> BeaconProcessor<E> {
                         WorkType::PayloadEnvelopesByRootRequest => {
                             work_queues.payload_envelopes_broots_queue.len()
                         }
+                        WorkType::InclusionListsRpc => work_queues.inclusion_lists_rpc_queue.len(),
                         WorkType::BlobsByRangeRequest => work_queues.blob_brange_queue.len(),
                         WorkType::BlobsByRootsRequest => work_queues.blob_broots_queue.len(),
                         WorkType::DataColumnsByRootsRequest => work_queues.dcbroots_queue.len(),
@@ -1732,7 +1741,8 @@ impl<E: EthSpec> BeaconProcessor<E> {
             | Work::GossipExecutionProof(work) => task_spawner.spawn_async(async move {
                 work.await;
             }),
-            Work::BlobsByRangeRequest(process_fn)
+            Work::InclusionListsRpc(process_fn)
+            | Work::BlobsByRangeRequest(process_fn)
             | Work::BlobsByRootsRequest(process_fn)
             | Work::DataColumnsByRootsRequest(process_fn)
             | Work::DataColumnsByRangeRequest(process_fn) => {
