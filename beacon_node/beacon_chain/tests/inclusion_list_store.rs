@@ -23,6 +23,14 @@ const VALIDATOR_COUNT: usize = 64;
 
 #[tokio::test]
 async fn heze_v6_satisfaction_survives_fork_choice_reload() {
+    let (unsatisfied_hash, satisfied_hash) = tokio::join!(
+        assert_heze_v6_fork_choice_after_reload(false),
+        assert_heze_v6_fork_choice_after_reload(true),
+    );
+    assert_eq!(unsatisfied_hash, satisfied_hash);
+}
+
+async fn assert_heze_v6_fork_choice_after_reload(satisfied: bool) -> Hash256 {
     use beacon_chain::payload_envelope_verification::EnvelopeSource;
     use beacon_chain::{BeaconChain, NotifyExecutionLayer};
     use execution_layer::{PayloadStatusV1, PayloadStatusV1Status};
@@ -72,7 +80,7 @@ async fn heze_v6_satisfaction_survives_fork_choice_reload() {
             status: PayloadStatusV1Status::Valid,
             latest_valid_hash: Some(hash),
             validation_error: None,
-            inclusion_list_satisfied: Some(false),
+            inclusion_list_satisfied: Some(satisfied),
         },
     );
     let verified = harness
@@ -98,16 +106,18 @@ async fn heze_v6_satisfaction_survives_fork_choice_reload() {
             choice.get_block(&root).unwrap().execution_status,
             proto_array::ExecutionStatus::Valid(hash)
         );
-        assert!(
+        assert_eq!(
             choice
                 .proto_array()
                 .unsatisfied_inclusion_lists()
-                .contains(&root)
+                .contains(&root),
+            !satisfied,
         );
-        assert!(
-            !choice
+        assert_eq!(
+            choice
                 .should_build_on_full(&root, PayloadStatus::Full, slot + 1)
-                .unwrap()
+                .unwrap(),
+            satisfied,
         );
     }
     harness.chain.persist_fork_choice().unwrap();
@@ -122,11 +132,13 @@ async fn heze_v6_satisfaction_survives_fork_choice_reload() {
         restored.get_block(&root).unwrap().execution_status,
         proto_array::ExecutionStatus::Valid(hash)
     );
-    assert!(
-        !restored
+    assert_eq!(
+        restored
             .should_build_on_full(&root, PayloadStatus::Full, slot + 1)
-            .unwrap()
+            .unwrap(),
+        satisfied,
     );
+    hash.into_root()
 }
 
 fn get_harness() -> BeaconChainHarness<EphemeralHarnessType<E>> {
