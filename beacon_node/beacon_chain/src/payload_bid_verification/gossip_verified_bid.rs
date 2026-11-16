@@ -260,6 +260,9 @@ pub(crate) fn is_bid_compatible_with_head<T: BeaconChainTypes>(
     Ok(builds_on_parent_payload)
 }
 
+type InclusionListBitsCheck<'a, E> =
+    dyn Fn(&ExecutionPayloadBidHeze<E>) -> Result<bool, PayloadBidError> + 'a;
+
 pub struct GossipVerificationContext<'a, T: BeaconChainTypes> {
     pub canonical_head: &'a CanonicalHead<T>,
     pub observed_execution_payloads: &'a ObservedExecutionPayloads,
@@ -268,8 +271,7 @@ pub struct GossipVerificationContext<'a, T: BeaconChainTypes> {
     pub slot_clock: &'a T::SlotClock,
     pub spec: &'a ChainSpec,
     pub store: &'a BeaconStore<T>,
-    pub check_inclusion_list_bits:
-        &'a dyn Fn(&ExecutionPayloadBidHeze<T::EthSpec>) -> Result<bool, PayloadBidError>,
+    pub check_inclusion_list_bits: &'a InclusionListBitsCheck<'a, T::EthSpec>,
 }
 
 /// A wrapper around a `SignedExecutionPayloadBid` that indicates it has been approved for re-gossiping on
@@ -492,9 +494,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
     /// Build a `GossipVerificationContext` from this `BeaconChain` for `GossipVerifiedPayloadBid`.
     fn payload_bid_gossip_verification_context<'a>(
         &'a self,
-        check_inclusion_list_bits: &'a dyn Fn(
-            &ExecutionPayloadBidHeze<T::EthSpec>,
-        ) -> Result<bool, PayloadBidError>,
+        check_inclusion_list_bits: &'a InclusionListBitsCheck<'a, T::EthSpec>,
     ) -> GossipVerificationContext<'a, T> {
         GossipVerificationContext {
             canonical_head: &self.canonical_head,

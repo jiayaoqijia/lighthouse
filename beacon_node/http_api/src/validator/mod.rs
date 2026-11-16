@@ -1584,7 +1584,7 @@ pub fn get_validator_inclusion_list<T: BeaconChainTypes>(
                         })
                         .await?;
                     if expected_root != dependent_root
-                        || !committee.iter().any(|index| *index == validator_index)
+                        || !committee.contains(&validator_index)
                     {
                         return Err(warp_utils::reject::custom_bad_request(
                             "Inclusion list duty is no longer current".into(),
