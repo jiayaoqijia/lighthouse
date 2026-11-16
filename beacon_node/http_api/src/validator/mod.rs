@@ -213,6 +213,101 @@ pub fn post_validator_duties_ptc<T: BeaconChainTypes>(
         .boxed()
 }
 
+/// POST validator/duties/inclusion_list/{epoch}
+pub fn post_validator_duties_inclusion_list<T: BeaconChainTypes>(
+    eth_v1: EthV1Filter,
+    chain_filter: ChainFilter<T>,
+    not_while_syncing_filter: NotWhileSyncingFilter,
+    task_spawner_filter: TaskSpawnerFilter<T>,
+) -> ResponseFilter {
+    eth_v1
+        .and(warp::path("validator"))
+        .and(warp::path("duties"))
+        .and(warp::path("inclusion_list"))
+        .and(warp::path::param::<Epoch>())
+        .and(warp::path::end())
+        .and(not_while_syncing_filter)
+        .and(warp_utils::json::json())
+        .and(task_spawner_filter)
+        .and(chain_filter)
+        .then(
+            |epoch: Epoch,
+             not_synced: Result<(), Rejection>,
+             indices: ValidatorIndexData,
+             task_spawner: TaskSpawner<T::EthSpec>,
+             chain: Arc<BeaconChain<T>>| {
+                task_spawner.blocking_json_task(Priority::P0, move || {
+                    not_synced?;
+                    inclusion_list_duties(epoch, indices.0, &chain)
+                })
+            },
+        )
+        .boxed()
+}
+
+fn inclusion_list_duties<T: BeaconChainTypes>(
+    epoch: Epoch,
+    indices: Vec<u64>,
+    chain: &BeaconChain<T>,
+) -> Result<eth2::types::DutiesResponse<Vec<eth2::types::InclusionListDuty>>, Rejection> {
+    let slots_per_epoch = T::EthSpec::slots_per_epoch();
+    let current_epoch = chain
+        .slot_clock
+        .now_or_genesis()
+        .ok_or_else(|| warp_utils::reject::unhandled_error(BeaconChainError::UnableToReadSlot))?
+        .epoch(slots_per_epoch);
+    ensure_post_heze_consensus_version(chain.spec.fork_name_at_epoch(epoch))?;
+    if epoch < current_epoch || epoch > current_epoch.saturating_add(1u64) {
+        return Err(warp_utils::reject::custom_bad_request(
+            "Inclusion list duties require the current or next epoch".into(),
+        ));
+    }
+
+    let (head, execution_status) = chain
+        .canonical_head
+        .head_and_execution_status()
+        .map_err(warp_utils::reject::unhandled_error)?;
+    let head_root = head.head_block_root();
+    let state = &head.snapshot.beacon_state;
+    let start_slot = epoch.start_slot(slots_per_epoch);
+    let (_, dependent_root) = chain
+        .inclusion_list_committee(head_root, start_slot)
+        .map_err(warp_utils::reject::unhandled_error)?;
+    let mut remaining: std::collections::HashSet<_> = indices.into_iter().collect();
+    let mut duties = Vec::new();
+    for offset in 0..slots_per_epoch {
+        if remaining.is_empty() {
+            break;
+        }
+        let slot = start_slot.saturating_add(offset);
+        let (committee, root) = chain
+            .inclusion_list_committee(head_root, slot)
+            .map_err(warp_utils::reject::unhandled_error)?;
+        if root != dependent_root {
+            return Err(warp_utils::reject::custom_server_error(
+                "Inclusion list duties changed dependent root".into(),
+            ));
+        }
+        for &validator_index in committee.iter() {
+            if remaining.remove(&validator_index) {
+                let validator = state
+                    .get_validator(validator_index as usize)
+                    .map_err(warp_utils::reject::unhandled_error)?;
+                duties.push(eth2::types::InclusionListDuty {
+                    pubkey: validator.pubkey,
+                    validator_index,
+                    slot,
+                });
+            }
+        }
+    }
+    Ok(eth2::types::DutiesResponse {
+        dependent_root,
+        execution_optimistic: Some(execution_status.is_optimistic_or_invalid()),
+        data: duties,
+    })
+}
+
 // GET validator/aggregate_attestation?attestation_data_root,slot
 pub fn get_validator_aggregate_attestation<T: BeaconChainTypes>(
     any_version: AnyVersionFilter,

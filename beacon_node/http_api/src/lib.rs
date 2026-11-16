@@ -2786,6 +2786,13 @@ pub async fn serve<T: BeaconChainTypes>(
         task_spawner_filter.clone(),
     );
 
+    let post_validator_duties_inclusion_list = post_validator_duties_inclusion_list(
+        eth_v1.clone(),
+        chain_filter.clone(),
+        not_while_syncing_filter.clone(),
+        task_spawner_filter.clone(),
+    );
+
     // POST validator/duties/sync/{epoch}
     let post_validator_duties_sync = post_validator_duties_sync(
         eth_v1.clone(),
@@ -3676,6 +3683,7 @@ pub async fn serve<T: BeaconChainTypes>(
                     .uor(post_beacon_rewards_sync_committee)
                     .uor(post_validator_duties_attester)
                     .uor(post_validator_duties_ptc)
+                    .uor(post_validator_duties_inclusion_list)
                     .uor(post_validator_duties_sync)
                     .uor(post_validator_aggregate_and_proofs)
                     .uor(post_validator_contribution_and_proofs)

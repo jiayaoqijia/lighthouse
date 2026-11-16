@@ -10555,6 +10555,22 @@ impl ApiTester {
         let slot = self.chain.slot().unwrap();
         let signed = self.make_signed_inclusion_list_with_transaction(slot, 0x42);
         let expected = &signed.message;
+        let indices: Vec<_> = (0..self.validator_keypairs().len() as u64).collect();
+        let duties = self
+            .client
+            .post_validator_duties_inclusion_list(slot.epoch(E::slots_per_epoch()), &indices)
+            .await
+            .unwrap();
+        assert!(!duties.data.is_empty());
+        assert_eq!(duties.dependent_root, expected.dependent_root);
+        for duty in duties.data {
+            let (committee, root) = self
+                .chain
+                .inclusion_list_committee(self.chain.head_beacon_block_root(), duty.slot)
+                .unwrap();
+            assert_eq!(root, expected.dependent_root);
+            assert!(committee.contains(&duty.validator_index));
+        }
         self.harness
             .execution_block_generator()
             .set_inclusion_list(expected.transactions.clone());
