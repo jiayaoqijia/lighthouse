@@ -2151,11 +2151,11 @@ impl From<PersistedForkChoiceV29> for PersistedForkChoiceV28 {
 
 #[cfg(test)]
 mod tests {
-    use types::MainnetEthSpec;
+    use types::Spec;
 
     use super::*;
 
-    type E = MainnetEthSpec;
+    type E = Spec;
 
     #[test]
     fn slots_since_epoch_start() {

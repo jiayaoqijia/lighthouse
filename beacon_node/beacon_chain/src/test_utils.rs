@@ -663,8 +663,8 @@ where
         self
     }
 
-    /// Run with an EIP-8025 proof engine, which makes the proofs a payload's validity. The engine
-    /// is never contacted.
+    /// Configure a test EIP-8025 proof engine without contacting it. With an execution
+    /// layer attached, the beacon node uses it for validity and relays proofs.
     pub fn proof_engine(mut self) -> Self {
         let url = SensitiveUrl::parse("http://127.0.0.1:0").expect("valid proof engine url");
         self.proof_engine = Some(Arc::new(

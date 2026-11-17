@@ -143,6 +143,15 @@ async fn assert_heze_v6_fork_choice_after_reload(satisfied: bool) -> Hash256 {
 
 #[tokio::test]
 async fn heze_fcu_resolves_deferred_verdict_from_empty_head() {
+    assert_heze_fcu_resolves_deferred_verdict_from_empty_head(false).await;
+}
+
+#[tokio::test]
+async fn heze_fcu_resolves_deferred_verdict_with_proof_relay() {
+    assert_heze_fcu_resolves_deferred_verdict_from_empty_head(true).await;
+}
+
+async fn assert_heze_fcu_resolves_deferred_verdict_from_empty_head(relay_proofs: bool) {
     use beacon_chain::payload_envelope_verification::EnvelopeSource;
     use beacon_chain::{BeaconChain, NotifyExecutionLayer, OverrideForkchoiceUpdate};
     use execution_layer::{PayloadStatusV1, PayloadStatusV1Status};
@@ -150,14 +159,18 @@ async fn heze_fcu_resolves_deferred_verdict_from_empty_head() {
     use proto_array::ExecutionStatus;
     use types::BlockImportSource;
 
-    let harness = BeaconChainHarness::builder(E::default())
+    let builder = BeaconChainHarness::builder(E::default())
         .spec(Arc::new(
             ForkName::Heze.make_genesis_spec(E::default_spec()),
         ))
         .deterministic_keypairs(VALIDATOR_COUNT)
         .fresh_ephemeral_store()
-        .mock_execution_layer()
-        .build();
+        .mock_execution_layer();
+    let harness = if relay_proofs {
+        builder.proof_engine().build()
+    } else {
+        builder.build()
+    };
     harness.extend_to_slot(Slot::new(1)).await;
 
     let ancestor = harness.head_block_root();
