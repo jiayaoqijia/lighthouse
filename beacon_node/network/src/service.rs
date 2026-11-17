@@ -209,6 +209,12 @@ struct PendingInclusionLists {
     validators: Vec<u64>,
 }
 
+impl PendingInclusionLists {
+    fn matches(&self, peer: PeerId, request: &methods::InclusionListsByIndicesRequest) -> bool {
+        self.peer == peer && self.request == *request
+    }
+}
+
 /// Service that handles communication between internal services and the `lighthouse_network` network service.
 pub struct NetworkService<T: BeaconChainTypes> {
     /// A reference to the underlying beacon chain.
@@ -1031,7 +1037,7 @@ impl<T: BeaconChainTypes> NetworkService<T> {
             || self
                 .pending_inclusion_lists
                 .values()
-                .any(|pending| pending.peer == peer && pending.request.slot == request.slot)
+                .any(|pending| pending.matches(peer, &request))
         {
             return;
         }

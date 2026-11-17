@@ -384,3 +384,33 @@ fn check_fork_topic_subscriptions(
         }
     }
 }
+
+#[test]
+fn inclusion_list_recovery_deduplicates_only_the_same_peer_and_request() {
+    use super::PendingInclusionLists;
+    use libp2p::PeerId;
+    use lighthouse_network::rpc::methods::InclusionListsByIndicesRequest;
+    use types::Hash256;
+
+    let mut request = InclusionListsByIndicesRequest {
+        slot: Slot::new(7),
+        dependent_root: Hash256::repeat_byte(1),
+        indices: Default::default(),
+    };
+    request.indices.set(0, true).unwrap();
+    let peer = PeerId::random();
+    let pending = PendingInclusionLists {
+        peer,
+        request: request.clone(),
+        validators: vec![10],
+    };
+    assert!(pending.matches(peer, &request));
+    assert!(!pending.matches(PeerId::random(), &request));
+
+    let mut other_fork = request.clone();
+    other_fork.dependent_root = Hash256::repeat_byte(2);
+    assert!(!pending.matches(peer, &other_fork));
+
+    request.indices.set(1, true).unwrap();
+    assert!(!pending.matches(peer, &request));
+}
