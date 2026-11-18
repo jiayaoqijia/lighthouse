@@ -6,4 +6,4 @@
 - [x] Reproduce the fork-slot availability mismatch through the real slot transition.
 - [x] Clear only the fork slot and verify normal and wrapped ring positions.
 - [x] Run all 23 library tests, formatting, full lint-fix and cargo check.
-- [ ] Publish the isolated first-slot PR.
+- [x] Publish the isolated first-slot PR (Lighthouse fork PR 1).
