@@ -36,3 +36,18 @@
 - Five version tests, cargo sort, cargo fmt, scoped cargo check and full
   make lint-fix pass. The release must be rebuilt and checked before using it
   in live evidence; the mismatched-version image has not run a devnet.
+
+## Qualified paired history control (2026-11-18)
+
+- Runtime `a4ceb86e` reports its actual commit and passed with native EL
+  `e0451092`: coded sponsorship finalized through signed FOCIL at slot 66 and
+  the blob Frame at slot 165. A new validator-free CL joined at slot 256,
+  checkpoint-synced and returned both original finalized historical envelopes.
+  Raw transaction identities, Beacon/execution roots and commitments matched.
+- Actual EL restart preserved both workloads' receipts, historical storage and
+  paymaster settlement. The enclave, all labeled containers/volumes and its
+  engine were removed. The new CL shares the synchronized second EL; independent
+  EL late join is a separate gate.
+- The checkpoint and Git-version regressions, cargo fmt/sort, scoped cargo check,
+  full lint-fix and release build passed. Code is published on `eth2030`.
+- [Paired evidence](https://github.com/fyInALT/eth2030/blob/feat/frame-8141-execution/docs/verification/frame-8141-20261118-paymaster-history-final.json)
