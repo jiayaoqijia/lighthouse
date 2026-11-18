@@ -21,4 +21,4 @@
 - [x] Apply only the two owned functional commits to the existing paired-client base f85fa05b6.
 - [x] Preserve both regression functions when resolving the shared test-module insertion.
 - [x] Pass all 24 library tests, cargo check, formatting and full workspace lint-fix.
-- [ ] Publish the isolated integration evidence branch.
+- [x] Publish the isolated integration evidence branch.
