@@ -176,6 +176,15 @@ pub fn upgrade_state_to_gloas<E: EthSpec>(
         slashings_cache: mem::take(&mut pre.slashings_cache),
         epoch_cache: mem::take(&mut pre.epoch_cache),
     });
+    // The preceding slot used Fulu rules, so it did not clear the fork slot.
+    let fork_slot_index = post
+        .slot()
+        .as_usize()
+        .safe_rem(E::slots_per_historical_root())?;
+    post.execution_payload_availability_mut()?
+        .set(fork_slot_index, false)
+        .map_err(|_| Error::InvalidBitfield)?;
+
     // [New in Gloas:EIP7732]
     onboard_builders_from_pending_deposits(&mut post, context.cache(), spec)?;
     initialize_ptc_window(&mut post, spec)?;
@@ -330,6 +339,63 @@ mod tests {
     };
 
     type E = MinimalEthSpec;
+
+    #[tokio::test]
+    async fn fork_slot_payload_availability_is_unset() {
+        let wrapped_epoch = (E::slots_per_historical_root() as u64)
+            .safe_div(E::slots_per_epoch())
+            .unwrap()
+            .safe_add(1)
+            .unwrap();
+        for fork_epoch in [1, wrapped_epoch] {
+            let mut spec = ForkName::Fulu.make_genesis_spec(E::default_spec());
+            spec.gloas_fork_epoch = Some(Epoch::new(fork_epoch));
+            let spec = Arc::new(spec);
+            let harness = BeaconChainHarness::builder(E::default())
+                .spec(spec.clone())
+                .deterministic_keypairs(validator_count())
+                .fresh_ephemeral_store()
+                .mock_execution_layer()
+                .build();
+            let mut state = harness.get_current_state();
+            let fork_slot = Epoch::new(fork_epoch).start_slot(E::slots_per_epoch());
+            while state.slot() < fork_slot {
+                crate::per_slot_processing::per_slot_processing(
+                    &mut state,
+                    None,
+                    GloasVerificationContext::FullVerification,
+                    &spec,
+                )
+                .unwrap();
+            }
+            assert!(state.fork_name_unchecked().gloas_enabled());
+            let index = fork_slot
+                .as_usize()
+                .safe_rem(E::slots_per_historical_root())
+                .unwrap();
+            let previous = index.safe_sub(1).unwrap();
+            let availability = state.execution_payload_availability().unwrap();
+            assert!(!availability.get(index).unwrap(), "fork epoch {fork_epoch}");
+            assert!(availability.get(previous).unwrap());
+
+            crate::per_slot_processing::per_slot_processing(
+                &mut state,
+                None,
+                GloasVerificationContext::FullVerification,
+                &spec,
+            )
+            .unwrap();
+            let next = index
+                .safe_add(1)
+                .unwrap()
+                .safe_rem(E::slots_per_historical_root())
+                .unwrap();
+            let availability = state.execution_payload_availability().unwrap();
+            assert!(!availability.get(index).unwrap());
+            assert!(!availability.get(next).unwrap());
+            assert!(availability.get(previous).unwrap());
+        }
+    }
 
     fn validator_count() -> usize {
         E::slots_per_epoch() as usize
