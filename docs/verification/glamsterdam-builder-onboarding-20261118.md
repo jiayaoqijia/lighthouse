@@ -1,0 +1,15 @@
+# Independent builder/validator onboarding at Gloas
+
+[PR 2](https://github.com/jiayaoqijia/lighthouse/pull/2), branch `fix/glamsterdam-builder-onboarding`, based on upstream `unstable` `8104a2467`. The current paired-client source `f85fa05b6` contains the same old routing.
+
+The normative input is [consensus-specs 2ea9d96a Gloas fork logic](https://github.com/ethereum/consensus-specs/blob/2ea9d96a420927eb1a35d7c9399c8b3691c69f6a/specs/gloas/fork.md#new-onboard_builders_from_pending_deposits), including [merged PR 5736](https://github.com/ethereum/consensus-specs/pull/5736) (merge `8b374fa81b0918b84fe0063a56b4a482e1fa2c6f`, 2026-10-26). This is adoption of merged rules, not a choice among open payload-authentication alternatives.
+
+The old transition prioritized existing/pending validators over valid builder registration and could credit a non-builder deposit to a builder sharing the key. The new routing checks withdrawal credentials first. Ordinary validator deposits always remain queued. A valid builder registration can use an existing or pending validator's key. Existing builders receive only builder-credentialed top-ups, without repeated signature verification. An invalid builder registration remains queued only when it can fund an existing validator or a valid validator established by earlier retained deposits. A later deposit cannot retroactively change that decision.
+
+The implementation retains the existing bounded signature-result cache, ordered registry accumulation, checked balances and nonempty-registry guard. Full verification, a cold cache and a seeded cache use the same protocol routing. Post-fork builder-contract deposit domains are unchanged; this cache remains specific to the one-time validator-contract migration.
+
+The new ten-deposit fixture uses real BLS signatures and checks three ordered builder balances, the exact retained queue, unchanged validator balances and identical complete post-state roots across all three cache modes. It covers shared keys, ordinary deposits following builder registration, invalid signatures before/after a valid queued validator deposit, and unsigned top-ups to an already registered builder. Existing cache/onboarding fixtures now assert the merged rule's independent registrations instead of encoding the obsolete validator-priority behavior.
+
+The baseline compiled and failed because it registered one builder instead of the expected three (`/tmp/glamsterdam-cl-onboarding-baseline.log`). After the fix, all 23 state_processing library tests pass. `cargo check -p state_processing`, `cargo fmt --all`, and the complete workspace `make lint-fix` also pass; full lint took 3m 17s. Logs are retained locally as `/tmp/glamsterdam-cl-onboarding-{tests,check,lint}.log`.
+
+This qualifies migration semantics and cache equivalence; it does not qualify the full EL/CL fork devnet, post-fork EIP-8282 contract pipeline, payment/recovery behavior or every release gate. First-slot payload availability is a separate feature review.
