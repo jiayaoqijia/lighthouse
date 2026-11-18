@@ -22,6 +22,156 @@ type E = Spec;
 const VALIDATOR_COUNT: usize = 64;
 
 #[tokio::test]
+async fn heze_checkpoint_envelope_without_pre_anchor_parent() {
+    use beacon_chain::builder::BeaconChainBuilder;
+    use beacon_chain::payload_envelope_verification::{EnvelopeError, EnvelopeSource};
+    use beacon_chain::test_utils::{
+        generate_data_column_indices_rand_order, generate_data_column_sidecars_from_block, get_kzg,
+        mock_execution_layer_from_parts,
+    };
+    use beacon_chain::{ChainConfig, NotifyExecutionLayer};
+    use execution_layer::{PayloadStatusV1, PayloadStatusV1Status};
+    use rand::{SeedableRng, rngs::StdRng};
+    use slot_clock::{SlotClock, TestingSlotClock};
+    use std::time::Duration;
+    use store::{HotColdDB, StoreConfig};
+    use types::BlockImportSource;
+
+    let spec = Arc::new(ForkName::Heze.make_genesis_spec(E::default_spec()));
+    let source = BeaconChainHarness::builder(E::default())
+        .spec(spec.clone())
+        .deterministic_keypairs(VALIDATOR_COUNT)
+        .fresh_ephemeral_store()
+        .mock_execution_layer()
+        .build();
+    source.execution_block_generator().set_min_blob_count(1);
+    let genesis_state = source.get_current_state();
+    let slot = Slot::new(E::slots_per_epoch());
+    source.extend_to_slot(slot).await;
+    let root = source.head_block_root();
+    let block = source.chain.store.get_full_block(&root).unwrap().unwrap();
+    let state = source
+        .chain
+        .store
+        .get_state(&block.state_root(), Some(slot), true)
+        .unwrap()
+        .unwrap();
+    let envelope = source
+        .chain
+        .store
+        .get_signed_payload_envelope(&root)
+        .unwrap()
+        .unwrap();
+    let payload_hash = envelope.message.payload.block_hash;
+    let mock = mock_execution_layer_from_parts(spec.clone(), source.runtime.task_executor.clone());
+    mock.server.set_payload_statuses(
+        payload_hash,
+        PayloadStatusV1 {
+            status: PayloadStatusV1Status::Valid,
+            latest_valid_hash: Some(payload_hash),
+            validation_error: None,
+            inclusion_list_satisfied: Some(true),
+        },
+    );
+    let clock = TestingSlotClock::new(
+        Slot::new(0),
+        Duration::from_secs(source.chain.genesis_time),
+        spec.get_slot_duration(),
+    );
+    clock.set_slot(slot.as_u64());
+    let (shutdown_tx, _shutdown_rx) = futures::channel::mpsc::channel(1);
+    let chain = Arc::new(
+        BeaconChainBuilder::<EphemeralHarnessType<E>>::new(E::default(), get_kzg(&spec))
+            .chain_config(ChainConfig {
+                optimistic_finalized_sync: false,
+                // The mock EL's synthetic block hash is not a real RLP hash.
+                verify_envelope_payload_hash_on_cl: false,
+                ..ChainConfig::default()
+            })
+            .store(Arc::new(
+                HotColdDB::open_ephemeral(StoreConfig::default(), spec.clone()).unwrap(),
+            ))
+            .custom_spec(spec.clone())
+            .task_executor(source.runtime.task_executor.clone())
+            .weak_subjectivity_state(state, block.clone(), None, genesis_state)
+            .unwrap()
+            .slot_clock(clock)
+            .shutdown_sender(shutdown_tx)
+            .execution_layer(Some(mock.el))
+            .ordered_custody_column_indices(generate_data_column_indices_rand_order::<E>())
+            .rng(Box::new(StdRng::seed_from_u64(42)))
+            .build()
+            .unwrap(),
+    );
+    assert!(
+        chain
+            .store
+            .get_blinded_block(&block.parent_root())
+            .unwrap()
+            .is_none()
+    );
+    assert!(matches!(
+        chain.get_inclusion_list_transactions(block.parent_root(), slot.saturating_sub(1u64), true),
+        Err(BeaconChainError::MissingBeaconBlock(_))
+    ));
+    let mut bad_signature = envelope.clone();
+    bad_signature.signature = Signature::empty();
+    assert!(matches!(
+        chain
+            .verify_envelope_for_gossip(Arc::new(bad_signature), EnvelopeSource::Rpc)
+            .await,
+        Err(EnvelopeError::BadSignature)
+    ));
+    let mut wrong_bid = envelope.clone();
+    wrong_bid.message.payload.block_hash = types::ExecutionBlockHash::zero();
+    assert!(matches!(
+        chain
+            .verify_envelope_for_gossip(Arc::new(wrong_bid), EnvelopeSource::Rpc)
+            .await,
+        Err(EnvelopeError::BlockHashMismatch { .. })
+    ));
+    let verified = chain
+        .verify_envelope_for_gossip(Arc::new(envelope), EnvelopeSource::Rpc)
+        .await
+        .unwrap();
+    let status = chain
+        .process_execution_payload_envelope(
+            root,
+            verified,
+            NotifyExecutionLayer::Yes,
+            BlockImportSource::RangeSync,
+            || Ok(()),
+        )
+        .await
+        .expect("trusted checkpoint envelope must not require its unavailable parent IL view");
+    assert!(matches!(
+        status,
+        beacon_chain::AvailabilityProcessingStatus::MissingComponents(..)
+    ));
+    let wire = mock.server.take_previous_request().unwrap();
+    assert_eq!(wire["method"], "engine_newPayloadV6");
+    assert_eq!(wire["params"][4], serde_json::json!([]));
+    let columns = generate_data_column_sidecars_from_block(&block, &spec);
+    assert!(!columns.is_empty());
+    let status = chain.process_rpc_custody_columns(columns).await.unwrap();
+    assert!(matches!(
+        status,
+        beacon_chain::AvailabilityProcessingStatus::Imported(..)
+    ));
+    let choice = chain.canonical_head.fork_choice_read_lock();
+    assert_eq!(
+        choice.get_block(&root).unwrap().execution_status,
+        proto_array::ExecutionStatus::Valid(payload_hash)
+    );
+    assert!(
+        !choice
+            .proto_array()
+            .unsatisfied_inclusion_lists()
+            .contains(&root)
+    );
+}
+
+#[tokio::test]
 async fn heze_v6_satisfaction_survives_fork_choice_reload() {
     let (unsatisfied_hash, satisfied_hash) = tokio::join!(
         assert_heze_v6_fork_choice_after_reload(false),
@@ -99,6 +249,10 @@ async fn assert_heze_v6_fork_choice_after_reload(satisfied: bool) -> Hash256 {
         )
         .await
         .unwrap();
+
+    let wire = mock.take_previous_request().unwrap();
+    assert_eq!(wire["method"], "engine_newPayloadV6");
+    assert_eq!(wire["params"][4], serde_json::json!(["0xc1"]));
 
     {
         let choice = harness.chain.canonical_head.fork_choice_read_lock();

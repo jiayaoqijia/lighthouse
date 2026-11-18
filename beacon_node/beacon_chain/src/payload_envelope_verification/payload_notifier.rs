@@ -77,13 +77,31 @@ impl<T: BeaconChainTypes> PayloadNotifier<T> {
                 let chain = self.chain.clone();
                 let parent_root = self.block.parent_root();
                 let list_slot = self.block.slot().saturating_sub(1u64);
-                let list = self
-                    .chain
-                    .spawn_blocking_handle(
-                        move || chain.get_inclusion_list_transactions(parent_root, list_slot, true),
-                        "heze_envelope_inclusion_list_transactions",
-                    )
-                    .await??;
+                // Heze get_forkchoice_store initializes the trusted anchor as IL-satisfied.
+                // Its parent predates the checkpoint store and may never be present in fork
+                // choice. Keep live payload lookups strict; all other envelope and EL checks
+                // still run for the anchor.
+                let is_trusted_anchor = self.block.slot()
+                    <= self.chain.store.get_anchor_info().anchor_slot
+                    && self.envelope.message.beacon_block_root
+                        == self
+                            .chain
+                            .canonical_head
+                            .cached_head()
+                            .finalized_checkpoint()
+                            .root;
+                let list = if is_trusted_anchor {
+                    Vec::new()
+                } else {
+                    self.chain
+                        .spawn_blocking_handle(
+                            move || {
+                                chain.get_inclusion_list_transactions(parent_root, list_slot, true)
+                            },
+                            "heze_envelope_inclusion_list_transactions",
+                        )
+                        .await??
+                };
                 NewPayloadRequest::Heze(NewPayloadRequestHeze {
                     execution_payload: base.execution_payload,
                     versioned_hashes: base.versioned_hashes,
