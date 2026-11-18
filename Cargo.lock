@@ -6300,6 +6300,7 @@ name = "lighthouse_version"
 version = "8.4.0-rc.0"
 dependencies = [
  "regex",
+ "tempfile",
 ]
 
 [[package]]

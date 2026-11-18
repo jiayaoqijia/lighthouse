@@ -21,3 +21,18 @@
 - Compared upstream experimental Heze `f66bd5ac`: its list helper returns empty
   on all lookup errors. This patch keeps the strict live-view behavior and scopes
   the bootstrap treatment to the specification's trusted anchor.
+
+## Worktree build version cache repair (2026-11-18)
+
+- The first release build contained the checkpoint fix but reported the earlier
+  `952464b` commit: the inherited version build script treated a worktree's
+  `.git` file as a directory, so Cargo did not track its HEAD or common refs.
+- Git plumbing now resolves the actual HEAD, loose branch ref and packed refs.
+  Packed-to-loose updates watch the existing ref directory. Source archives
+  without Git retain the existing version fallback.
+- A real cached Cargo probe failed before the fix, then passed through ordinary
+  checkout commits, worktree commits, packed refs, detached HEAD and paths with
+  spaces. Fixture Git state is isolated from parent Git environment and hooks.
+- Five version tests, cargo sort, cargo fmt, scoped cargo check and full
+  make lint-fix pass. The release must be rebuilt and checked before using it
+  in live evidence; the mismatched-version image has not run a devnet.
