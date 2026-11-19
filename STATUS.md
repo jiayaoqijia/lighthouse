@@ -1,3 +1,7 @@
+## Signed builder payment component controls qualified (2026-11-19)
+
+At test source 39168a37d, real signed external bid recording, current/previous/evicted windows, quorum boundaries, proposer-slashing cancellation, exit gates and actual withdrawals pass. Two behavior mutations are detected. All 65 release state-processing tests and full workspace check pass after production source restoration. Runtime production code remains 0262e8f. See docs/verification/glamsterdam-builder-payment-windows-20261119.md; registry eviction and independent full-process supply/recovery remain open, so R07 is not closed.
+
 ## Builder settlement campaign in progress (2026-11-19)
 
 The selected 2ea9d96a contract defers bid payment to parent application or epoch quorum processing, clears settled slots, removes pending payments on proposer slashing and debits builders when the expected withdrawal is applied. New actual signed-bid and payment-window/withdrawal controls are being added. Calling the late-parent helper twice on an unchanged synthetic state is not treated as a valid chain replay: block processing replaces latest_execution_payload_bid. Cross-client process settlement remains a separate gate.

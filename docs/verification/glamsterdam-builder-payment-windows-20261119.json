@@ -1,0 +1,27 @@
+{
+  "source_revision": "39168a37dc6d1198237a37fe0c1e41f7728e6951",
+  "runtime_production_source": "0262e8f90",
+  "state_processing_release_tests": 65,
+  "new_payment_tests": 3,
+  "window_branches": [
+    "current",
+    "previous",
+    "evicted-no-quorum-late-parent"
+  ],
+  "quorum_edges": [
+    "below",
+    "equal",
+    "above"
+  ],
+  "mutations": [
+    {
+      "mutation": "cleared-payment-slot",
+      "detected": true
+    },
+    {
+      "mutation": "withdrawal-debit",
+      "detected": true
+    }
+  ],
+  "scope": "real signed bid and actual consensus payment/withdrawal phase consumers; not full-process supply qualification"
+}
