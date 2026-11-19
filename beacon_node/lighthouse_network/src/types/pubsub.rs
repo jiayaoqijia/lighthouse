@@ -519,6 +519,16 @@ impl<E: EthSpec> PubsubMessage<E> {
     }
 }
 
+// An unrecognized extension version is forward-compatible gossip to ignore,
+// rather than an invalid sidecar to score against the sender. Empty groups
+// remain malformed and are handled by the ordinary decoder.
+pub(crate) fn is_unknown_partial_version(group: &[u8]) -> bool {
+    group.first().is_some_and(|version| {
+        *version != PARTIAL_COLUMNS_VERSION_BYTE_FULU
+            && *version != PARTIAL_COLUMNS_VERSION_BYTE_GLOAS
+    })
+}
+
 /// Decodes incoming partial data column sidecar from gossipsub partial protocol.
 /// Note: Currently, data columns are the only supported partial messages. In future this could
 /// return an enum.

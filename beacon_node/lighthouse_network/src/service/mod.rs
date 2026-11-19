@@ -1415,6 +1415,9 @@ impl<E: EthSpec> Network<E> {
                 message,
                 ..
             } => {
+                if crate::types::is_unknown_partial_version(&group_id) {
+                    return None;
+                }
                 let topic = GossipTopic::decode(topic_hash.as_str())
                     .inspect_err(|error| {
                         debug!(

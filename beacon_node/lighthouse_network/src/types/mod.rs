@@ -22,3 +22,5 @@ pub use topics::{
     GossipEncoding, GossipKind, GossipTopic, TopicConfig, all_topics_at_fork,
     core_topics_to_subscribe, is_fork_non_core_topic, subnet_from_topic_hash,
 };
+
+pub(crate) use pubsub::is_unknown_partial_version;

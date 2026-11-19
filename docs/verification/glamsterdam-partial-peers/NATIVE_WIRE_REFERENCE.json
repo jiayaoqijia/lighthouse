@@ -1,0 +1,66 @@
+{
+  "spec_revision": "2ea9d96a420927eb1a35d7c9399c8b3691c69f6a",
+  "passed": true,
+  "wire": [
+    {
+      "case": "sender_received_row_1",
+      "bytes": 2109,
+      "rows": 1,
+      "native_decoded_canonical_ssz_accepted_by_unchanged_reference": true
+    },
+    {
+      "case": "receiver_received_row_0",
+      "bytes": 2109,
+      "rows": 1,
+      "native_decoded_canonical_ssz_accepted_by_unchanged_reference": true
+    },
+    {
+      "case": "wire_loss_recovered_missing_row_0",
+      "bytes": 2109,
+      "rows": 1,
+      "native_decoded_canonical_ssz_accepted_by_unchanged_reference": true
+    }
+  ],
+  "custody": [
+    {
+      "name": "sender",
+      "node_id": "6e334c17be40b0a6dbaee12af640adb5d6c01dec1aaf69fb7b42b0d57f761542",
+      "groups": 8,
+      "columns": [
+        2,
+        14,
+        19,
+        88,
+        91,
+        95,
+        99,
+        106
+      ],
+      "native_enr_custody_composition_matches_reference": true
+    },
+    {
+      "name": "receiver",
+      "node_id": "0bcc6654e48a141b169c79c05e0e4c704eb466a0fa35f2a08e1d7e826e4cbcab",
+      "groups": 16,
+      "columns": [
+        9,
+        18,
+        28,
+        29,
+        39,
+        46,
+        47,
+        55,
+        62,
+        71,
+        73,
+        80,
+        97,
+        107,
+        122,
+        126
+      ],
+      "native_enr_custody_composition_matches_reference": true
+    }
+  ]
+}
