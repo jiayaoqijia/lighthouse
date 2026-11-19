@@ -1,0 +1,58 @@
+{
+  "checkpoint": {
+    "slot": 1215,
+    "root": "0xe4638e451320db9fa8e6528c415551cb329e2e80c9b8d5f162faaf75f0032fd3",
+    "independently_verified_header_links": 1639
+  },
+  "repair_binary_version": "Lighthouse v8.4.0-rc.0-1f53b97\nBLS library: blst\nBLS hardware acceleration: true\nSHA256 hardware acceleration: true\nAllocator: jemalloc (4K)\nProfile: release\nSpecs: mainnet (true), minimal (false), gnosis (false)",
+  "repair_binary_sha256": "cafde7f3599ac04214159650776381e2aba3de173619e0581d06444bfc419520",
+  "roles": [
+    {
+      "container": "87799773fc57",
+      "clean_client_shutdown": true,
+      "original_binary_sha256": "26f5aea5e3f1c7d2969bf3a9dacc54c0c7cd81dbedbfd8f234f097b81fb276b8",
+      "after_binary_sha256": "26f5aea5e3f1c7d2969bf3a9dacc54c0c7cd81dbedbfd8f234f097b81fb276b8",
+      "finalized_root_retained": true,
+      "after_status": {
+        "is_syncing": false,
+        "is_optimistic": false,
+        "el_offline": false,
+        "head_slot": "4611",
+        "sync_distance": "2"
+      },
+      "completed_at": "2026-11-19T19:39:15.588775+00:00"
+    },
+    {
+      "container": "a6e54fb93e7c",
+      "clean_client_shutdown": true,
+      "original_binary_sha256": "26f5aea5e3f1c7d2969bf3a9dacc54c0c7cd81dbedbfd8f234f097b81fb276b8",
+      "after_binary_sha256": "26f5aea5e3f1c7d2969bf3a9dacc54c0c7cd81dbedbfd8f234f097b81fb276b8",
+      "finalized_root_retained": true,
+      "after_status": {
+        "is_syncing": false,
+        "is_optimistic": false,
+        "el_offline": false,
+        "head_slot": "4613",
+        "sync_distance": "1"
+      },
+      "completed_at": "2026-11-19T19:39:20.160067+00:00"
+    }
+  ],
+  "reference_progress": {
+    "finalized_slot": 3264,
+    "finalized_root": "0x24c03af44b9f89a08fe47b47d5f9f49ab50f9284c7985a0814b1169d26b1dea0",
+    "optimistic_slot": 3374,
+    "next_committee_known": true,
+    "signature_slot": 3376
+  },
+  "cryptographic_rejection_controls": [
+    "bootstrap_state_proof",
+    "bootstrap_execution_proof",
+    "advertised_next_committee_proof",
+    "finality_proof",
+    "aggregate_signature",
+    "genesis_domain"
+  ],
+  "required_original_bootstrap_accepted": true,
+  "passed": true
+}
