@@ -1,3 +1,7 @@
+## Envelope admission qualification in progress (2026-11-19)
+
+The selected consensus-specs 2ea9d96a gossip contract requires state-consistent parent, timestamp, withdrawals, randao and gas limit before observation. The current gossip wrapper checks signature and some bid fields but defers full state checks until after marking the envelope seen and recording its claimed gas limit. A correctly re-signed inconsistent envelope is being reproduced through actual admission; completion is not claimed. The ignored fast-confirmation crash scenario also reproduces a confirmed-position rollback (43 to 39); its persistence/recovery boundary remains under investigation.
+
 # Authorized Glamsterdam integration into eth2030
 
 The user authorized direct integration into `eth2030`. The candidate retains target `29d66c23805f01cd8441825f7e803b394db50244`, the qualified source candidate `4432411764d89be3fad6af98b42cdd4e995d8a82`, and all three original reviewed heads as ancestors. Existing Heze/Frame/checkpoint paths remain present. Original reviews: [1](https://github.com/jiayaoqijia/lighthouse/pull/1), [2](https://github.com/jiayaoqijia/lighthouse/pull/2), [3](https://github.com/jiayaoqijia/lighthouse/pull/3).
