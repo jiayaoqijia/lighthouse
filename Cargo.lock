@@ -2945,10 +2945,14 @@ dependencies = [
  "clap_utils",
  "environment",
  "hex",
+ "merkle_proof",
  "serde",
+ "serde_json",
  "store",
  "strum",
+ "tokio",
  "tracing",
+ "tree_hash",
  "types",
 ]
 

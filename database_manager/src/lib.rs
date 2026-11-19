@@ -1,3 +1,4 @@
+mod bootstrap_import;
 pub mod cli;
 use crate::cli::DatabaseManager;
 use crate::cli::Migrate;
@@ -514,6 +515,9 @@ pub fn run<E: EthSpec>(
             let prune_config = parse_prune_states_config(prune_states_config)?;
             let genesis_state = get_genesis_state()?;
             prune_states(client_config, prune_config, genesis_state, &context)
+        }
+        cli::DatabaseManagerSubcommand::ImportGloasBootstrap(import) => {
+            bootstrap_import::import_file(import, client_config, &context)
         }
         cli::DatabaseManagerSubcommand::Compact(compact_config) => {
             let compact_config = parse_compact_config(compact_config)?;

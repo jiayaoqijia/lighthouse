@@ -80,6 +80,7 @@ pub enum DatabaseManagerSubcommand {
     PruneBlobs(PruneBlobs),
     PruneStates(PruneStates),
     Compact(Compact),
+    ImportGloasBootstrap(ImportGloasBootstrap),
 }
 
 #[derive(Parser, Clone, Deserialize, Serialize, Debug)]
@@ -227,4 +228,15 @@ pub struct Compact {
         display_order = 0
     )]
     pub output_dir: Option<PathBuf>,
+}
+
+#[derive(Parser, Clone, Deserialize, Serialize, Debug)]
+#[clap(
+    about = "Recover a Gloas bootstrap proof cache from data verified against local block and committee commitments."
+)]
+pub struct ImportGloasBootstrap {
+    #[clap(value_name = "BLOCK_ROOT")]
+    pub block_root: types::Hash256,
+    #[clap(value_name = "FILE")]
+    pub file: PathBuf,
 }
