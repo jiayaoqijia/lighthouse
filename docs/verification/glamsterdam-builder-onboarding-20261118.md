@@ -1,6 +1,6 @@
 # Independent builder/validator onboarding at Gloas
 
-Branch `fix/glamsterdam-builder-onboarding`, based on upstream `unstable` `8104a2467`. The current paired-client source `f85fa05b6` contains the same old routing.
+[PR 2](https://github.com/jiayaoqijia/lighthouse/pull/2), branch `fix/glamsterdam-builder-onboarding`, based on upstream `unstable` `8104a2467`. The current paired-client source `f85fa05b6` contains the same old routing.
 
 The normative input is [consensus-specs 2ea9d96a Gloas fork logic](https://github.com/ethereum/consensus-specs/blob/2ea9d96a420927eb1a35d7c9399c8b3691c69f6a/specs/gloas/fork.md#new-onboard_builders_from_pending_deposits), including [merged PR 5736](https://github.com/ethereum/consensus-specs/pull/5736) (merge `8b374fa81b0918b84fe0063a56b4a482e1fa2c6f`, 2026-10-26). This is adoption of merged rules, not a choice among open payload-authentication alternatives.
 

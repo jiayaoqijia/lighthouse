@@ -573,6 +573,131 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn builder_validator_onboarding_routes_independent_keys() {
+        let mut spec = ForkName::Fulu.make_genesis_spec(E::default_spec());
+        spec.gloas_fork_epoch = Some(Epoch::new(1024));
+        let spec = Arc::new(spec);
+        let harness = BeaconChainHarness::builder(E::default())
+            .spec(spec.clone())
+            .deterministic_keypairs(validator_count())
+            .fresh_ephemeral_store()
+            .mock_execution_layer()
+            .build();
+        let mut pre = harness.get_current_state();
+        let keys = generate_deterministic_keypairs(validator_count().safe_add(2).unwrap());
+        let existing_validator = &harness.validator_keypairs[0];
+        let builder_key = &keys[validator_count()];
+        let pending_key = &keys[validator_count().safe_add(1).unwrap()];
+        let builder_credentials = builder_credentials(&spec);
+        let ordinary_credentials = eth1_credentials();
+        let deposits = vec![
+            make_deposit(
+                existing_validator,
+                builder_credentials,
+                1_000_000_000,
+                false,
+                &spec,
+            ),
+            make_deposit(
+                existing_validator,
+                builder_credentials,
+                2_000_000_000,
+                true,
+                &spec,
+            ),
+            make_deposit(
+                existing_validator,
+                ordinary_credentials,
+                3_000_000_000,
+                false,
+                &spec,
+            ),
+            make_deposit(
+                existing_validator,
+                builder_credentials,
+                4_000_000_000,
+                false,
+                &spec,
+            ),
+            make_deposit(builder_key, builder_credentials, 5_000_000_000, true, &spec),
+            make_deposit(
+                builder_key,
+                ordinary_credentials,
+                6_000_000_000,
+                false,
+                &spec,
+            ),
+            make_deposit(
+                pending_key,
+                builder_credentials,
+                7_000_000_000,
+                false,
+                &spec,
+            ),
+            make_deposit(
+                pending_key,
+                ordinary_credentials,
+                8_000_000_000,
+                true,
+                &spec,
+            ),
+            make_deposit(
+                pending_key,
+                builder_credentials,
+                9_000_000_000,
+                false,
+                &spec,
+            ),
+            make_deposit(
+                pending_key,
+                builder_credentials,
+                10_000_000_000,
+                true,
+                &spec,
+            ),
+        ];
+        let expected_pending = vec![
+            deposits[0].clone(),
+            deposits[2].clone(),
+            deposits[5].clone(),
+            deposits[7].clone(),
+            deposits[8].clone(),
+        ];
+        pre.set_pending_deposits_from_iter(deposits).unwrap();
+        let validator_balances = pre.balances().iter().copied().collect::<Vec<_>>();
+        let mut roots = Vec::new();
+        for seeded in [None, Some(false), Some(true)] {
+            let cache = OnboardBuildersCache::new(&spec).unwrap();
+            if seeded == Some(true) {
+                cache.seed_from_state(&pre, &spec);
+            }
+            let context = if seeded.is_some() {
+                GloasVerificationContext::CachedVerification(&cache)
+            } else {
+                GloasVerificationContext::FullVerification
+            };
+            let mut post = upgrade_state_to_gloas(&mut pre.clone(), context, &spec).unwrap();
+            let builders = post.builders().unwrap().to_vec();
+            assert_eq!(builders.len(), 3);
+            for (builder, key, balance) in [
+                (&builders[0], existing_validator, 6_000_000_000),
+                (&builders[1], builder_key, 5_000_000_000),
+                (&builders[2], pending_key, 10_000_000_000),
+            ] {
+                assert_eq!(builder.pubkey, key.pk.compress());
+                assert_eq!(builder.balance, balance);
+            }
+            assert_eq!(post.pending_deposits().unwrap().to_vec(), expected_pending);
+            assert_eq!(
+                post.balances().iter().copied().collect::<Vec<_>>(),
+                validator_balances
+            );
+            roots.push(post.canonical_root().unwrap());
+        }
+        assert!(roots.windows(2).all(|pair| pair[0] == pair[1]));
+    }
+
     fn validator_count() -> usize {
         E::slots_per_epoch() as usize
     }
