@@ -1,0 +1,3 @@
+# Partial peer qualification in progress
+
+Authority: consensus-specs 2ea9d96a420927eb1a35d7c9399c8b3691c69f6a, specs/fulu/partial-columns/p2p-interface.md and specs/gloas/partial-columns/p2p-interface.md. Actual three-EL admission and canonical commitments pass for a two-distinct-row blob at slot 5747; all three CLs return the same signed beacon block/envelope, all 128 two-row columns and exact immediate block post-state. This is not yet partial dissemination or fault coverage. The next consumers must use these real distinct rows and original commitments, not degenerate cells or HTTP success as an oracle.
