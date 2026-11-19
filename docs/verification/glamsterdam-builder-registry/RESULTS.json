@@ -1,0 +1,19 @@
+{
+  "targeted_passed": 2,
+  "full_release_state_processing_passed": 67,
+  "failed": 0,
+  "ignored": 0,
+  "workspace_check": true,
+  "mutations": [
+    {
+      "name": "replaced_key_signature_bypass",
+      "detected_by_executed_test": true
+    },
+    {
+      "name": "swept_topup_reactivation",
+      "detected_by_executed_test": true
+    }
+  ],
+  "restored_original_source_bytes": true,
+  "production_changes": false
+}
