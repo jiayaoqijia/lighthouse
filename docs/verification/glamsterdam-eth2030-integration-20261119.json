@@ -5,8 +5,10 @@
   "binary_sha256": "793471b8b2b863e96b7a11953dd4cc593b65ebdd8ee55fad7229700ef7d3e780",
   "state_processing_release_tests": 62,
   "heze_inclusion_list_release_tests": 12,
-  "minimal_envelope_release_tests": 13,
+  "minimal_envelope_release_tests": 0,
   "cargo_check": "passed_workspace",
   "release_build": "passed",
-  "scope": "R05 integration only; R06-R13 remain active"
+  "scope": "R05 integration only; R06-R13 remain active",
+  "conditional_envelope_test_entries_excluded": 13,
+  "envelope_qualification": "pending explicit fork_from_env Gloas/Fulu execution"
 }

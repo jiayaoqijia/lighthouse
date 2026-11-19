@@ -1,3 +1,11 @@
+## Glamsterdam adversarial and cross-client qualification (2026-11-19)
+
+- [ ] R06: Read the selected signed-envelope contract and execute fork-pinned authentication/cache, optimistic FULL/EMPTY/PENDING and late/reorg/restart controls; exclude conditional early returns from evidence.
+- [ ] R07: Assert actual builder settlement exactly once across late/slashed/no-quorum/exit/eviction cases, including supply and withdrawals.
+- [ ] R08: Compare nondefault progressive fork migration and actual proof consumers against independent roots/proofs.
+- [ ] R09: Exercise real partial-column group/version/custody peers through loss, duplication and reconnect.
+- [ ] R10-R13: Qualify independent full-process clients, builder/fork/recovery/resource campaigns, then publish the compatible artifact manifest and runbook.
+
 ## Authorized Glamsterdam integration into eth2030 (2026-11-19)
 
 - [x] Freeze origin/eth2030 and the qualified paired candidate; inspect the actual merge tree for source deletions rather than comparing unrelated heads.
