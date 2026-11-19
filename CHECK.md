@@ -1,6 +1,6 @@
 ## Glamsterdam adversarial and cross-client qualification (2026-11-19)
 
-- [ ] Reproduce and close signed-but-state-inconsistent envelope gossip/cache admission before declaring R06 complete.
+- [x] Reproduce and close signed-but-state-inconsistent envelope gossip/cache admission; the remaining R06 lifecycle matrix stays open.
 - [ ] R06: Read the selected signed-envelope contract and execute fork-pinned authentication/cache, optimistic FULL/EMPTY/PENDING and late/reorg/restart controls; exclude conditional early returns from evidence.
 - [ ] R07: Assert actual builder settlement exactly once across late/slashed/no-quorum/exit/eviction cases, including supply and withdrawals.
 - [ ] R08: Compare nondefault progressive fork migration and actual proof consumers against independent roots/proofs.

@@ -1,3 +1,7 @@
+## Signed envelope admission correction qualified (2026-11-19)
+
+Source 0262e8f90 rejects correctly signed state-inconsistent envelopes before observation/cache insertion and rejects empty transactions through the common verifier. Actual cache/source controls pass, along with 243 explicit-Gloas minimal chain entries (one separately reproduced ignored crash case remains open), both explicit fork envelope repeats, all 62 state-processing release tests, full workspace check and release build. The runtime reports 0262e8f/mainnet. See docs/verification/glamsterdam-envelope-state-admission-20261119.md. Remaining R06-R13 obligations are not waived.
+
 ## Envelope admission qualification in progress (2026-11-19)
 
 The selected consensus-specs 2ea9d96a gossip contract requires state-consistent parent, timestamp, withdrawals, randao and gas limit before observation. The current gossip wrapper checks signature and some bid fields but defers full state checks until after marking the envelope seen and recording its claimed gas limit. A correctly re-signed inconsistent envelope is being reproduced through actual admission; completion is not claimed. The ignored fast-confirmation crash scenario also reproduces a confirmed-position rollback (43 to 39); its persistence/recovery boundary remains under investigation.
