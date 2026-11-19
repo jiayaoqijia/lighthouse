@@ -29,6 +29,8 @@ vm_cli=$($CMD vm --help)
 vm_cli_create=$($CMD vm create --help)
 vm_cli_import=$($CMD vm import --help)
 vm_cli_move=$($CMD vm move --help)
+db_cli=$($CMD db --help)
+db_import_gloas_bootstrap_cli=$($CMD db import-gloas-bootstrap --help)
 
 general=./help_general.md
 bn=./help_bn.md
@@ -38,6 +40,8 @@ vm=./help_vm.md
 vm_create=./help_vm_create.md
 vm_import=./help_vm_import.md
 vm_move=./help_vm_move.md
+db=./help_db.md
+db_import_gloas_bootstrap=./help_db_import_gloas_bootstrap.md
 
 # create .md files
 write_to_file "$general_cli" "$general" "Lighthouse CLI Reference"
@@ -47,10 +51,12 @@ write_to_file "$vm_cli" "$vm" "Validator Manager"
 write_to_file "$vm_cli_create" "$vm_create" "Validator Manager Create"
 write_to_file "$vm_cli_import" "$vm_import" "Validator Manager Import"
 write_to_file "$vm_cli_move" "$vm_move" "Validator Manager Move"
+write_to_file "$db_cli" "$db" "Database Manager"
+write_to_file "$db_import_gloas_bootstrap_cli" "$db_import_gloas_bootstrap" "Import Verified Gloas Bootstrap"
 
 #input 1 = $1 = files; input 2 = $2 = new files
-files=(./book/src/help_general.md ./book/src/help_bn.md ./book/src/help_vc.md ./book/src/help_vm.md ./book/src/help_vm_create.md ./book/src/help_vm_import.md ./book/src/help_vm_move.md)
-new_files=($general $bn $vc $vm $vm_create $vm_import $vm_move)
+files=(./book/src/help_general.md ./book/src/help_bn.md ./book/src/help_vc.md ./book/src/help_vm.md ./book/src/help_vm_create.md ./book/src/help_vm_import.md ./book/src/help_vm_move.md ./book/src/help_db.md ./book/src/help_db_import_gloas_bootstrap.md)
+new_files=($general $bn $vc $vm $vm_create $vm_import $vm_move $db $db_import_gloas_bootstrap)
 
 # function to check
 check() {
@@ -84,9 +90,11 @@ check ${files[3]} ${new_files[3]}
 check ${files[4]} ${new_files[4]}
 check ${files[5]} ${new_files[5]}
 check ${files[6]} ${new_files[6]}
+check ${files[7]} ${new_files[7]}
+check ${files[8]} ${new_files[8]}
 
 # remove help files
-rm -f help_general.md help_bn.md help_vc.md help_am.md help_vm.md help_vm_create.md help_vm_import.md help_vm_move.md
+rm -f help_general.md help_bn.md help_vc.md help_am.md help_vm.md help_vm_create.md help_vm_import.md help_vm_move.md help_db.md help_db_import_gloas_bootstrap.md
 
 # only exit at the very end
 if [[ $changes == true ]]; then

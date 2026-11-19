@@ -60,6 +60,8 @@
     * [Create](./help_vm_create.md)
     * [Import](./help_vm_import.md)
     * [Move](./help_vm_move.md)
+  * [Database Manager](./help_db.md)
+    * [Import Verified Gloas Bootstrap](./help_db_import_gloas_bootstrap.md)
 * [Contributing](./contributing.md)
   * [Development Environment](./contributing_setup.md)
 * [FAQs](./faq.md)
