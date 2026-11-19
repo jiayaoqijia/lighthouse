@@ -1,0 +1,3 @@
+# Captured progressive proof parity in progress
+
+Authority: consensus-specs 2ea9d96a420927eb1a35d7c9399c8b3691c69f6a, Gloas light-client sync protocol and EIP-7688 progressive state. The live private mainnet-preset network returns identical slot-4764 SSZ bytes from both Lighthouse nodes and independent patched Lodestar. The unchanged Python reference independently hashes all three and generates current/next/finalized branches at generalized indices 2945/2946/735. This separate test verifies Rust parity against those actual nondefault inputs; it does not require changing which legitimate advertised light-client update is best.
