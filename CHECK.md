@@ -2,6 +2,7 @@
 
 - [x] Reproduce and close signed-but-state-inconsistent envelope gossip/cache admission; the remaining R06 lifecycle matrix stays open.
 - [ ] R06: Read the selected signed-envelope contract and execute fork-pinned authentication/cache, optimistic FULL/EMPTY/PENDING and late/reorg/restart controls; exclude conditional early returns from evidence.
+- [ ] Qualify real signed builder bid recording, current/previous/evicted payment windows, quorum edges, slashed-proposer cancellation, exit gates and actual withdrawals with debit/credit conservation.
 - [ ] R07: Assert actual builder settlement exactly once across late/slashed/no-quorum/exit/eviction cases, including supply and withdrawals.
 - [ ] R08: Compare nondefault progressive fork migration and actual proof consumers against independent roots/proofs.
 - [ ] R09: Exercise real partial-column group/version/custody peers through loss, duplication and reconnect.

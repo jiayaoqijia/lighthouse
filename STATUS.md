@@ -1,3 +1,7 @@
+## Builder settlement campaign in progress (2026-11-19)
+
+The selected 2ea9d96a contract defers bid payment to parent application or epoch quorum processing, clears settled slots, removes pending payments on proposer slashing and debits builders when the expected withdrawal is applied. New actual signed-bid and payment-window/withdrawal controls are being added. Calling the late-parent helper twice on an unchanged synthetic state is not treated as a valid chain replay: block processing replaces latest_execution_payload_bid. Cross-client process settlement remains a separate gate.
+
 ## Signed envelope admission correction qualified (2026-11-19)
 
 Source 0262e8f90 rejects correctly signed state-inconsistent envelopes before observation/cache insertion and rejects empty transactions through the common verifier. Actual cache/source controls pass, along with 243 explicit-Gloas minimal chain entries (one separately reproduced ignored crash case remains open), both explicit fork envelope repeats, all 62 state-processing release tests, full workspace check and release build. The runtime reports 0262e8f/mainnet. See docs/verification/glamsterdam-envelope-state-admission-20261119.md. Remaining R06-R13 obligations are not waived.
