@@ -1,0 +1,12 @@
+{
+  "target_base": "29d66c23805f01cd8441825f7e803b394db50244",
+  "source_revision": "50c8be1a92ed4fd517d30ba5ee16ce3873732008",
+  "binary_version": "Lighthouse v8.4.0-rc.0-50c8be1",
+  "binary_sha256": "793471b8b2b863e96b7a11953dd4cc593b65ebdd8ee55fad7229700ef7d3e780",
+  "state_processing_release_tests": 62,
+  "heze_inclusion_list_release_tests": 12,
+  "minimal_envelope_release_tests": 13,
+  "cargo_check": "passed_workspace",
+  "release_build": "passed",
+  "scope": "R05 integration only; R06-R13 remain active"
+}
