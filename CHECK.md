@@ -1,3 +1,10 @@
+## Authorized Glamsterdam integration into eth2030 (2026-11-19)
+
+- [x] Freeze origin/eth2030 and the qualified paired candidate; inspect the actual merge tree for source deletions rather than comparing unrelated heads.
+- [ ] Merge first-slot/onboarding/real-BLS request changes while retaining existing Heze/Frame paths and all task records.
+- [ ] Run cargo fmt, cargo check, targeted actual state/chain/history tests and release build; never skip hooks.
+- [ ] Push a non-forced update directly to origin/eth2030 as authorized, and record exact paired revisions and remaining campaign results.
+
 # Lighthouse implementation checks
 
 ## Heze checkpoint envelope history (2026-11-18)
