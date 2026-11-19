@@ -23,7 +23,10 @@ use crate::{
     },
     validator_pubkey_cache::ValidatorPubkeyCache,
 };
-use state_processing::builder_deposits_cache::OnboardBuildersCache;
+use state_processing::{
+    VerifySignatures, builder_deposits_cache::OnboardBuildersCache,
+    envelope_processing::verify_execution_payload_envelope,
+};
 
 /// Bundles only the dependencies needed for gossip verification of execution payload envelopes,
 /// decoupling `GossipVerifiedEnvelope::new` from the full `BeaconChain`.
@@ -63,6 +66,13 @@ pub(crate) fn verify_envelope_consistency<E: EthSpec>(
         return Err(EnvelopeError::SlotMismatch {
             block: block.slot(),
             envelope: envelope.slot(),
+        });
+    }
+
+    if envelope.parent_beacon_block_root != block.parent_root() {
+        return Err(EnvelopeError::ParentBeaconBlockRootMismatch {
+            block: block.parent_root(),
+            envelope: envelope.parent_beacon_block_root,
         });
     }
 
@@ -221,8 +231,9 @@ impl<T: BeaconChainTypes> GossipVerifiedEnvelope<T> {
             .current_epoch_shuffling_id
             .shuffling_decision_block;
 
-        let (signature_is_valid, opt_snapshot) = if builder_index == BUILDER_INDEX_SELF_BUILD {
-            // Fast path: self-built envelopes can be verified without loading the state.
+        let (signature_is_valid, mut opt_snapshot) = if builder_index == BUILDER_INDEX_SELF_BUILD {
+            // Verify self-built signatures using the proposer and pubkey caches.
+            // State consistency is checked below before observation.
             let mut opt_snapshot = None;
             let proposer = beacon_proposer_cache::with_proposer_cache(
                 ctx.beacon_proposer_cache,
@@ -284,6 +295,26 @@ impl<T: BeaconChainTypes> GossipVerifiedEnvelope<T> {
         if !signature_is_valid {
             return Err(EnvelopeError::BadSignature);
         }
+
+        // A valid signature authenticates the contents, but does not make them consistent
+        // with the bid or state. Run the shared pure verifier before marking this envelope
+        // seen or caching its claimed gas limit, including on RPC/HTTP cache hits. Retain
+        // the snapshot so execution-pending verification does not load it a second time.
+        let snapshot = match opt_snapshot.as_ref() {
+            Some(snapshot) => snapshot,
+            None => opt_snapshot.insert(Box::new(load_snapshot_from_state_root::<T>(
+                beacon_block_root,
+                proto_block.state_root,
+                ctx.store,
+            )?)),
+        };
+        verify_execution_payload_envelope(
+            &snapshot.pre_state,
+            &signed_envelope,
+            VerifySignatures::False,
+            snapshot.state_root,
+            ctx.spec,
+        )?;
 
         let gossip_verified_envelope = Self {
             signed_envelope,
@@ -574,11 +605,10 @@ mod tests {
         let block = make_block(slot);
         let bid = make_bid(builder_index, block_hash);
 
-        // Not a gossip condition; the sync-only rejection is inlined in
-        // `RangeSyncBlock` construction.
-        assert!(
-            verify_envelope_consistency::<E>(&envelope, &block, bid.to_ref(), Slot::new(0)).is_ok()
-        );
+        assert!(matches!(
+            verify_envelope_consistency::<E>(&envelope, &block, bid.to_ref(), Slot::new(0)),
+            Err(EnvelopeError::ParentBeaconBlockRootMismatch { .. })
+        ));
     }
 
     #[test]

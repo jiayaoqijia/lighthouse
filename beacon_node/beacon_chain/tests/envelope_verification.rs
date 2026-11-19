@@ -735,3 +735,235 @@ fn is_valid_and_post_bellatrix(status: ExecutionStatus) -> bool {
 fn is_optimistic(status: ExecutionStatus) -> bool {
     matches!(status, ExecutionStatus::Optimistic(_))
 }
+
+/// Explicit Gloas genesis: these assertions never disappear behind a FORK_NAME guard.
+fn binding_harness() -> BeaconChainHarness<beacon_chain::test_utils::EphemeralHarnessType<E>> {
+    use types::EthSpec;
+    BeaconChainHarness::builder(E::default())
+        .spec(Arc::new(
+            ForkName::Gloas.make_genesis_spec(E::default_spec()),
+        ))
+        .deterministic_keypairs(64)
+        .fresh_ephemeral_store()
+        .mock_execution_layer()
+        .build()
+}
+
+/// Even a real proposer signature must not admit content inconsistent with the beacon state.
+/// Failed admission must leave both deduplication and the gas-limit cache untouched.
+#[tokio::test]
+async fn signed_inconsistent_envelopes_cannot_poison_observation() {
+    use types::{Domain, ExecutionPayloadEnvelope, SignedRoot, Withdrawal};
+
+    for source in [
+        EnvelopeSource::Gossip,
+        EnvelopeSource::Rpc,
+        EnvelopeSource::Http,
+    ] {
+        let harness = binding_harness();
+        harness.extend_to_slot(Slot::new(1)).await;
+        let state = harness.get_current_state();
+        let slot = Slot::new(2);
+        harness.advance_slot();
+        let (contents, original, post_state) = harness.make_block_with_envelope(state, slot).await;
+        let proposer = contents.0.message().proposer_index() as usize;
+        let root = contents.0.canonical_root();
+        harness.process_block(slot, root, contents).await.unwrap();
+        let original = original.unwrap();
+        let hash = original.message.payload.block_hash;
+        let domain = harness.spec.get_domain(
+            original.epoch(),
+            Domain::BeaconBuilder,
+            &post_state.fork(),
+            post_state.genesis_validators_root(),
+        );
+        let mut cases = Vec::new();
+        let mut add = |name: &'static str, change: fn(&mut ExecutionPayloadEnvelope<E>)| {
+            let mut envelope = original.clone();
+            change(&mut envelope.message);
+            envelope.signature = harness.validator_keypairs[proposer]
+                .sk
+                .sign(envelope.message.signing_root(domain));
+            assert!(
+                envelope
+                    .verify_signature_with_state(&post_state, &harness.spec)
+                    .unwrap(),
+                "{name}: fixture must have a valid real signature"
+            );
+            cases.push((name, envelope));
+        };
+        add("ParentBeaconBlockRootMismatch", |m| {
+            m.parent_beacon_block_root = Hash256::repeat_byte(0x71)
+        });
+        add("GasLimitMismatch", |m| m.payload.gas_limit += 1);
+        add("PrevRandaoMismatch", |m| {
+            m.payload.prev_randao = Hash256::repeat_byte(0x72)
+        });
+        add("ParentHashMismatch", |m| {
+            m.payload.parent_hash = types::ExecutionBlockHash::repeat_byte(0x73)
+        });
+        add("TimestampMismatch", |m| m.payload.timestamp += 1);
+        add("WithdrawalsRootMismatch", |m| {
+            m.payload
+                .withdrawals
+                .push(Withdrawal {
+                    index: 7,
+                    validator_index: 8,
+                    address: Address::repeat_byte(9),
+                    amount: 10,
+                })
+                .unwrap();
+        });
+        add("EmptyTransaction", |m| {
+            m.payload.transactions.push(Default::default()).unwrap()
+        });
+        for (name, envelope) in &cases {
+            let result = harness
+                .chain
+                .verify_envelope_for_gossip(Arc::new(envelope.clone()), source)
+                .await;
+            assert!(
+                result.is_err(),
+                "{source:?} {name}: correctly signed inconsistent envelope was admitted"
+            );
+            let error = result.unwrap_err();
+            assert!(
+                format!("{error:?}").contains(name),
+                "{source:?} {name}: wrong guard: {error:?}"
+            );
+            assert!(
+                error.penalize_peer(),
+                "inconsistent signed content must be rejected"
+            );
+            assert_eq!(
+                harness
+                    .chain
+                    .observed_execution_payloads
+                    .get_gas_limit(hash),
+                None,
+                "{name}: failure poisoned gas-limit cache"
+            );
+        }
+        harness
+            .chain
+            .verify_envelope_for_gossip(Arc::new(original.clone()), EnvelopeSource::Gossip)
+            .await
+            .expect("invalid attempts must not suppress the authentic envelope");
+        assert_eq!(
+            harness
+                .chain
+                .observed_execution_payloads
+                .get_gas_limit(hash),
+            Some(original.message.payload.gas_limit)
+        );
+        // Non-gossip recovery paths recheck content even after a valid observation.
+        for repeat_source in [EnvelopeSource::Rpc, EnvelopeSource::Http] {
+            for (name, envelope) in &cases {
+                let error = harness
+                    .chain
+                    .verify_envelope_for_gossip(Arc::new(envelope.clone()), repeat_source)
+                    .await
+                    .unwrap_err();
+                assert!(
+                    format!("{error:?}").contains(name),
+                    "cached {repeat_source:?} {name}: {error:?}"
+                );
+                assert_eq!(
+                    harness
+                        .chain
+                        .observed_execution_payloads
+                        .get_gas_limit(hash),
+                    Some(original.message.payload.gas_limit)
+                );
+            }
+        }
+    }
+}
+
+/// The signature authenticates the complete message, including body fields that don't change
+/// the claimed block hash. Admission never treats that claimed hash as content authentication.
+#[tokio::test]
+async fn stale_signatures_do_not_authenticate_replaced_payload_contents() {
+    use types::ExecutionPayloadEnvelope;
+    let harness = binding_harness();
+    harness.extend_to_slot(Slot::new(1)).await;
+    let state = harness.get_current_state();
+    harness.advance_slot();
+    let slot = Slot::new(2);
+    let (contents, original, _) = harness.make_block_with_envelope(state, slot).await;
+    let root = contents.0.canonical_root();
+    harness.process_block(slot, root, contents).await.unwrap();
+    let original = original.unwrap();
+    let hash = original.message.payload.block_hash;
+    let mut cases = Vec::new();
+    let mut add = |name: &'static str, change: fn(&mut ExecutionPayloadEnvelope<E>)| {
+        let mut envelope = original.clone();
+        change(&mut envelope.message);
+        assert_eq!(envelope.message.payload.block_hash, hash);
+        cases.push((name, envelope));
+    };
+    add("state root", |m| {
+        m.payload.state_root = Hash256::repeat_byte(0x61)
+    });
+    add("receipts root", |m| {
+        m.payload.receipts_root = Hash256::repeat_byte(0x62)
+    });
+    add("transactions", |m| {
+        m.payload
+            .transactions
+            .push(ssz_types::ProgressiveVariableList::new(vec![1]).unwrap())
+            .unwrap()
+    });
+    add("gas used", |m| m.payload.gas_used += 1);
+    add("fee recipient", |m| {
+        m.payload.fee_recipient = Address::repeat_byte(0x63)
+    });
+    add("block number", |m| m.payload.block_number += 1);
+    add("blob gas", |m| m.payload.blob_gas_used += 1);
+    add("excess blob gas", |m| m.payload.excess_blob_gas += 1);
+    add("access list", |m| {
+        m.payload.block_access_list.push(1).unwrap()
+    });
+    for source in [
+        EnvelopeSource::Gossip,
+        EnvelopeSource::Rpc,
+        EnvelopeSource::Http,
+    ] {
+        for (name, envelope) in &cases {
+            let error = harness
+                .chain
+                .verify_envelope_for_gossip(Arc::new(envelope.clone()), source)
+                .await
+                .unwrap_err();
+            assert!(
+                matches!(error, EnvelopeError::BadSignature),
+                "{source:?} {name}: {error:?}"
+            );
+            assert_eq!(
+                harness
+                    .chain
+                    .observed_execution_payloads
+                    .get_gas_limit(hash),
+                None
+            );
+        }
+    }
+    harness
+        .chain
+        .verify_envelope_for_gossip(Arc::new(original.clone()), EnvelopeSource::Gossip)
+        .await
+        .unwrap();
+    for source in [EnvelopeSource::Rpc, EnvelopeSource::Http] {
+        for (name, envelope) in &cases {
+            let error = harness
+                .chain
+                .verify_envelope_for_gossip(Arc::new(envelope.clone()), source)
+                .await
+                .unwrap_err();
+            assert!(
+                matches!(error, EnvelopeError::BadSignature),
+                "cached {source:?} {name}: {error:?}"
+            );
+        }
+    }
+}

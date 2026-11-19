@@ -77,6 +77,10 @@ pub enum EnvelopeProcessingError {
         committed_bid: Hash256,
         envelope: Hash256,
     },
+    /// Empty transactions are prohibited before forwarding an envelope to execution.
+    EmptyTransaction {
+        index: usize,
+    },
     /// The envelope was deemed invalid by the execution engine.
     ExecutionInvalid,
 }
@@ -115,6 +119,14 @@ pub fn verify_execution_payload_envelope<E: EthSpec>(
 
     let envelope = &signed_envelope.message;
     let payload = &envelope.payload;
+
+    if let Some(index) = payload
+        .transactions
+        .iter()
+        .position(|transaction| transaction.is_empty())
+    {
+        return Err(EnvelopeProcessingError::EmptyTransaction { index });
+    }
 
     // Verify consistency with the beacon block.
     // Use a copy of the header with state_root filled in, matching the spec's approach.
