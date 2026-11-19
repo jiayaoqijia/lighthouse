@@ -1424,3 +1424,7 @@ fn process_single_effective_balance_update(
 
     Ok(())
 }
+
+#[cfg(test)]
+#[path = "builder_payment_tests.rs"]
+mod builder_payment_tests;
