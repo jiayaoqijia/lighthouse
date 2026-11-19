@@ -3,7 +3,7 @@
 - [x] Freeze origin/eth2030 and the qualified paired candidate; inspect the actual merge tree for source deletions rather than comparing unrelated heads.
 - [x] Merge first-slot/onboarding/real-BLS request changes while retaining existing Heze/Frame paths and all task records.
 - [x] Run cargo fmt, cargo check, targeted actual state/chain/history tests and release build; never skip hooks.
-- [ ] Push a non-forced update directly to origin/eth2030 as authorized, and record exact paired revisions and remaining campaign results.
+- [x] Push a non-forced update directly to origin/eth2030 as authorized, and record exact paired revisions and remaining campaign results.
 
 # Lighthouse implementation checks
 
