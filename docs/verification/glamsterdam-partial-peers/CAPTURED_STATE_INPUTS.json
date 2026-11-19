@@ -1,0 +1,20 @@
+{
+  "spec_revision": "2ea9d96a420927eb1a35d7c9399c8b3691c69f6a",
+  "slot": 5747,
+  "beacon_root": "0xa97d5fe9ce3c27d6f4155ddef08e85c6700b5a55f7522e576938697d23a9bc55",
+  "state_root": "0xb76e950f428d42d664f9814fca0a01e7aab337452e3569ee6ba916b2b8335be8",
+  "validators": 384,
+  "fixtures": [
+    {
+      "file": "beacon_node/beacon_chain/tests/testdata/gloas-two-row-state.ssz.gz",
+      "bytes": 459334,
+      "sha256": "3b33db5fda3a0a86eee823845f7a4ce1dd09af54541720615f488e68e6f48faa"
+    },
+    {
+      "file": "beacon_node/beacon_chain/tests/testdata/gloas-two-row-block.ssz",
+      "bytes": 1464,
+      "sha256": "12c69ba27c2096f129893f49c2701c34c75e75fe617889816d22dd57b9d3ec42"
+    }
+  ],
+  "test": "cargo test --release -p beacon_chain --lib captured_gloas_rows_reach_real_state_validation_and_pending_availability"
+}

@@ -15,6 +15,8 @@ mod block_verification;
 pub mod block_verification_types;
 pub mod builder;
 pub mod canonical_head;
+#[cfg(test)]
+mod captured_partial_consumers;
 pub mod chain_config;
 pub mod circuit_breaker;
 pub mod custody_context;

@@ -1482,6 +1482,7 @@ dependencies = [
  "execution_layer",
  "fast_confirmation",
  "fixed_bytes",
+ "flate2",
  "fork_choice",
  "futures",
  "genesis",
@@ -1529,6 +1530,7 @@ dependencies = [
  "tree_hash_derive",
  "typenum",
  "types",
+ "yaml_serde",
  "zstd",
 ]
 
