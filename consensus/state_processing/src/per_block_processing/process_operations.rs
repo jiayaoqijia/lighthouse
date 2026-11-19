@@ -16,6 +16,10 @@ use types::is_builder_withdrawal_credential;
 #[path = "builder_request_wire_tests.rs"]
 mod builder_request_wire_tests;
 
+#[cfg(all(test, not(feature = "fake_crypto")))]
+#[path = "builder_registry_tests.rs"]
+mod builder_registry_tests;
+
 pub fn process_operations<E: EthSpec, Payload: AbstractExecPayload<E>>(
     state: &mut BeaconState<E>,
     block_body: BeaconBlockBodyRef<E, Payload>,
