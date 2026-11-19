@@ -875,43 +875,25 @@ impl<E: EthSpec, Hot: ItemStore, Cold: ItemStore> BackgroundMigrator<E, Hot, Col
     }
 
     fn prune_non_checkpoint_sync_committee_branches(
-        finalized_blocks_desc: &[(Hash256, Slot)],
+        finalized_blocks_asc: &[(Hash256, Slot)],
         hot_db_ops: &mut Vec<StoreOp<E>>,
     ) {
-        let mut epoch_boundary_blocks = HashSet::new();
-        let mut non_checkpoint_block_roots = HashSet::new();
-
-        // Then, iterate states in slot ascending order, as they are stored wrt previous states.
-        for (block_root, slot) in finalized_blocks_desc.iter().rev() {
-            // At a missed slot, `state_root_iter` will return the block root
-            // from the previous non-missed slot. This ensures that the block root at an
-            // epoch boundary is always a checkpoint block root. We keep track of block roots
-            // at epoch boundaries by storing them in the `epoch_boundary_blocks` hash set.
-            // We then ensure that block roots at the epoch boundary aren't included in the
-            // `non_checkpoint_block_roots` hash set.
-            if *slot % E::slots_per_epoch() == 0 {
-                epoch_boundary_blocks.insert(block_root);
-            } else {
-                non_checkpoint_block_roots.insert(block_root);
-            }
-
-            if epoch_boundary_blocks.contains(&block_root) {
-                non_checkpoint_block_roots.remove(&block_root);
+        // These are actual block slots, not per-state roots repeated at skipped slots.
+        // A block covers an epoch boundary when the next actual block is after it.
+        // The final block is the newly finalized checkpoint and must also be kept.
+        for pair in finalized_blocks_asc.windows(2) {
+            let [(block_root, slot), (_, next_slot)] = pair else {
+                continue;
+            };
+            let epoch = slot.epoch(E::slots_per_epoch());
+            let next_epoch = next_slot.epoch(E::slots_per_epoch());
+            let no_empty_boundary = next_epoch == epoch
+                || (*next_slot % E::slots_per_epoch() == 0
+                    && next_epoch == epoch.saturating_add(1u64));
+            if *slot % E::slots_per_epoch() != 0 && no_empty_boundary {
+                hot_db_ops.push(StoreOp::DeleteSyncCommitteeBranch(*block_root));
             }
         }
-
-        // Prune sync committee branch data for all non checkpoint block roots.
-        // Note that `non_checkpoint_block_roots` should only contain non checkpoint block roots
-        // as long as `finalized_state.slot()` is at an epoch boundary. If this were not the case
-        // we risk the chance of pruning a `sync_committee_branch` for a checkpoint block root.
-        // E.g. if `current_split_slot` = (Epoch A slot 0) and `finalized_state.slot()` = (Epoch C slot 31)
-        // and (Epoch D slot 0) is a skipped slot, we will have pruned a `sync_committee_branch`
-        // for a checkpoint block root.
-        non_checkpoint_block_roots
-            .into_iter()
-            .for_each(|block_root| {
-                hot_db_ops.push(StoreOp::DeleteSyncCommitteeBranch(*block_root));
-            });
     }
 
     /// Compact the database if it has been more than `COMPACTION_PERIOD_SECONDS` since it
@@ -955,5 +937,84 @@ impl<E: EthSpec, Hot: ItemStore, Cold: ItemStore> BackgroundMigrator<E, Hot, Col
             info!("Database compaction complete");
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod checkpoint_proof_retention {
+    use super::*;
+    use fixed_bytes::FixedBytesExtended;
+    use types::{GnosisEthSpec, MainnetEthSpec, MinimalEthSpec};
+
+    fn check<E: EthSpec>(slots: &[u64], retained: &[u64]) {
+        let blocks = slots
+            .iter()
+            .map(|slot| (Hash256::from_low_u64_be(slot + 1), Slot::new(*slot)))
+            .collect::<Vec<_>>();
+        let mut operations = Vec::<StoreOp<E>>::new();
+        BackgroundMigrator::<E, MemoryStore, MemoryStore>::prune_non_checkpoint_sync_committee_branches(&blocks, &mut operations);
+        let deleted = operations
+            .into_iter()
+            .map(|operation| match operation {
+                StoreOp::DeleteSyncCommitteeBranch(root) => root,
+                _ => panic!("unexpected checkpoint pruning operation"),
+            })
+            .collect::<HashSet<_>>();
+        let expected = slots
+            .iter()
+            .filter(|slot| !retained.contains(slot))
+            .map(|slot| Hash256::from_low_u64_be(slot + 1))
+            .collect::<HashSet<_>>();
+        assert_eq!(
+            deleted,
+            expected,
+            "slots {slots:?}; epoch length {}",
+            E::slots_per_epoch()
+        );
+    }
+
+    fn cases<E: EthSpec>() {
+        let period = E::slots_per_epoch();
+        check::<E>(
+            &(0..=3 * period).collect::<Vec<_>>(),
+            &[0, period, 2 * period, 3 * period],
+        );
+        check::<E>(
+            &[
+                0,
+                1,
+                period - 2,
+                period - 1,
+                period + 1,
+                2 * period - 1,
+                2 * period + 1,
+                3 * period - 1,
+            ],
+            &[0, period - 1, 2 * period - 1, 3 * period - 1],
+        );
+        check::<E>(
+            &[
+                0,
+                3,
+                3 * period + 3,
+                4 * period - 1,
+                4 * period + 3,
+                5 * period,
+            ],
+            &[0, 3, 4 * period - 1, 5 * period],
+        );
+        check::<E>(
+            &[period - 2, period - 1, period, period + 1, 2 * period],
+            &[period, 2 * period],
+        );
+        check::<E>(&[period - 1], &[period - 1]);
+        check::<E>(&[], &[]);
+    }
+
+    #[test]
+    fn preserves_checkpoint_proofs_for_actual_block_intervals() {
+        cases::<MinimalEthSpec>();
+        cases::<MainnetEthSpec>();
+        cases::<GnosisEthSpec>();
     }
 }

@@ -389,9 +389,8 @@ impl<T: BeaconChainTypes> LightClientServerCache<T> {
     /// Fetches a light client bootstrap for a given finalized checkpoint `block_root`. We eagerly persist
     /// `sync_committee_branch and `sync_committee` to allow for a more efficient bootstrap construction.
     ///
-    /// Note: It should be the case that a `sync_committee_branch` and `sync_committee` exist in the db
-    /// for a finalized checkpoint block root. However, we currently have no backfill mechanism for these values.
-    /// Therefore, `sync_committee_branch` and `sync_committee` are only persisted while a node is synced.
+    /// Missing proof data can be recovered while the block's authenticated immediate post-state
+    /// remains available, including checkpoints affected by older pruning behavior.
     #[allow(clippy::type_complexity)]
     pub fn get_light_client_bootstrap(
         &self,
@@ -415,29 +414,47 @@ impl<T: BeaconChainTypes> LightClientServerCache<T> {
             .epoch(T::EthSpec::slots_per_epoch())
             .sync_committee_period(chain_spec)?;
 
-        let Some(current_sync_committee_branch) = store.get_sync_committee_branch(block_root)?
-        else {
-            return Err(BeaconChainError::LightClientBootstrapError(format!(
-                "Sync committee branch for block root {:?} not found. This typically occurs when the block is not a finalized checkpoint. Light client bootstrap is only supported for finalized checkpoint block roots.",
-                block_root
-            )));
-        };
-
         if sync_committee_period > finalized_period {
             return Err(BeaconChainError::LightClientBootstrapError(format!(
                 "The blocks sync committee period {sync_committee_period} is greater than the current finalized period {finalized_period}"
             )));
         }
 
-        let Some(current_sync_committee) = store.get_sync_committee(sync_committee_period)? else {
-            return Err(BeaconChainError::LightClientBootstrapError(format!(
-                "Sync committee for period {sync_committee_period} not found"
-            )));
+        let branch = store.get_sync_committee_branch(block_root)?;
+        let committee = store.get_sync_committee(sync_committee_period)?;
+        let (current_sync_committee_branch, current_sync_committee) = match (branch, committee) {
+            (Some(branch), Some(committee)) => (branch, Arc::new(committee)),
+            _ => {
+                // Recover previously pruned proof data from this block's immediate post-state.
+                let Some(mut state) = store.get_state(&block.state_root(), Some(slot), false)?
+                else {
+                    return Err(BeaconChainError::LightClientBootstrapError(format!(
+                        "Post-state for bootstrap block {block_root:?} is unavailable"
+                    )));
+                };
+                if state.slot() != slot || state.canonical_root()? != block.state_root() {
+                    return Err(BeaconChainError::LightClientBootstrapError(format!(
+                        "Post-state does not match bootstrap block {block_root:?}"
+                    )));
+                }
+                let mut header = state.latest_block_header().clone();
+                header.state_root = block.state_root();
+                if header.canonical_root() != *block_root {
+                    return Err(BeaconChainError::LightClientBootstrapError(format!(
+                        "Post-state header does not match bootstrap block {block_root:?}"
+                    )));
+                }
+                let branch = state.compute_current_sync_committee_proof()?;
+                let committee = state.current_sync_committee()?.clone();
+                store.store_sync_committee_branch(*block_root, &branch)?;
+                // A requested side branch must not replace the global period committee.
+                (branch, committee)
+            }
         };
 
         let light_client_bootstrap = LightClientBootstrap::new(
             &block,
-            Arc::new(current_sync_committee),
+            current_sync_committee,
             current_sync_committee_branch,
             chain_spec,
         )?;

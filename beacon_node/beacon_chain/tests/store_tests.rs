@@ -8440,3 +8440,90 @@ fn get_blocks(dump: &[ChainDumpSnapshot<Spec>]) -> HashSet<SignedBeaconBlockHash
         .map(|checkpoint| checkpoint.beacon_block_root.into())
         .collect()
 }
+
+#[tokio::test]
+async fn gloas_checkpoint_bootstrap_survives_skipped_boundary_pruning() {
+    use tree_hash::TreeHash;
+    let spec = ForkName::Gloas.make_genesis_spec(E::default_spec());
+    let db_path = tempdir().unwrap();
+    let store = get_store_generic(&db_path, StoreConfig::default(), spec);
+    let harness = get_harness(store.clone(), LOW_VALIDATOR_COUNT);
+    let validators = (0..LOW_VALIDATOR_COUNT).collect::<Vec<_>>();
+    let period = E::slots_per_epoch();
+    let slots = (1..7 * period)
+        .filter(|slot| slot % period != 0)
+        .map(Slot::new)
+        .collect::<Vec<_>>();
+    harness
+        .add_attested_blocks_at_slots_with_lc_data(
+            harness.get_current_state(),
+            &slots,
+            &validators,
+            None,
+            SyncCommitteeStrategy::AllValidators,
+        )
+        .await;
+    let checkpoint = harness
+        .chain
+        .canonical_head
+        .cached_head()
+        .finalized_checkpoint();
+    assert!(checkpoint.epoch >= Epoch::new(2));
+    assert!(
+        store
+            .get_sync_committee_branch(&checkpoint.root)
+            .unwrap()
+            .is_some(),
+        "pruning removed the actual skipped-boundary checkpoint proof"
+    );
+    let (bootstrap, fork) = harness
+        .chain
+        .get_light_client_bootstrap(&checkpoint.root)
+        .unwrap()
+        .unwrap();
+    assert_eq!(fork, ForkName::Gloas);
+    let expected_bootstrap = bootstrap.as_ssz_bytes();
+    let LightClientBootstrap::Gloas(bootstrap) = bootstrap else {
+        panic!("expected an actual Gloas bootstrap")
+    };
+    assert_eq!(bootstrap.header.beacon.canonical_root(), checkpoint.root);
+    assert_ne!(bootstrap.header.beacon.slot % period, 0);
+    let index = types::light_client::consts::CURRENT_SYNC_COMMITTEE_INDEX_GLOAS;
+    let depth = index.ilog2() as usize;
+    assert!(merkle_proof::verify_merkle_proof(
+        bootstrap.current_sync_committee.tree_hash_root(),
+        &bootstrap.current_sync_committee_branch,
+        depth,
+        index - (1 << depth),
+        bootstrap.header.beacon.state_root
+    ));
+    assert!(
+        store
+            .get_sync_committee_branch(&checkpoint.root)
+            .unwrap()
+            .is_some()
+    );
+    store
+        .do_atomically_with_block_and_blobs_cache(vec![StoreOp::DeleteSyncCommitteeBranch(
+            checkpoint.root,
+        )])
+        .unwrap();
+    assert!(
+        store
+            .get_sync_committee_branch(&checkpoint.root)
+            .unwrap()
+            .is_none()
+    );
+    let (recovered, _) = harness
+        .chain
+        .get_light_client_bootstrap(&checkpoint.root)
+        .unwrap()
+        .unwrap();
+    assert_eq!(recovered.as_ssz_bytes(), expected_bootstrap);
+    assert!(
+        store
+            .get_sync_committee_branch(&checkpoint.root)
+            .unwrap()
+            .is_some()
+    );
+}
