@@ -10565,6 +10565,7 @@ dependencies = [
  "ethereum_ssz",
  "ethereum_ssz_derive",
  "fixed_bytes",
+ "flate2",
  "hex",
  "int_to_bytes",
  "itertools 0.14.0",

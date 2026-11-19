@@ -73,6 +73,7 @@ typenum = { workspace = true }
 yaml_serde = { workspace = true }
 
 [dev-dependencies]
+flate2 = { workspace = true }
 beacon_chain = { workspace = true }
 criterion = { workspace = true }
 tokio = { workspace = true }
