@@ -1,6 +1,6 @@
 # Gloas first-slot payload availability
 
-Branch `fix/glamsterdam-first-slot`, based on upstream `unstable` `8104a2467`. The same missing initialization is present in the local paired-client checkout `f85fa05b6`.
+[PR 1](https://github.com/jiayaoqijia/lighthouse/pull/1), branch `fix/glamsterdam-first-slot`, based on upstream `unstable` `8104a2467`. The same missing initialization is present in the local paired-client checkout `f85fa05b6`.
 
 The selected normative input is [consensus-specs 2ea9d96a, Gloas fork logic](https://github.com/ethereum/consensus-specs/blob/2ea9d96a420927eb1a35d7c9399c8b3691c69f6a/specs/gloas/fork.md#upgrading-the-state), including merged consensus-specs PR 5808. The fork's current payload-availability bit must be false after state migration. The preceding slot ran Fulu processing, so its normal Gloas next-slot clearing did not run.
 
