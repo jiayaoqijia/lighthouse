@@ -57,6 +57,8 @@ types = { workspace = true }
 unsigned-varint = { version = "0.8", features = ["codec"] }
 
 [dev-dependencies]
+serde_json = { workspace = true }
+yaml_serde = { workspace = true }
 async-channel = { workspace = true }
 logging = { workspace = true }
 proptest = { workspace = true }
