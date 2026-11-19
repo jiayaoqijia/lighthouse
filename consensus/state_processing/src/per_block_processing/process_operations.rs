@@ -12,6 +12,10 @@ use types::consts::altair::{PARTICIPATION_FLAG_WEIGHTS, PROPOSER_WEIGHT, WEIGHT_
 use types::consts::gloas::PAYLOAD_BUILDER_VERSION;
 use types::is_builder_withdrawal_credential;
 
+#[cfg(all(test, not(feature = "fake_crypto")))]
+#[path = "builder_request_wire_tests.rs"]
+mod builder_request_wire_tests;
+
 pub fn process_operations<E: EthSpec, Payload: AbstractExecPayload<E>>(
     state: &mut BeaconState<E>,
     block_body: BeaconBlockBodyRef<E, Payload>,
