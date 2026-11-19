@@ -1,0 +1,3 @@
+# Authenticated recovery of an already-pruned checkpoint proof
+
+The corrected pruning policy and exact immediate-post-state backfill pass release tests. The original live checkpoint at slot 1215 still returns an explicit unavailable-post-state error because historic compression no longer retains that exact pre-envelope state root. A slot hint must never substitute a different frozen state. Independently patched Lodestar still serves the original bootstrap, and an unchanged consensus-specs consumer authenticates the checkpoint through a supermajority finality update and 1,639 complete header-hash links. This separate recovery command restores only a proof cache entry after checking all local commitments; it does not reclassify unavailable state as validated data.
