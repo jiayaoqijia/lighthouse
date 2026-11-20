@@ -113,7 +113,41 @@ async fn captured_gloas_rows_reach_real_state_validation_and_pending_availabilit
     bad_slot.slot = Slot::new(vectors.slot - 1);
     let mut unknown = column("row_0");
     unknown.block_root = Hash256::repeat_byte(0x75);
-    for partial in [bad_cell, bad_proof, bad_index, bad_slot, unknown] {
+    let mut swapped_cells = column("full");
+    swapped_cells.sidecar.column.swap(0, 1);
+    let mut swapped_proofs = column("full");
+    swapped_proofs.sidecar.kzg_proofs.swap(0, 1);
+    let mut wrong_bitmap = column("row_1");
+    wrong_bitmap.sidecar.cells_present_bitmap = types::CellBitmap::<E>::with_capacity(2).unwrap();
+    wrong_bitmap
+        .sidecar
+        .cells_present_bitmap
+        .set(0, true)
+        .unwrap();
+    let mut wrong_length = column("row_0");
+    wrong_length.sidecar.cells_present_bitmap = types::CellBitmap::<E>::with_capacity(3).unwrap();
+    wrong_length
+        .sidecar
+        .cells_present_bitmap
+        .set(0, true)
+        .unwrap();
+    let mut missing_cell = column("row_0");
+    missing_cell.sidecar.column = Default::default();
+    let mut missing_proof = column("row_0");
+    missing_proof.sidecar.kzg_proofs = Default::default();
+    for partial in [
+        bad_cell,
+        bad_proof,
+        bad_index,
+        bad_slot,
+        unknown,
+        swapped_cells,
+        swapped_proofs,
+        wrong_bitmap,
+        wrong_length,
+        missing_cell,
+        missing_proof,
+    ] {
         assert!(!matches!(
             verify(partial),
             PartialColumnVerificationResult::Ok(_)
