@@ -1526,8 +1526,8 @@ mod tests {
 
         test_harness.publish(slot).await;
 
-        // Both mock BN only being hit once, as it is successful on the first call
-        mock_post_block.expect(1).assert();
+        // The same signed block is broadcast, then imported at the cache provider before its envelope.
+        mock_post_block.expect(2).assert();
         mock_post_envelope.expect(1).assert();
 
         let received_blocks = test_harness
@@ -1536,7 +1536,17 @@ mod tests {
             .received_full_blocks
             .lock()
             .unwrap();
-        assert_eq!(received_blocks.len(), 1, "Expected one published block");
+        assert_eq!(
+            received_blocks.len(),
+            2,
+            "Expected the signed block and its import fence"
+        );
+        assert!(
+            received_blocks
+                .iter()
+                .all(|block| block.signed_block().canonical_root()
+                    == received_blocks[0].signed_block().canonical_root())
+        );
 
         let received_envelopes = test_harness
             .harness
@@ -1584,7 +1594,7 @@ mod tests {
 
         test_harness.publish(slot).await;
 
-        mock_post_block.expect(1).assert();
+        mock_post_block.expect(2).assert();
         mock_post_contents.expect(1).assert();
         mock_post_bare_envelope.expect(0).assert();
         mock_get_envelope.expect(0).assert();
@@ -1601,8 +1611,8 @@ mod tests {
         assert_published_contents(&proposer_node, &contents);
         assert_eq!(
             proposer_node.received_full_blocks.lock().unwrap().len(),
-            1,
-            "Expected one published block"
+            2,
+            "Expected the signed block and its import fence"
         );
     }
 
@@ -1843,7 +1853,7 @@ mod tests {
         mock_ssz_1.expect(2).assert();
         mock_ssz_2.expect(2).assert();
         mock_json.expect(1).assert();
-        mock_post_block.expect(1).assert();
+        mock_post_block.expect(2).assert();
         mock_post_contents.expect(1).assert();
         mock_get_envelope.expect(0).assert();
 
@@ -1886,7 +1896,7 @@ mod tests {
         test_harness.publish(slot).await;
 
         // The stateful path runs as if the contents had not been returned.
-        mock_post_block.expect(1).assert();
+        mock_post_block.expect(2).assert();
         mock_get_envelope.expect(1).assert();
         mock_post_bare_envelope.expect(1).assert();
         mock_post_contents.expect(0).assert();
@@ -1915,11 +1925,15 @@ mod tests {
         let mock_proposer_post_contents =
             proposer_node.mock_post_beacon_execution_payload_envelope_contents_ssz_error();
 
+        let fallback_import = test_harness
+            .bn1()
+            .mock_post_beacon_blocks_v2_ssz(ForkName::Gloas);
         test_harness.publish(slot).await;
+        fallback_import.expect(1).assert();
 
         // The proposer node accepted the block but rejects the envelope, so the beacon nodes are
         // tried next with the same contents.
-        mock_post_block.expect(1).assert();
+        mock_post_block.expect(3).assert();
         mock_proposer_post_contents.expect(2).assert();
         mock_beacon_node_post_contents.expect(1).assert();
         assert_published_contents(&test_harness.harness.mock_beacon_node_1, &contents);
@@ -1956,7 +1970,7 @@ mod tests {
 
         test_harness.publish(slot).await;
 
-        mock_post_block.expect(1).assert();
+        mock_post_block.expect(2).assert();
         mock_get_envelope.expect(1).assert();
         mock_post_bare_envelope.expect(1).assert();
         mock_post_contents.expect(0).assert();
