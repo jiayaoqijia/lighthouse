@@ -1,0 +1,83 @@
+      Loaded 1555 security advisories (from /projects/eth2030/qualification/soak-audit-20261122/advisory-db)
+    Scanning Cargo.lock for vulnerabilities (994 crate dependencies)
+Crate:     bincode
+Version:   1.3.3
+Warning:   unmaintained
+Title:     Bincode is unmaintained
+Date:      2025-12-16
+ID:        RUSTSEC-2025-0141
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0141
+
+Crate:     chrono
+Version:   0.4.45
+Warning:   unmaintained
+Title:     chrono is unmaintained
+Date:      2026-09-14
+ID:        RUSTSEC-2026-0543
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0543
+
+Crate:     derivative
+Version:   2.2.0
+Warning:   unmaintained
+Title:     `derivative` is unmaintained; consider using an alternative
+Date:      2024-06-26
+ID:        RUSTSEC-2024-0388
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0388
+
+Crate:     humantime
+Version:   2.4.0
+Warning:   unmaintained
+Title:     humantime is unmaintained
+Date:      2026-09-14
+ID:        RUSTSEC-2026-0542
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0542
+
+Crate:     paste
+Version:   1.0.15
+Warning:   unmaintained
+Title:     paste - no longer maintained
+Date:      2024-10-07
+ID:        RUSTSEC-2024-0436
+URL:       https://rustsec.org/advisories/RUSTSEC-2024-0436
+
+Crate:     pin-utils
+Version:   0.1.1
+Warning:   unmaintained
+Title:     `pin-utils` is unmaintained
+Date:      2026-10-01
+ID:        RUSTSEC-2026-0441
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0441
+
+Crate:     rustls-pemfile
+Version:   2.2.0
+Warning:   unmaintained
+Title:     rustls-pemfile is unmaintained
+Date:      2025-11-28
+ID:        RUSTSEC-2025-0134
+URL:       https://rustsec.org/advisories/RUSTSEC-2025-0134
+
+Crate:     lru
+Version:   0.16.4
+Warning:   unsound
+Title:     Potential use-after-free due to lack of panic safety in `LruCache::pop()`
+Date:      2026-05-12
+ID:        RUSTSEC-2026-0253
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0253
+
+Crate:     rustix
+Version:   1.1.5
+Warning:   unsound
+Title:     xattr functions mark unwritten bytes as initialized when given a zero-length buffer
+Date:      2026-10-27
+ID:        RUSTSEC-2026-0486
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0486
+
+Crate:     tokio
+Version:   1.53.2
+Warning:   unsound
+Title:     `AsyncFd::new` and related constructors violate I/O safety
+Date:      2026-10-13
+ID:        RUSTSEC-2026-0386
+URL:       https://rustsec.org/advisories/RUSTSEC-2026-0386
+
+warning: 10 allowed warnings found
