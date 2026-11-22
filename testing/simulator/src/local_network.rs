@@ -18,9 +18,6 @@ use std::{
 };
 use types::{ChainSpec, Epoch, EthSpec};
 
-const BOOTNODE_PORT: u16 = 42424;
-const QUIC_PORT: u16 = 43424;
-
 pub const EXECUTION_PORT: u16 = 4000;
 
 pub const TERMINAL_BLOCK: u64 = 0;
@@ -216,15 +213,14 @@ impl<E: EthSpec> LocalNetwork<E> {
         mut beacon_config: ClientConfig,
         mock_execution_config: MockExecutionConfig,
     ) -> Result<(LocalBeaconNode<E>, LocalExecutionNode<E>), String> {
-        beacon_config.network.set_ipv4_listening_address(
-            std::net::Ipv4Addr::UNSPECIFIED,
-            BOOTNODE_PORT,
-            BOOTNODE_PORT,
-            QUIC_PORT,
-        );
+        beacon_config
+            .network
+            .set_ipv4_listening_address(std::net::Ipv4Addr::UNSPECIFIED, 0, 0, 0);
 
-        beacon_config.network.enr_udp4_port = Some(BOOTNODE_PORT.try_into().expect("non zero"));
-        beacon_config.network.enr_tcp4_port = Some(BOOTNODE_PORT.try_into().expect("non zero"));
+        // HTTP and other simulator nodes also use ephemeral ports. Reserve P2P
+        // sockets through the OS instead of guessing future unused port numbers.
+        beacon_config.network.enr_udp4_port = None;
+        beacon_config.network.enr_tcp4_port = None;
         beacon_config.network.discv5_config.table_filter = |_| true;
 
         let execution_node = LocalExecutionNode::new(self.context.clone(), mock_execution_config);
@@ -249,17 +245,11 @@ impl<E: EthSpec> LocalNetwork<E> {
     ) -> Result<(LocalBeaconNode<E>, LocalExecutionNode<E>), String> {
         let count = (self.beacon_node_count() + self.proposer_node_count()) as u16;
 
-        // Set config.
-        let libp2p_tcp_port = BOOTNODE_PORT + count;
-        let discv5_port = BOOTNODE_PORT + count;
-        beacon_config.network.set_ipv4_listening_address(
-            std::net::Ipv4Addr::UNSPECIFIED,
-            libp2p_tcp_port,
-            discv5_port,
-            QUIC_PORT + count,
-        );
-        beacon_config.network.enr_udp4_port = Some(discv5_port.try_into().unwrap());
-        beacon_config.network.enr_tcp4_port = Some(libp2p_tcp_port.try_into().unwrap());
+        beacon_config
+            .network
+            .set_ipv4_listening_address(std::net::Ipv4Addr::UNSPECIFIED, 0, 0, 0);
+        beacon_config.network.enr_udp4_port = None;
+        beacon_config.network.enr_tcp4_port = None;
         beacon_config.network.discv5_config.table_filter = |_| true;
         beacon_config.network.proposer_only = is_proposer;
 

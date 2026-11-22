@@ -1,0 +1,36 @@
+{
+  "rpc-encode-guard-green": {
+    "exit": 0,
+    "seconds": 49.35479416302405,
+    "test_failed": false,
+    "test_passed": true
+  },
+  "rpc-encode-guard-mutant": {
+    "exit": 101,
+    "seconds": 12.235869961034041,
+    "test_failed": true,
+    "test_passed": false
+  },
+  "rpc-v1-matching-mutant": {
+    "exit": 101,
+    "seconds": 40.026289561006706,
+    "test_failed": true,
+    "test_passed": false
+  },
+  "rpc-encode-restored-green": {
+    "exit": 0,
+    "seconds": 13.03513384400867,
+    "test_failed": false,
+    "test_passed": true
+  },
+  "rpc-transport-restored-green": {
+    "exit": 0,
+    "seconds": 30.463730017014313,
+    "test_failed": false,
+    "test_passed": true
+  },
+  "restored_source_sha256": {
+    "beacon_node/lighthouse_network/src/rpc/codec.rs": "df705bfc6f8dc971b35630d671cddbf36238e18426b8f88d677541bcb0de96bf",
+    "beacon_node/lighthouse_network/tests/rpc_tests.rs": "6cd8ff9ec51360b69e2722743ff72e3957ed9f60ffa6a5e862ed789ccf754200"
+  }
+}

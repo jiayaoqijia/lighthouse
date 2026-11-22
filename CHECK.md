@@ -77,3 +77,7 @@
 - [x] Decode and verify builder-specific domains and actual registration/top-up/exit processing.
 - [x] Verify request-list bytes, authorization, pending-payment gates and unchanged validator registry.
 - [x] Run targeted tests, formatting, cargo check and full lint-fix; publish the separate consumer review.
+
+## Gloas reference-vector source alignment (2026-11-22)
+
+The inherited v1.7.0-beta.4 fork vectors conflict with selected consensus reference2ea9d96a on the fork-slot availability and credential-first independent builder/validator onboarding updates. Production behavior matches the selected source. A separate review is generating source-pinned reference vectors and retaining actual BLS/full-state comparisons rather than reverting or skipping the normative behavior. [Checklist](docs/qualification/gloas-vector-source-alignment-20261122.md). Two independent reference runs produce344 byte-identical files, all86 actual Rust full-state/BLS cases pass, and six admission/rollback controls pass. The fixed complete simulator run and hosted full-suite CI remain pending. Independent review: https://github.com/jiayaoqijia/lighthouse/pull/5 .
