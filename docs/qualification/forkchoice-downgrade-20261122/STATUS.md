@@ -1,0 +1,3 @@
+# Snapshot downgrade compatibility correction
+
+Live persistence writes PersistedForkChoiceV30 with a third variable field for unsatisfied inclusion lists. The v29-to-v28 migration decodes only V29 (two variable fields), so all four legitimate pre-Gloas downgrade/readback campaigns fail with OffsetSkipsVariableBytes(12). The current live decoder already supports V30 and legacy V29. Migration must use that decoder and explicitly reject nonempty obligations or Gloas nodes before conversion, instead of dropping fields or weakening the post-fork downgrade restriction. Original failures remain retained.
