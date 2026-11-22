@@ -18,6 +18,11 @@ fn mock_forkchoice_response(
     mut payload_status: PayloadStatusV1,
     payload_id: Option<TransparentJsonPayloadId>,
 ) -> JsonValue {
+    let payload_id = if payload_status.status == PayloadStatusV1Status::Valid {
+        payload_id
+    } else {
+        None
+    };
     if method == ENGINE_FORKCHOICE_UPDATED_V5 {
         if payload_status.status == PayloadStatusV1Status::Valid {
             payload_status.inclusion_list_satisfied.get_or_insert(true);
@@ -777,6 +782,15 @@ pub async fn handle_rpc<E: EthSpec>(
                     .map_err(|message| (message, GENERIC_ERROR_CODE));
             }
 
+            // A non-VALID FCU cannot select a canonical head or start a build.
+            // Returning a real build ID with a canned SYNCING status made the
+            // fallback simulator's disconnected Engine remain usable.
+            if let Some(status) = ctx.static_forkchoice_updated_response.lock().clone()
+                && status.status != PayloadStatusV1Status::Valid
+            {
+                return Ok(mock_forkchoice_response(method, status, None));
+            }
+
             let response = ctx
                 .execution_block_generator
                 .write()
@@ -937,6 +951,7 @@ fn get_param<T: DeserializeOwned>(params: &JsonValue, index: usize) -> Result<T,
 mod test {
     use super::*;
     use crate::test_utils::MockServer;
+    use fixed_bytes::FixedBytesExtended;
     use types::{
         ExecutionBlockHash, ExecutionPayload, ExecutionPayloadBellatrix, Hash256, MinimalEthSpec,
     };
