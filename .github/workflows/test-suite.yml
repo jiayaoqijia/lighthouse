@@ -76,6 +76,14 @@ jobs:
           ./scripts/ci/test-check-lockbud.sh
           ./scripts/ci/test-lockbud-toolchain.sh
           ./scripts/ci/check-lockbud.sh
+      - name: Preserve actual analyzer output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lockbud-analysis
+          path: lockbud-analysis.log
+          if-no-files-found: ignore
+
 
   target-branch-check:
     name: target-branch-check

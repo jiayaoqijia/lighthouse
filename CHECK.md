@@ -1,3 +1,15 @@
+## Runtime stall and truthful qualification gates (2026-11-22)
+
+- [x] Preserve failed03 raw records, independently authenticate its entire signed prefix, and scan the native/Geth execution prefix.
+- [x] Reproduce both async executor blocking defects, retain red controls, and verify the bounded monitored-blocking correction.
+- [x] Pass release build, workspace lint, 67 state-processing tests, actual captured Gloas consumer and 60 runtime regression repeats.
+- [x] Freeze the fixed release; verify peer-loss/read/clean-stop smoke and start a new zero-duration48h round04.
+- [x] Reject failed Lockbud execution; pin its supported edition2024 toolchain and verify real positive/negative analysis controls.
+- [x] Review all12 initial Tokio diagnostics individually; match complete reports, with no new crate-wide exclusion.
+- [ ] Complete full-project modern-analyzer execution and reconcile every new finding and hosted CI result.
+- [ ] Verify and integrate fork review4 into eth2030 only after checks pass.
+- [ ] Complete actual48h round04 plus entire-span independent BLS, fresh MPT/wire and owned-container cleanup acceptance.
+
 ## Glamsterdam adversarial and cross-client qualification (2026-11-19)
 
 - [x] Reproduce and close signed-but-state-inconsistent envelope gossip/cache admission; the remaining R06 lifecycle matrix stays open.

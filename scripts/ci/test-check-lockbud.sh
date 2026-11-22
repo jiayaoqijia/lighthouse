@@ -15,7 +15,7 @@ esac
 CARGO
 chmod +x "$temporary/bin/cargo"
 for scenario in failed finding large clean; do
-  if PATH="$temporary/bin:$PATH" LOCKBUD_TEST_CASE="$scenario" bash "$subject" > "$temporary/$scenario.log" 2>&1; then
+  if PATH="$temporary/bin:$PATH" LOCKBUD_TEST_CASE="$scenario" LOCKBUD_LOG_PATH="$temporary/analysis-$scenario.log" bash "$subject" > "$temporary/$scenario.log" 2>&1; then
     result=0
   else
     result=$?
@@ -26,4 +26,5 @@ for scenario in failed finding large clean; do
     [[ "$result" != 0 ]] || { echo "Incorrect success for $scenario"; cat "$temporary/$scenario.log"; exit 1; }
   fi
 done
+python3 "$(dirname "$subject")/test-check-lockbud-reports.py"
 echo 'Lockbud command failures, findings and successful analysis are distinguished.'

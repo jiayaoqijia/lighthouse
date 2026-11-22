@@ -1,25 +1,18 @@
 #!/bin/bash
 set -euo pipefail
-
-# Run lockbud to check for deadlocks and capture the output
-if output=$(cargo lockbud -k deadlock --exit-code-on-bug -b -l tokio_util -- --locked 2>&1); then
+script_directory="$(cd "$(dirname "$0")" && pwd)"
+log="${LOCKBUD_LOG_PATH:-lockbud-analysis.log}"
+# Collect all crates rather than stopping at the first reviewed dependency report.
+# Nonzero tool/compiler exits always fail; successful output is checked separately.
+if cargo lockbud -k deadlock -b -l tokio_util -- --locked > "$log" 2>&1; then
   :
 else
   status=$?
-  printf '%s\n' "$output" >&2
+  cat "$log" >&2
   printf 'Lockbud did not complete successfully (exit %s).\n' "$status" >&2
   exit "$status"
 fi
-
-# Check if lockbud returned any issues
-if [[ "$output" == *'"bug_kind"'* ]]; then
-  # Print the JSON payload
-  echo "Lockbud detected issues:"
-  echo "$output"
-
-  # Exit with a non-zero status to indicate an error
+if ! python3 "$script_directory/check-lockbud-reports.py" "$log"; then
+  cat "$log" >&2
   exit 1
-else
-  echo "No issues detected by Lockbud."
-  exit 0
 fi
