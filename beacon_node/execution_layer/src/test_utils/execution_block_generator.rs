@@ -324,6 +324,17 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
             .and_then(|block| block.as_execution_payload())
     }
 
+    /// Payloads already known to this model, in parent-before-child order.
+    pub fn known_payloads(&self) -> Vec<ExecutionPayload<E>> {
+        let mut payloads: Vec<_> = self
+            .blocks
+            .values()
+            .filter_map(Block::as_execution_payload)
+            .collect();
+        payloads.sort_by_key(|payload| (payload.block_number(), payload.block_hash()));
+        payloads
+    }
+
     pub fn drop_all_blocks(&mut self) {
         self.blocks = <_>::default();
         self.block_hashes = <_>::default();

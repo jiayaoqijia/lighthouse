@@ -1062,7 +1062,7 @@ mod test {
                 .block_by_hash(parent)
                 .is_none()
         );
-        recovering.sync_from_peer_then_resume(&peer).unwrap();
+        assert_eq!(recovering.sync_from_peer_then_resume(&peer).unwrap(), 2);
         assert_eq!(
             recovering
                 .execution_block_generator()
@@ -1088,6 +1088,11 @@ mod test {
                 .block_hash(),
             parent
         );
+        assert_eq!(
+            recovering.sync_from_peer_then_resume(&peer).unwrap(),
+            0,
+            "catchup must be idempotent"
+        );
         let mut unknown = request;
         unknown["params"][0]["headBlockHash"] =
             serde_json::to_value(ExecutionBlockHash::from_root(Hash256::repeat_byte(99))).unwrap();
@@ -1097,5 +1102,31 @@ mod test {
             "recovery must clear the static VALID override"
         );
         assert!(not_known["payloadId"].is_null());
+    }
+    #[tokio::test]
+    async fn failed_mock_recovery_does_not_clear_the_outage() {
+        let peer = MockServer::<MinimalEthSpec>::unit_testing();
+        let recovering = MockServer::<MinimalEthSpec>::unit_testing();
+        let genesis = recovering
+            .execution_block_generator()
+            .genesis_block()
+            .unwrap();
+        recovering.all_payloads_syncing(false);
+        peer.execution_block_generator().drop_all_blocks();
+        assert!(recovering.sync_from_peer_then_resume(&peer).is_err());
+        let request = serde_json::json!({"jsonrpc":"2.0","id":1,"method":ENGINE_FORKCHOICE_UPDATED_V1,"params":[
+            {"headBlockHash":genesis.block_hash(),"safeBlockHash":genesis.block_hash(),"finalizedBlockHash":genesis.block_hash()}, null
+        ]});
+        let status = handle_rpc(request, recovering.ctx.clone()).await.unwrap();
+        assert_eq!(status["payloadStatus"]["status"], "SYNCING");
+        assert!(status["payloadId"].is_null());
+        assert_eq!(
+            recovering
+                .execution_block_generator()
+                .latest_block()
+                .unwrap()
+                .block_hash(),
+            genesis.block_hash()
+        );
     }
 }
