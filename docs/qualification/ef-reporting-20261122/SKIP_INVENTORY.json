@@ -1,0 +1,665 @@
+{
+  "scope": "Existing skip/inactive boundaries, not admitted as passed. Shared handler paths deduplicated per preset. Non-corpus unit controls excluded.",
+  "profiles": {
+    "mainnet": {
+      "counts": {
+        "total": 5433,
+        "executed": 5366,
+        "passed": 5366,
+        "failed": 0,
+        "skipped_bls": 24,
+        "skipped_known": 43
+      },
+      "inactive_handlers": [
+        "mainnet/operations/execution_payload"
+      ],
+      "selected_source_gloas": {
+        "tests/mainnet/gloas/fork/fork": [
+          42,
+          42,
+          42,
+          0,
+          0,
+          0
+        ],
+        "tests/mainnet/gloas/transition/core": [
+          29,
+          29,
+          29,
+          0,
+          0,
+          0
+        ]
+      }
+    },
+    "minimal": {
+      "counts": {
+        "total": 5992,
+        "executed": 5925,
+        "passed": 5925,
+        "failed": 0,
+        "skipped_bls": 24,
+        "skipped_known": 43
+      },
+      "inactive_handlers": [
+        "minimal/fast_confirmation/basic",
+        "minimal/fast_confirmation/current_epoch",
+        "minimal/fast_confirmation/empty_slots",
+        "minimal/fast_confirmation/ffg",
+        "minimal/fast_confirmation/is_one_confirmed",
+        "minimal/fast_confirmation/previous_epoch",
+        "minimal/fast_confirmation/reconfirmation",
+        "minimal/fast_confirmation/restart_gu",
+        "minimal/fast_confirmation/revert_finality",
+        "minimal/fast_confirmation/variables",
+        "minimal/fork_choice_compliance/attester_slashing_test",
+        "minimal/fork_choice_compliance/block_cover_test",
+        "minimal/fork_choice_compliance/block_tree_test",
+        "minimal/fork_choice_compliance/block_weight_test",
+        "minimal/fork_choice_compliance/invalid_message_test",
+        "minimal/fork_choice_compliance/shuffling_test",
+        "minimal/operations/execution_payload"
+      ],
+      "selected_source_gloas": {
+        "tests/minimal/gloas/fork/fork": [
+          44,
+          44,
+          44,
+          0,
+          0,
+          0
+        ],
+        "tests/minimal/gloas/transition/core": [
+          37,
+          37,
+          37,
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "handlers_with_skips": [
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/altair/fork_choice/get_proposer_head",
+      "total": 3,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/bellatrix/fork_choice/get_proposer_head",
+      "total": 3,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/capella/fork_choice/get_proposer_head",
+      "total": 3,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/deneb/fork_choice/get_proposer_head",
+      "total": 3,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/electra/fork_choice/get_proposer_head",
+      "total": 3,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/fulu/networking/gossip_beacon_aggregate_and_proof",
+      "total": 33,
+      "executed": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 9
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/fulu/networking/gossip_beacon_attestation",
+      "total": 23,
+      "executed": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 9
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/phase0/networking/gossip_beacon_block",
+      "total": 12,
+      "executed": 11,
+      "passed": 11,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/altair/networking/gossip_beacon_block",
+      "total": 12,
+      "executed": 11,
+      "passed": 11,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/bellatrix/networking/gossip_beacon_block",
+      "total": 20,
+      "executed": 17,
+      "passed": 17,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 3
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/capella/networking/gossip_beacon_block",
+      "total": 18,
+      "executed": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 2
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/deneb/networking/gossip_beacon_block",
+      "total": 20,
+      "executed": 18,
+      "passed": 18,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 2
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/electra/networking/gossip_beacon_block",
+      "total": 20,
+      "executed": 18,
+      "passed": 18,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 2
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/fulu/networking/gossip_beacon_block",
+      "total": 23,
+      "executed": 21,
+      "passed": 21,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 2
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/phase0/operations/attestation",
+      "total": 41,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/altair/operations/attestation",
+      "total": 41,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/bellatrix/operations/attestation",
+      "total": 41,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/capella/operations/attestation",
+      "total": 41,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/deneb/operations/attestation",
+      "total": 41,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/electra/operations/attestation",
+      "total": 45,
+      "executed": 42,
+      "passed": 42,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/fulu/operations/attestation",
+      "total": 45,
+      "executed": 42,
+      "passed": 42,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/gloas/operations/attestation",
+      "total": 61,
+      "executed": 58,
+      "passed": 58,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/altair/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/bellatrix/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/capella/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/deneb/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/electra/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/fulu/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "mainnet",
+      "handler": "tests/mainnet/gloas/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/altair/fork_choice/get_proposer_head",
+      "total": 3,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/bellatrix/fork_choice/get_proposer_head",
+      "total": 3,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/capella/fork_choice/get_proposer_head",
+      "total": 3,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/deneb/fork_choice/get_proposer_head",
+      "total": 3,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/electra/fork_choice/get_proposer_head",
+      "total": 3,
+      "executed": 2,
+      "passed": 2,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/fulu/networking/gossip_beacon_aggregate_and_proof",
+      "total": 33,
+      "executed": 24,
+      "passed": 24,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 9
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/fulu/networking/gossip_beacon_attestation",
+      "total": 23,
+      "executed": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 9
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/phase0/networking/gossip_beacon_block",
+      "total": 12,
+      "executed": 11,
+      "passed": 11,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/altair/networking/gossip_beacon_block",
+      "total": 12,
+      "executed": 11,
+      "passed": 11,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/bellatrix/networking/gossip_beacon_block",
+      "total": 20,
+      "executed": 17,
+      "passed": 17,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 3
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/capella/networking/gossip_beacon_block",
+      "total": 18,
+      "executed": 16,
+      "passed": 16,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 2
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/deneb/networking/gossip_beacon_block",
+      "total": 20,
+      "executed": 18,
+      "passed": 18,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 2
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/electra/networking/gossip_beacon_block",
+      "total": 20,
+      "executed": 18,
+      "passed": 18,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 2
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/fulu/networking/gossip_beacon_block",
+      "total": 23,
+      "executed": 21,
+      "passed": 21,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 2
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/phase0/operations/attestation",
+      "total": 41,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/altair/operations/attestation",
+      "total": 41,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/bellatrix/operations/attestation",
+      "total": 41,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/capella/operations/attestation",
+      "total": 41,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/deneb/operations/attestation",
+      "total": 41,
+      "executed": 38,
+      "passed": 38,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/electra/operations/attestation",
+      "total": 49,
+      "executed": 46,
+      "passed": 46,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/fulu/operations/attestation",
+      "total": 49,
+      "executed": 46,
+      "passed": 46,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/gloas/operations/attestation",
+      "total": 66,
+      "executed": 63,
+      "passed": 63,
+      "failed": 0,
+      "skipped_bls": 3,
+      "skipped_known": 0
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/altair/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/bellatrix/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/capella/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/deneb/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/electra/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/fulu/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    },
+    {
+      "preset": "minimal",
+      "handler": "tests/minimal/gloas/rewards/basic",
+      "total": 11,
+      "executed": 10,
+      "passed": 10,
+      "failed": 0,
+      "skipped_bls": 0,
+      "skipped_known": 1
+    }
+  ]
+}
