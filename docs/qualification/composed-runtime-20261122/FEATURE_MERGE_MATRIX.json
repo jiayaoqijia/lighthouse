@@ -1,0 +1,18 @@
+{
+  "target": "42f6fc26e5c48c4c1ec16368a0a7df705bcc3e69",
+  "heads": {
+    "fix/gloas-runtime-stall": "1da38247c0a673c956639052a249b052ef8cbb04",
+    "fix/gloas-vector-source-alignment": "7210741372e113bf0745420d381fa5db2dbe552a",
+    "fix/libz-audit-patch": "40e5d609233a8b4b0a869484e287db1f59b2acd2",
+    "fix/gloas-envelope-publication-recovery": "57d2c2c87a829268f35703df3073483213b4c9e1",
+    "fix/mock-el-validated-payload-lifecycle": "54e1884460caf56889e35f8e887ba3ce8f74da5d",
+    "fix/gloas-ptc-provider-fallback": "476789481f02d69800db0fa8258d2d6f03a5961d",
+    "fix/gloas-committee-equivocation-weight": "c07689f4fd81e5e0c5645f19b6bef270e7c3ef9c",
+    "fix/forkchoice-snapshot-downgrade": "a46dbc2961ff5a9088b7e2adc64648548fe18fca",
+    "fix/ef-qualification-reporting": "c8f1f3860367965550c0541ff364180c0438b77c"
+  },
+  "ordered_pairs_clean": 72,
+  "complete_orders_clean_same_tree": 50,
+  "tree": "0577e7c2f8d8657028f48873d79ca785744f02da",
+  "actual_merge": false
+}

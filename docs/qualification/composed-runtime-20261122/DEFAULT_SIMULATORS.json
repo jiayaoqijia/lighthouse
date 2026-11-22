@@ -1,0 +1,24 @@
+{
+  "complete": true,
+  "passed": true,
+  "results": [
+    {
+      "mode": "basic-sim",
+      "source": "3782df1f88095997ffb4c91986a5f1c56bfa5bf2",
+      "binary_sha256": "f7916113c225c86c2bc63abef985b1604a4e66bd0a3d99cdb01cc5bcf969a98f",
+      "exit": 0,
+      "seconds": 423.6605791740003,
+      "timeout": false,
+      "scope": "Complete unchanged default simulator; no consensus/BLS/hash/timing/slot or95percent thresholds relaxed;42429 reserved throughout."
+    },
+    {
+      "mode": "fallback-sim",
+      "source": "3782df1f88095997ffb4c91986a5f1c56bfa5bf2",
+      "binary_sha256": "f7916113c225c86c2bc63abef985b1604a4e66bd0a3d99cdb01cc5bcf969a98f",
+      "exit": 0,
+      "seconds": 423.84377201396273,
+      "timeout": false,
+      "scope": "Complete unchanged default simulator; no consensus/BLS/hash/timing/slot or95percent thresholds relaxed;42429 reserved throughout."
+    }
+  ]
+}

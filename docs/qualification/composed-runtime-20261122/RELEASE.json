@@ -1,0 +1,12 @@
+{
+  "source": "3782df1f88095997ffb4c91986a5f1c56bfa5bf2",
+  "binaries": {
+    "lighthouse": {
+      "sha256": "2ff75e82430588857770e2e62afe5af5d9396139f0fc6d6b11c64775c376aff1"
+    },
+    "simulator": {
+      "sha256": "f7916113c225c86c2bc63abef985b1604a4e66bd0a3d99cdb01cc5bcf969a98f"
+    }
+  },
+  "version": "Lighthouse v8.4.0-rc.0-3782df1\nBLS library: blst\nBLS hardware acceleration: true\nSHA256 hardware acceleration: true\nAllocator: jemalloc (4K)\nProfile: release\nSpecs: mainnet (true), minimal (false), gnosis (false)\n"
+}

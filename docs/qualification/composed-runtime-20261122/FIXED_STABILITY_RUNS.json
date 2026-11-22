@@ -1,0 +1,25 @@
+{
+  "planned_additional_runs": 2,
+  "completed": 2,
+  "passed": true,
+  "results": [
+    {
+      "source": "3782df1f88095997ffb4c91986a5f1c56bfa5bf2",
+      "binary_sha256": "f7916113c225c86c2bc63abef985b1604a4e66bd0a3d99cdb01cc5bcf969a98f",
+      "exit": 0,
+      "seconds": 423.04480195901124,
+      "reserved": "127.0.0.1:42429",
+      "timeout": false,
+      "profile": "Unchanged complete default fallback simulator:16epochs,3s slots,engine outage,95percent head/target/source and all129 canonical blocks required."
+    },
+    {
+      "source": "3782df1f88095997ffb4c91986a5f1c56bfa5bf2",
+      "binary_sha256": "f7916113c225c86c2bc63abef985b1604a4e66bd0a3d99cdb01cc5bcf969a98f",
+      "exit": 0,
+      "seconds": 423.9467379330308,
+      "reserved": "127.0.0.1:42429",
+      "timeout": false,
+      "profile": "Unchanged complete default fallback simulator:16epochs,3s slots,engine outage,95percent head/target/source and all129 canonical blocks required."
+    }
+  ]
+}
