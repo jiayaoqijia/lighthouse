@@ -538,7 +538,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
         unsigned_block: UnsignedBlock<S::E>,
         local_payload_root: Option<Hash256>,
         builder_url: Option<String>,
-    ) -> Result<Option<Hash256>, BlockError> {
+    ) -> Result<Option<SignedBlock<S::E>>, BlockError> {
         let signing_timer = validator_metrics::start_timer(&validator_metrics::BLOCK_SIGNING_TIMES);
 
         let res = self
@@ -599,11 +599,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
             slot = metadata.slot.as_u64(),
             "Successfully published block"
         );
-        let block_root = match &signed_block {
-            SignedBlock::Full(block) => block.signed_block().canonical_root(),
-            SignedBlock::Blinded(block) => block.canonical_root(),
-        };
-        Ok(Some(block_root))
+        Ok(Some(signed_block))
     }
 
     #[instrument(
@@ -867,7 +863,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
 
         let local_payload_root = envelope_action.local_payload_root();
 
-        let Some(signed_block_root) = self_ref
+        let Some(signed_block) = self_ref
             .sign_and_publish_block(
                 &proposer_fallback,
                 slot,
@@ -881,6 +877,8 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
         else {
             return Ok(());
         };
+
+        let signed_block_root = signed_block_root(&signed_block);
 
         match envelope_action {
             EnvelopeAction::Skip => {}
@@ -898,7 +896,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
                     .fetch_sign_and_publish_payload_envelope(
                         &proposer_fallback,
                         slot,
-                        beacon_block_root,
+                        &signed_block,
                         &validator_pubkey,
                     )
                     .await?;
@@ -919,6 +917,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
                         &proposer_fallback,
                         slot,
                         fork_name,
+                        &signed_block,
                         *contents,
                         &validator_pubkey,
                     )
@@ -939,9 +938,10 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
         &self,
         proposer_fallback: &ProposerFallback<T>,
         slot: Slot,
-        beacon_block_root: Hash256,
+        signed_block: &SignedBlock<S::E>,
         validator_pubkey: &PublicKeyBytes,
     ) -> Result<(), BlockError> {
+        let beacon_block_root = signed_block_root(signed_block);
         info!(
             slot = slot.as_u64(),
             %beacon_block_root,
@@ -976,6 +976,12 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
             beacon_block_root = %envelope.beacon_block_root,
             "Received execution payload envelope, signing"
         );
+
+        // An unsigned-block cache does not imply that this BN has imported its signed
+        // form. Re-submit the exact already-signed block here before the envelope,
+        // instead of relying on gossip from the independent block-broadcast provider.
+        self.publish_signed_block_contents(signed_block, provider.clone(), None)
+            .await?;
 
         // Sign the envelope
         let signed_envelope = self
@@ -1029,6 +1035,7 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
         proposer_fallback: &ProposerFallback<T>,
         slot: Slot,
         fork_name: ForkName,
+        signed_block: &SignedBlock<S::E>,
         contents: LocalPayloadContents<S::E>,
         validator_pubkey: &PublicKeyBytes,
     ) -> Result<(), BlockError> {
@@ -1063,6 +1070,8 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
 
         proposer_fallback
             .request_proposers_first(|beacon_node| async move {
+                self.publish_signed_block_contents(signed_block, beacon_node.clone(), None)
+                    .await?;
                 beacon_node
                     .post_beacon_execution_payload_envelope_contents_ssz(
                         signed_contents,
@@ -1123,6 +1132,13 @@ impl<S: ValidatorStore + 'static, T: SlotClock + 'static> BlockService<S, T> {
             }
         }
         Ok::<_, BlockError>(())
+    }
+}
+
+fn signed_block_root<E: EthSpec>(block: &SignedBlock<E>) -> Hash256 {
+    match block {
+        SignedBlock::Full(block) => block.signed_block().canonical_root(),
+        SignedBlock::Blinded(block) => block.canonical_root(),
     }
 }
 
@@ -2096,17 +2112,19 @@ mod tests {
         let mut test_harness = TestHarness::new_with_validators(1).await;
 
         let slot = Slot::new(1);
+        let signed_block = signed_self_build_block(&test_harness.harness.spec);
+        let requested_root = signed_block_root(&signed_block);
         let validator_pubkey = test_harness.harness.pubkeys[0];
 
         // Both beacon nodes return error for get_validator_execution_payload_envelope_ssz
         test_harness
             .harness
             .mock_beacon_node_1
-            .mock_get_validator_execution_payload_envelope_ssz_error(slot, Hash256::default());
+            .mock_get_validator_execution_payload_envelope_ssz_error(slot, requested_root);
         test_harness
             .harness
             .mock_beacon_node_2
-            .mock_get_validator_execution_payload_envelope_ssz_error(slot, Hash256::default());
+            .mock_get_validator_execution_payload_envelope_ssz_error(slot, requested_root);
 
         let mock_post_envelope = test_harness
             .harness
@@ -2123,7 +2141,7 @@ mod tests {
             .fetch_sign_and_publish_payload_envelope(
                 &proposer_fallback,
                 slot,
-                Hash256::default(),
+                &signed_block,
                 &validator_pubkey,
             )
             .await;
@@ -2136,6 +2154,12 @@ mod tests {
 
         // Since get_validator_execution_payload_envelope_ssz failed, the BN shouldn't be called to publish the envelope
         mock_post_envelope.expect(0).assert();
+    }
+
+    fn signed_self_build_block(spec: &ChainSpec) -> SignedBlock<MainnetEthSpec> {
+        SignedBlock::Full(eth2::types::PublishBlockRequest::Block(Arc::new(
+            types::SignedBeaconBlock::from_block(self_build_block(spec), bls::Signature::empty()),
+        )))
     }
 
     fn cached_self_build_envelope(
@@ -2154,7 +2178,9 @@ mod tests {
         for field in ["root", "slot", "builder"] {
             let mut test = TestHarness::new_with_validators(1).await;
             let slot = Slot::new(1);
-            let root = Hash256::default();
+            let signed_block = signed_self_build_block(&test.harness.spec);
+            let requested_root = signed_block_root(&signed_block);
+            let root = requested_root;
             let mut envelope = cached_self_build_envelope(slot, root);
             match field {
                 "root" => envelope.beacon_block_root = Hash256::repeat_byte(7),
@@ -2177,7 +2203,7 @@ mod tests {
                 .fetch_sign_and_publish_payload_envelope(
                     &fallback,
                     slot,
-                    root,
+                    &signed_block,
                     &test.harness.pubkeys[0],
                 )
                 .await;
@@ -2229,8 +2255,10 @@ mod tests {
     async fn stateful_envelope_publishes_to_the_cache_provider() {
         let mut test = TestHarness::new_with_validators(1).await;
         let slot = Slot::new(1);
-        let root = Hash256::default();
-        let envelope = cached_self_build_envelope(slot, Hash256::default());
+        let signed_block = signed_self_build_block(&test.harness.spec);
+        let requested_root = signed_block_root(&signed_block);
+        let root = requested_root;
+        let envelope = cached_self_build_envelope(slot, requested_root);
         let get_wrong = test
             .bn1()
             .mock_get_validator_execution_payload_envelope_ssz_error(slot, root);
@@ -2239,6 +2267,7 @@ mod tests {
             .mock_get_validator_execution_payload_envelope_ssz(&envelope, slot, root);
         let publish_wrong = test.bn1().mock_post_beacon_execution_payload_envelope_ssz();
         let publish_producer = test.bn2().mock_post_beacon_execution_payload_envelope_ssz();
+        test.bn2().mock_post_beacon_blocks_v2_ssz(ForkName::Gloas);
         let fallback = ProposerFallback {
             beacon_nodes: test.service.beacon_nodes.clone(),
             proposer_nodes: test.service.proposer_nodes.clone(),
@@ -2247,7 +2276,7 @@ mod tests {
             .fetch_sign_and_publish_payload_envelope(
                 &fallback,
                 slot,
-                root,
+                &signed_block,
                 &test.harness.pubkeys[0],
             )
             .await
@@ -2272,8 +2301,10 @@ mod tests {
         let mut producer = MockBeaconNode::<MainnetEthSpec>::new().await;
         let mut test = TestHarness::new(1, false, Some(&producer)).await;
         let slot = Slot::new(1);
-        let root = Hash256::default();
-        let envelope = cached_self_build_envelope(slot, Hash256::default());
+        let signed_block = signed_self_build_block(&test.harness.spec);
+        let requested_root = signed_block_root(&signed_block);
+        let root = requested_root;
+        let envelope = cached_self_build_envelope(slot, requested_root);
         test.bn1()
             .mock_get_validator_execution_payload_envelope_ssz_error(slot, root);
         test.bn2()
@@ -2282,6 +2313,7 @@ mod tests {
             producer.mock_get_validator_execution_payload_envelope_ssz(&envelope, slot, root);
         let publish_producer = producer.mock_post_beacon_execution_payload_envelope_ssz();
         let publish_wrong = test.bn1().mock_post_beacon_execution_payload_envelope_ssz();
+        producer.mock_post_beacon_blocks_v2_ssz(ForkName::Gloas);
         let fallback = ProposerFallback {
             beacon_nodes: test.service.beacon_nodes.clone(),
             proposer_nodes: test.service.proposer_nodes.clone(),
@@ -2290,7 +2322,7 @@ mod tests {
             .fetch_sign_and_publish_payload_envelope(
                 &fallback,
                 slot,
-                root,
+                &signed_block,
                 &test.harness.pubkeys[0],
             )
             .await
@@ -2305,13 +2337,15 @@ mod tests {
         let mut test_harness = TestHarness::new_with_validators(1).await;
 
         let slot = Slot::new(1);
+        let signed_block = signed_self_build_block(&test_harness.harness.spec);
+        let requested_root = signed_block_root(&signed_block);
         let validator_pubkey = test_harness.harness.pubkeys[0];
-        let envelope = cached_self_build_envelope(slot, Hash256::default());
+        let envelope = cached_self_build_envelope(slot, requested_root);
 
         test_harness
             .harness
             .mock_beacon_node_1
-            .mock_get_validator_execution_payload_envelope_ssz(&envelope, slot, Hash256::default());
+            .mock_get_validator_execution_payload_envelope_ssz(&envelope, slot, requested_root);
 
         // Both beacon nodes return error for post_beacon_execution_payload_envelope_ssz
         let mock_post_envelope_1 = test_harness
@@ -2323,6 +2357,9 @@ mod tests {
             .mock_beacon_node_2
             .mock_post_beacon_execution_payload_envelope_ssz_error();
 
+        test_harness
+            .bn1()
+            .mock_post_beacon_blocks_v2_ssz(ForkName::Gloas);
         let proposer_fallback = ProposerFallback {
             beacon_nodes: test_harness.service.beacon_nodes.clone(),
             proposer_nodes: test_harness.service.proposer_nodes.clone(),
@@ -2333,7 +2370,7 @@ mod tests {
             .fetch_sign_and_publish_payload_envelope(
                 &proposer_fallback,
                 slot,
-                Hash256::default(),
+                &signed_block,
                 &validator_pubkey,
             )
             .await;
