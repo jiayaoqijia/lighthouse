@@ -5721,10 +5721,26 @@ impl ApiTester {
             return self;
         };
 
-        let (sk, _, mut envelope) = self
+        let (sk, _, envelope) = self
             .build_and_post_block_for_envelope(slot, epoch, &fork, genesis_validators_root)
             .await;
-        envelope.payload.gas_limit = envelope.payload.gas_limit.saturating_add(1);
+        // Keep the envelope valid for the frozen gossip/state contract. The 202
+        // case is an execution rejection after gossip broadcast, not an invalid
+        // header that must now be rejected before publishing.
+        self.harness
+            .mock_execution_layer
+            .as_ref()
+            .unwrap()
+            .server
+            .set_new_payload_status(
+                envelope.payload.block_hash,
+                execution_layer::PayloadStatusV1 {
+                    status: execution_layer::PayloadStatusV1Status::Invalid,
+                    latest_valid_hash: Some(envelope.payload.parent_hash),
+                    validation_error: Some("execution-invalid gossip fixture".into()),
+                    inclusion_list_satisfied: None,
+                },
+            );
         let signed_envelope =
             self.sign_envelope(envelope, &sk, epoch, &fork, genesis_validators_root);
 
