@@ -1,6 +1,6 @@
 {
-  "source": "eaf606d05",
-  "vectors_sha256": "07bd5e170824851ff0af5a33efd24a8cd99021e72d32eeb754fdf0d7868304a9",
+  "source": "436ad3fe6faf53eeb727d94bc7f0485093658383",
+  "vectors_sha256": "51a19e35de0266a7432463938e929bf43571b5af4678d598742d2f6a557447d5",
   "generator_passes": [
     86,
     86
@@ -8,10 +8,17 @@
   "byte_identical_members": 344,
   "reference_source": "2ea9d96a420927eb1a35d7c9399c8b3691c69f6a",
   "real_bls_full_state_consumers": {
-    "minimal_cases": 44,
-    "mainnet_cases": 42
+    "minimal_fork_cases": 44,
+    "minimal_transition_cases": 37,
+    "mainnet_fork_cases": 42,
+    "mainnet_transition_cases": 29,
+    "total_cases": 152,
+    "positive_post_states": 149,
+    "invalid_expected_outcomes": 3
   },
   "archive_and_publication_controls": 6,
   "fixed_simulator_full_run": "pending",
-  "actual48h_complete": false
+  "actual48h_complete": false,
+  "byte_identical_transition_members": 1888,
+  "total_verified_members": 2232
 }
