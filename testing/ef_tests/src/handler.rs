@@ -44,6 +44,7 @@ pub trait Handler {
     }
 
     fn run(&self) {
+        let mut ran_target = false;
         for fork_name in ForkName::list_all() {
             // TODO(heze): remove this skip once Heze spec test vectors are published in
             // consensus-spec-tests.
@@ -51,6 +52,7 @@ pub trait Handler {
                 continue;
             }
             if !self.disabled_forks().contains(&fork_name) && self.is_enabled_for_fork(fork_name) {
+                ran_target = true;
                 self.run_for_fork(fork_name);
             }
         }
@@ -61,8 +63,17 @@ pub trait Handler {
         // e.g. consensus-spec-tests/tests/general/peerdas/ssz_static
         for feature_name in FeatureName::list_all() {
             if self.is_enabled_for_feature(feature_name) {
+                ran_target = true;
                 self.run_for_feature(feature_name);
             }
+        }
+        if !ran_target {
+            println!(
+                "EF handler inactive (no enabled target): {}/{}/{}",
+                Self::config_name(),
+                Self::runner_name(),
+                self.handler_name()
+            );
         }
     }
 
