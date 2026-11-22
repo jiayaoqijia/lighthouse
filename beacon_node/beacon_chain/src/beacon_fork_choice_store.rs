@@ -106,6 +106,8 @@ impl BalancesCache {
     }
 }
 
+type CommitteeMembership = ((Hash256, Hash256, Slot), Arc<Vec<u64>>);
+
 /// Implements `fork_choice::ForkChoiceStore` in order to provide a persistent backing to the
 /// `fork_choice::ForkChoice` struct.
 #[derive(Debug, Educe)]
@@ -126,7 +128,7 @@ pub struct BeaconForkChoiceStore<E: EthSpec, Hot: ItemStore, Cold: ItemStore> {
     equivocating_indices: BTreeSet<u64>,
     /// Derived committee memberships only, bounded and deliberately not persisted.
     #[educe(PartialEq(ignore))]
-    committee_memberships: Mutex<VecDeque<((Hash256, Hash256, Slot), Arc<Vec<u64>>)>>,
+    committee_memberships: Mutex<VecDeque<CommitteeMembership>>,
     _phantom: PhantomData<E>,
 }
 
