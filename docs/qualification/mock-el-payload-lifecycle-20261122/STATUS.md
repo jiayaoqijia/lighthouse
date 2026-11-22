@@ -1,0 +1,5 @@
+# Mock Engine lifecycle investigation
+
+The combined runtime/envelope/dependency candidate still fails the complete default fallback simulator with6 missing canonical slots, although each envelope was published. Logs show the head rolling from a block to its parent after payload votes, and mock Engine FCU repeatedly receiving unknown executed heads. Source inspection finds that new_payload returns VALID while keeping the payload only in pending_payloads; descendant lookup consults blocks only, and FCU imports only its exact head. A parent that is VALID but not yet canonical is therefore unavailable for validating a child. This is being reproduced as a model-lifecycle defect; it is not yet claimed to explain every simulator outcome. No full simulator or48h pass is claimed.
+
+Contract: https://github.com/ethereum/execution-apis/blob/a9e9095c453d7b3c95b89abfcf46afb2eff4e1b7/src/engine/paris.md and EIP-3675. Validated block-tree availability and canonical-head selection are independent. The mock remains a behavioral test model and does not substitute for native EL hash/state execution qualification.
