@@ -5765,18 +5765,29 @@ async fn schema_downgrade_to_min_version(store_config: StoreConfig, archive: boo
     // Re-open the store.
     let store = get_store_generic(&db_path, store_config, spec);
 
-    // Downgrade. This is unsupported once the chain has reached Gloas.
-    let downgrade_result =
-        migrate_schema::<DiskHarnessType<E>>(store.clone(), CURRENT_SCHEMA_VERSION, min_version);
-    if has_reached_gloas {
-        downgrade_result.expect_err("schema downgrade after Gloas should fail");
-        return;
+    // First read the modern three-field snapshot. The upgrade writes the legacy
+    // two-field snapshot, so the second iteration also exercises compatibility.
+    for encoding in ["current", "legacy"] {
+        let downgrade_result = migrate_schema::<DiskHarnessType<E>>(
+            store.clone(),
+            CURRENT_SCHEMA_VERSION,
+            min_version,
+        );
+        if has_reached_gloas {
+            let error = downgrade_result.expect_err("schema downgrade after Gloas should fail");
+            let reason = format!("{error:?}");
+            assert!(
+                reason.contains("V29 proto")
+                    || reason.contains("cannot downgrade from v31 to v30 after Gloas"),
+                "unexpected rejection: {reason}"
+            );
+            return;
+        }
+        downgrade_result
+            .unwrap_or_else(|error| panic!("{encoding} snapshot downgrade failed: {error:?}"));
+        migrate_schema::<DiskHarnessType<E>>(store.clone(), min_version, CURRENT_SCHEMA_VERSION)
+            .expect("schema upgrade from minimum version should work");
     }
-    downgrade_result.expect("schema downgrade to minimum version should work");
-
-    // Upgrade back.
-    migrate_schema::<DiskHarnessType<E>>(store.clone(), min_version, CURRENT_SCHEMA_VERSION)
-        .expect("schema upgrade from minimum version should work");
 
     // Recreate the harness.
     let harness = BeaconChainHarness::builder(Spec::default())
