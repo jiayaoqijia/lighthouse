@@ -219,15 +219,15 @@ run-ef-tests:
 # Runs the mainnet EF test vectors
 run-ef-tests-mainnet:
 	rm -rf $(EF_TESTS)/.accessed_file_log.txt
-	cargo nextest run --release -p ef_tests --features "ef_tests,$(EF_TEST_FEATURES)"
-	cargo nextest run --release -p ef_tests --features "ef_tests,$(EF_TEST_FEATURES),fake_crypto"
+	cargo nextest run --release -p ef_tests --success-output final --features "ef_tests,$(EF_TEST_FEATURES)"
+	cargo nextest run --release -p ef_tests --success-output final --features "ef_tests,$(EF_TEST_FEATURES),fake_crypto"
 	./$(EF_TESTS)/check_all_files_accessed.py $(EF_TESTS)/.accessed_file_log.txt $(EF_TESTS)/consensus-spec-tests "tests/minimal/"
 
 # Runs the minimal EF test vectors
 run-ef-tests-minimal:
 	rm -rf $(EF_TESTS)/.accessed_file_log.txt
-	cargo nextest run --release -p ef_tests --features "ef_tests,spec-minimal,$(EF_TEST_FEATURES)"
-	cargo nextest run --release -p ef_tests --features "ef_tests,spec-minimal,$(EF_TEST_FEATURES),fake_crypto"
+	cargo nextest run --release -p ef_tests --success-output final --features "ef_tests,spec-minimal,$(EF_TEST_FEATURES)"
+	cargo nextest run --release -p ef_tests --success-output final --features "ef_tests,spec-minimal,$(EF_TEST_FEATURES),fake_crypto"
 	./$(EF_TESTS)/check_all_files_accessed.py $(EF_TESTS)/.accessed_file_log.txt $(EF_TESTS)/consensus-spec-tests "tests/mainnet/"
 
 # Run the tests in the `beacon_chain` crate for all known forks.
