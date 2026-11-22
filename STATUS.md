@@ -1,7 +1,3 @@
-## Gloas reference-vector source alignment (2026-11-22)
-
-The inherited v1.7.0-beta.4 fork vectors conflict with selected consensus reference2ea9d96a on the fork-slot availability and credential-first independent builder/validator onboarding updates. Production behavior matches the selected source. A separate review is generating source-pinned reference vectors and retaining actual BLS/full-state comparisons rather than reverting or skipping the normative behavior. [Checklist](docs/qualification/gloas-vector-source-alignment-20261122.md). Generation and consumer CI remain pending.
-
 ## Signed builder payment component controls qualified (2026-11-19)
 
 At test source 39168a37d, real signed external bid recording, current/previous/evicted windows, quorum boundaries, proposer-slashing cancellation, exit gates and actual withdrawals pass. Two behavior mutations are detected. All 65 release state-processing tests and full workspace check pass after production source restoration. Runtime production code remains 0262e8f. See docs/verification/glamsterdam-builder-payment-windows-20261119.md; registry eviction and independent full-process supply/recovery remain open, so R07 is not closed.
@@ -85,3 +81,7 @@ This closes integration/build qualification of the three existing fixes (R05). I
 - The checkpoint and Git-version regressions, cargo fmt/sort, scoped cargo check,
   full lint-fix and release build passed. Code is published on `eth2030`.
 - [Paired evidence](https://github.com/fyInALT/eth2030/blob/feat/frame-8141-execution/docs/verification/frame-8141-20261118-paymaster-history-final.json)
+
+## Gloas reference-vector source alignment (2026-11-22)
+
+The inherited v1.7.0-beta.4 fork vectors conflict with selected consensus reference2ea9d96a on the fork-slot availability and credential-first independent builder/validator onboarding updates. Production behavior matches the selected source. A separate review is generating source-pinned reference vectors and retaining actual BLS/full-state comparisons rather than reverting or skipping the normative behavior. [Checklist](docs/qualification/gloas-vector-source-alignment-20261122.md). Generation and consumer CI remain pending.

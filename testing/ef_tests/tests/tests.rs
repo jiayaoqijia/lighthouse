@@ -740,6 +740,13 @@ fn fork_upgrade() {
     ForkHandler::<Spec>::default().run();
 }
 
+// Keep a directly runnable full-state/BLS consumer for the selected Gloas source.
+#[test]
+#[cfg(not(feature = "fake_crypto"))]
+fn gloas_source_pinned_fork_upgrade() {
+    ForkHandler::<Spec>::default().run_for_fork(ForkName::Gloas);
+}
+
 #[test]
 fn transition() {
     TransitionHandler::<Spec>::default().run();
