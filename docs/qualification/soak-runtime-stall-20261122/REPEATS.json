@@ -1,0 +1,14 @@
+[
+  {
+    "test": "attestation_simulator::async_progress_tests::blocked_simulation_preserves_async_progress_and_bounds_pending_work",
+    "repetitions": 30,
+    "exit": 0,
+    "seconds": 0.1342445409973152
+  },
+  {
+    "test": "notifier::execution_read_progress_tests::contended_head_read_preserves_async_progress_and_actual_result",
+    "repetitions": 30,
+    "exit": 0,
+    "seconds": 0.10491567599819973
+  }
+]

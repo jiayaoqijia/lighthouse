@@ -1,0 +1,12 @@
+    Checking beacon_chain v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/beacon_chain)
+    Checking network v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/network)
+    Checking http_metrics v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/http_metrics)
+    Checking timer v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/timer)
+    Checking http_api v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/http_api)
+    Checking slasher_service v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/slasher/service)
+    Checking client v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/client)
+    Checking beacon_node v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node)
+    Checking boot_node v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/boot_node)
+    Checking database_manager v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/database_manager)
+    Checking lighthouse v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/lighthouse)
+    Finished `release` profile [optimized] target(s) in 31.58s

@@ -1,0 +1,16 @@
+   Compiling beacon_chain v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/beacon_chain)
+   Compiling network v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/network)
+   Compiling timer v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/timer)
+   Compiling http_metrics v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/http_metrics)
+   Compiling http_api v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/http_api)
+   Compiling slasher_service v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/slasher/service)
+   Compiling client v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/client)
+    Finished `release` profile [optimized] target(s) in 41.93s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/client-caacd849df9cf471)
+
+running 2 tests
+test notifier::execution_read_progress_tests::contended_head_read_preserves_async_progress_and_actual_result ... ok
+test config::tests::serde ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
