@@ -26,7 +26,7 @@ def verified_files(bundle):
         for member in archive.getmembers():
             path = PurePosixPath(member.name)
             parts = path.parts
-            if not member.isfile() or member.name in result or len(parts) != 8 or parts[0] != "tests" or parts[1] not in ("minimal", "mainnet") or parts[2:6] != ("gloas", "fork", "fork", "pyspec_tests") or ".." in parts:
+            if not member.isfile() or member.name in result or len(parts) != 8 or parts[0] != "tests" or parts[1] not in ("minimal", "mainnet") or parts[2:6] not in (("gloas", "fork", "fork", "pyspec_tests"), ("gloas", "transition", "core", "pyspec_tests")) or ".." in parts:
                 raise ValueError("Unexpected or duplicate vector member: " + member.name)
             data = archive.extractfile(member).read()
             if digest(data) != manifest["files"].get(member.name):
@@ -35,7 +35,7 @@ def verified_files(bundle):
     if result.keys() != manifest["files"].keys():
         raise ValueError("Missing vector members")
     for preset, count in manifest["case_counts"].items():
-        actual = sum(name.startswith(f"tests/{preset}/") and name.endswith("/post.ssz_snappy") for name in result)
+        actual = sum(name.startswith(f"tests/{preset}/") and name.endswith("/meta.yaml") for name in result)
         if actual != count or not actual:
             raise ValueError("Missing test cases for " + preset)
     return result
@@ -53,13 +53,14 @@ def install(bundle, output):
         replaced = []
         try:
             for preset in ("minimal", "mainnet"):
-                target = output / "tests" / preset / "gloas" / "fork"
-                target.parent.mkdir(parents=True, exist_ok=True)
-                backup = stage / (preset + "-previous")
-                if target.exists():
-                    target.rename(backup)
-                replaced.append((target, backup))
-                (stage / "tests" / preset / "gloas" / "fork").rename(target)
+                for runner in ("fork", "transition"):
+                    target = output / "tests" / preset / "gloas" / runner
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    backup = stage / (preset + "-" + runner + "-previous")
+                    if target.exists():
+                        target.rename(backup)
+                    replaced.append((target, backup))
+                    (stage / "tests" / preset / "gloas" / runner).rename(target)
         except BaseException:
             for target, backup in reversed(replaced):
                 if target.exists():

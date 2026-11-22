@@ -748,6 +748,12 @@ fn gloas_source_pinned_fork_upgrade() {
 }
 
 #[test]
+#[cfg(not(feature = "fake_crypto"))]
+fn gloas_source_pinned_transition() {
+    TransitionHandler::<Spec>::default().run_for_fork(ForkName::Gloas);
+}
+
+#[test]
 fn transition() {
     TransitionHandler::<Spec>::default().run();
 }

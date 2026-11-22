@@ -39,7 +39,7 @@ class BundleTest(unittest.TestCase):
         subject.install(self.bundle, self.output)
         manifest = json.loads((self.bundle / "manifest.json").read_text())
         for preset, expected in manifest["case_counts"].items():
-            self.assertEqual(len(list((self.output / "tests" / preset).rglob("post.ssz_snappy"))), expected)
+            self.assertEqual(len(list((self.output / "tests" / preset).rglob("meta.yaml"))), expected)
 
     def test_changed_source_or_vector_archive_rejects_before_changes(self):
         manifest = json.loads((self.bundle / "manifest.json").read_text())
@@ -70,11 +70,12 @@ class BundleTest(unittest.TestCase):
             subject.install(self.bundle, self.output)
         self.assertFalse((self.root / "outside").exists())
 
-    def test_second_preset_install_failure_restores_both_previous_trees(self):
+    def test_second_preset_install_failure_restores_all_previous_trees(self):
         for preset in ("minimal", "mainnet"):
-            previous = self.output / "tests" / preset / "gloas" / "fork"
-            previous.mkdir(parents=True)
-            (previous / "previous").write_text(preset)
+            for runner in ("fork", "transition"):
+                previous = self.output / "tests" / preset / "gloas" / runner
+                previous.mkdir(parents=True)
+                (previous / "previous").write_text(preset)
         rename = Path.rename
         def fail_second(source, target):
             if "mainnet" in source.parts and ".gloas-stage-" in str(source) and str(target).startswith(str(self.output)):
@@ -84,9 +85,10 @@ class BundleTest(unittest.TestCase):
             with self.assertRaisesRegex(OSError, "injected"):
                 subject.install(self.bundle, self.output)
         for preset in ("minimal", "mainnet"):
-            previous = self.output / "tests" / preset / "gloas" / "fork"
-            self.assertEqual((previous / "previous").read_text(), preset)
-            self.assertEqual(len(list(previous.iterdir())), 1)
+            for runner in ("fork", "transition"):
+                previous = self.output / "tests" / preset / "gloas" / runner
+                self.assertEqual((previous / "previous").read_text(), preset)
+                self.assertEqual(len(list(previous.iterdir())), 1)
 
 
 if __name__ == "__main__":
