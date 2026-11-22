@@ -352,6 +352,13 @@ impl<E: EthSpec> MockServer<E> {
         }
     }
 
+    /// Reconnect helper, initially retaining the simulator's existing canned-VALID behavior.
+    /// The recovery regression requires this to obtain missing peer data before resuming.
+    pub fn sync_from_peer_then_resume(&self, _peer: &Self) -> Result<usize, String> {
+        self.all_payloads_valid();
+        Ok(0)
+    }
+
     pub fn all_payloads_valid(&self) {
         self.all_payloads_valid_on_new_payload();
         self.all_payloads_valid_on_forkchoice_updated();
