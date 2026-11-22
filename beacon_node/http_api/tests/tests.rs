@@ -11970,7 +11970,12 @@ async fn envelope_column_publication_failure_preserves_cache() {
         .await;
     let block_root = envelope.beacon_block_root;
     assert!(
-        envelope.payload.blob_gas_used > 0,
+        tester
+            .chain
+            .pending_payload_envelopes
+            .read()
+            .get_blobs(block_root)
+            .is_some_and(|blobs| !blobs.is_empty()),
         "must exercise actual blob column publication"
     );
     let signed = tester.sign_envelope(envelope, &sk, epoch, &fork, genesis_validators_root);
