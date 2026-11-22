@@ -1,5 +1,7 @@
 use crate::beacon_chain::{BeaconChainTypes, FORK_CHOICE_DB_KEY};
-use crate::persisted_fork_choice::{PersistedForkChoiceV28, PersistedForkChoiceV29};
+use crate::persisted_fork_choice::{
+    PersistedForkChoice, PersistedForkChoiceV28, PersistedForkChoiceV29,
+};
 use std::collections::HashMap;
 use store::hot_cold_store::HotColdDB;
 use store::{DBColumn, Error as StoreError, KeyValueStore, KeyValueStoreOp};
@@ -102,7 +104,8 @@ pub fn upgrade_to_v29<T: BeaconChainTypes>(
 
 /// Downgrade from schema v29 to v28.
 ///
-/// Converts the persisted fork choice from V29 format back to V28.
+/// Converts either current or legacy schema-v29 snapshots back to V28.
+/// Refuses to discard outstanding inclusion-list obligations.
 /// Fails if the persisted fork choice contains any V29 proto nodes, as these contain
 /// payload-specific fields that cannot be losslessly converted back to V17 format.
 ///
@@ -110,7 +113,7 @@ pub fn upgrade_to_v29<T: BeaconChainTypes>(
 pub fn downgrade_from_v29<T: BeaconChainTypes>(
     db: &HotColdDB<T::EthSpec, T::HotStore, T::ColdStore>,
 ) -> Result<Vec<KeyValueStoreOp>, StoreError> {
-    // Load the persisted fork choice (v29 format, compressed).
+    // Schema v29 can contain the current snapshot or its legacy V29 encoding.
     let Some(fc_bytes) = db
         .hot_db
         .get_bytes(DBColumn::ForkChoice, FORK_CHOICE_DB_KEY.as_slice())?
@@ -118,13 +121,24 @@ pub fn downgrade_from_v29<T: BeaconChainTypes>(
         return Ok(vec![]);
     };
 
-    let persisted_v29 =
-        PersistedForkChoiceV29::from_bytes(&fc_bytes, db.get_config()).map_err(|e| {
-            StoreError::MigrationError(format!(
-                "cannot downgrade from v29 to v28: failed to decode fork choice: {:?}",
-                e
-            ))
-        })?;
+    let persisted = PersistedForkChoice::from_bytes(&fc_bytes, db.get_config()).map_err(|e| {
+        StoreError::MigrationError(format!(
+            "cannot downgrade from v29 to v28: failed to decode fork choice: {:?}",
+            e
+        ))
+    })?;
+
+    // V28 cannot retain these obligations. Refuse the downgrade before emitting any writes.
+    if !persisted.unsatisfied_inclusion_lists.is_empty() {
+        return Err(StoreError::MigrationError(
+            "cannot downgrade from v29 to v28: unsatisfied inclusion lists would be lost"
+                .to_string(),
+        ));
+    }
+    let persisted_v29 = PersistedForkChoiceV29 {
+        fork_choice: persisted.fork_choice,
+        fork_choice_store: persisted.fork_choice_store,
+    };
 
     let has_v29_node = persisted_v29
         .fork_choice
@@ -148,4 +162,128 @@ pub fn downgrade_from_v29<T: BeaconChainTypes>(
     Ok(vec![
         persisted_v28.as_kv_store_op(FORK_CHOICE_DB_KEY, db.get_config())?,
     ])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_utils::{BeaconChainHarness, EphemeralHarnessType};
+    use store::metadata::{SCHEMA_VERSION_KEY, SchemaVersion};
+    use types::{Hash256, MinimalEthSpec};
+
+    #[tokio::test]
+    async fn pending_or_malformed_snapshot_downgrade_preserves_disk_keys() {
+        let harness =
+            BeaconChainHarness::<EphemeralHarnessType<MinimalEthSpec>>::builder(MinimalEthSpec)
+                .default_spec()
+                .deterministic_keypairs(32)
+                .fresh_ephemeral_store()
+                .mock_execution_layer()
+                .build();
+        harness.chain.persist_fork_choice().unwrap();
+        let db = harness.chain.store.clone();
+        let key = FORK_CHOICE_DB_KEY.as_slice();
+        let original = db
+            .hot_db
+            .get_bytes(DBColumn::ForkChoice, key)
+            .unwrap()
+            .unwrap();
+        let mut snapshot = PersistedForkChoice::from_bytes(&original, db.get_config()).unwrap();
+        snapshot
+            .unsatisfied_inclusion_lists
+            .push(Hash256::repeat_byte(0x71));
+        db.store_schema_version_atomically(
+            SchemaVersion(29),
+            vec![
+                snapshot
+                    .as_kv_store_op(FORK_CHOICE_DB_KEY, db.get_config())
+                    .unwrap(),
+            ],
+        )
+        .unwrap();
+        let version = db
+            .hot_db
+            .get_bytes(DBColumn::BeaconMeta, SCHEMA_VERSION_KEY.as_slice())
+            .unwrap();
+        let pending = db.hot_db.get_bytes(DBColumn::ForkChoice, key).unwrap();
+        let error = crate::schema_change::migrate_schema::<EphemeralHarnessType<MinimalEthSpec>>(
+            db.clone(),
+            SchemaVersion(29),
+            SchemaVersion(28),
+        )
+        .expect_err("must not drop obligations");
+        assert!(format!("{error:?}").contains("unsatisfied inclusion lists"));
+        assert_eq!(
+            db.hot_db.get_bytes(DBColumn::ForkChoice, key).unwrap(),
+            pending
+        );
+        assert_eq!(
+            db.hot_db
+                .get_bytes(DBColumn::BeaconMeta, SCHEMA_VERSION_KEY.as_slice())
+                .unwrap(),
+            version
+        );
+
+        let malformed = db.get_config().compress_bytes(&[1, 2, 3]).unwrap();
+        db.hot_db
+            .put_bytes(DBColumn::ForkChoice, key, &malformed)
+            .unwrap();
+        crate::schema_change::migrate_schema::<EphemeralHarnessType<MinimalEthSpec>>(
+            db.clone(),
+            SchemaVersion(29),
+            SchemaVersion(28),
+        )
+        .expect_err("must reject malformed snapshot");
+        assert_eq!(
+            db.hot_db.get_bytes(DBColumn::ForkChoice, key).unwrap(),
+            Some(malformed)
+        );
+        assert_eq!(
+            db.hot_db
+                .get_bytes(DBColumn::BeaconMeta, SCHEMA_VERSION_KEY.as_slice())
+                .unwrap(),
+            version
+        );
+    }
+    #[tokio::test]
+    async fn gloas_proto_node_downgrade_preserves_snapshot_and_version() {
+        use types::{EthSpec, ForkName};
+        let harness =
+            BeaconChainHarness::<EphemeralHarnessType<MinimalEthSpec>>::builder(MinimalEthSpec)
+                .spec(ForkName::Gloas.make_genesis_spec(MinimalEthSpec::default_spec()))
+                .deterministic_keypairs(32)
+                .fresh_ephemeral_store()
+                .mock_execution_layer()
+                .build();
+        harness.chain.persist_fork_choice().unwrap();
+        let db = harness.chain.store.clone();
+        db.store_schema_version(SchemaVersion(29)).unwrap();
+        let original = db
+            .hot_db
+            .get_bytes(DBColumn::ForkChoice, FORK_CHOICE_DB_KEY.as_slice())
+            .unwrap();
+        let version = db
+            .hot_db
+            .get_bytes(DBColumn::BeaconMeta, SCHEMA_VERSION_KEY.as_slice())
+            .unwrap();
+        let error = crate::schema_change::migrate_schema::<EphemeralHarnessType<MinimalEthSpec>>(
+            db.clone(),
+            SchemaVersion(29),
+            SchemaVersion(28),
+        )
+        .expect_err("must not drop Gloas payload state");
+        assert!(format!("{error:?}").contains("V29 proto"), "{error:?}");
+        assert_eq!(
+            db.hot_db
+                .get_bytes(DBColumn::ForkChoice, FORK_CHOICE_DB_KEY.as_slice())
+                .unwrap(),
+            original
+        );
+        assert_eq!(
+            db.hot_db
+                .get_bytes(DBColumn::BeaconMeta, SCHEMA_VERSION_KEY.as_slice())
+                .unwrap(),
+            version
+        );
+    }
 }
