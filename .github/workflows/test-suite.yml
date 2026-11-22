@@ -55,15 +55,35 @@ jobs:
   lockbud:
     name: lockbud
     runs-on: ubuntu-latest
-    container:
-      image: sigmaprime/lockbud:latest
+    timeout-minutes: 60
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
       - name: Install dependencies
-        run: apt update && apt install -y cmake libclang-dev clang
+        run: sudo apt update && sudo apt install -y cmake libclang-dev clang
+      - name: Install the analyzer's supported compiler
+        uses: moonrepo/setup-rust@v1
+        with:
+          channel: nightly-2026-02-07
+          components: rust-src,rustc-dev,llvm-tools-preview
+          cache: false
+      - name: Build pinned lockbud
+        run: cargo install --locked --git https://github.com/BurtonQin/lockbud --rev a1b5303cdbb1d4d0ad886359cc71418570e7c5fd lockbud
       - name: Check for deadlocks
-        run: ./scripts/ci/check-lockbud.sh
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/lockbud-target
+        run: |
+          ./scripts/ci/test-check-lockbud.sh
+          ./scripts/ci/test-lockbud-toolchain.sh
+          ./scripts/ci/check-lockbud.sh
+      - name: Preserve actual analyzer output
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lockbud-analysis
+          path: lockbud-analysis.log
+          if-no-files-found: ignore
+
 
   target-branch-check:
     name: target-branch-check

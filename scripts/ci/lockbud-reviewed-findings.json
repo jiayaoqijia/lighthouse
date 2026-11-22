@@ -1,0 +1,540 @@
+{
+  "tool_revision": "a1b5303cdbb1d4d0ad886359cc71418570e7c5fd",
+  "toolchain": "nightly-2026-02-07",
+  "scope": "Only these exact complete reports from Tokio 1.53.2 are reviewed. No crate-wide exclusion; a changed span, call chain, type, verdict or new report fails. Original tokio_util exclusion remains unchanged. This is not proof of dependency deadlock freedom.",
+  "findings": [
+    {
+      "sha256": "2bec3311ba3ca0b5d89e73d4df90f8637984599b1edda9ccf1d0d59cace00b3c",
+      "reason": "The Waitlist guard moves into Option; the fallback lock executes only after take() finds None, after the previous guard was dropped. Conditional branches/guard transfer are conflated.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:244:40: 244:59 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:318:17: 318:28 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:244:9: 244:60 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "c84379303dd2321f8bd76e293a337732a6c5b45eeda04273801d3b358333d070",
+      "reason": "The Waitlist guard moves into Option; the fallback lock executes only after take() finds None, after the previous guard was dropped. Conditional branches/guard transfer are conflated.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:430:13: 430:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "tokio-1.53.2/src/loom/std/mutex.rs:21:34: 21:51 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:456:29: 456:48 (#0)",
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:488:35: 488:54 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:525:13: 525:55 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:525:13: 525:55 (#0)"
+                ],
+                [],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "ac935270902a8b2bff6773677703992e12ec8eec0ea94656fb57305ec9567864",
+      "reason": "The Waitlist guard moves into Option; the fallback lock executes only after take() finds None, after the previous guard was dropped. Conditional branches/guard transfer are conflated.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:748:13: 748:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:318:60: 318:60 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:757:13: 757:73 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:757:13: 757:73 (#0)"
+                ],
+                []
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "4d5ff81d7bb5b3a2bf26f7839991765d8e9ab1f731570fbdcca3a7e3c28f29ad",
+      "reason": "The Waitlist guard moves into Option; the fallback lock executes only after take() finds None, after the previous guard was dropped. Conditional branches/guard transfer are conflated.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:748:13: 748:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:318:17: 318:28 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:757:13: 757:73 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "5ebbc4a1a31b56a3afcb28fc89eb11be588d7277527fd7f92be46f5af18f598a",
+      "reason": "The two queue acquisitions belong to mutually exclusive if/else branches; closure/branch insensitivity creates an impossible same-thread path.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(std::option::Option<std::collections::VecDeque<runtime::task::Notified<std::sync::Arc<task::local::Shared, std::alloc::Global>>, std::alloc::Global>>)",
+            "first_lock_span": "tokio-1.53.2/src/task/local.rs:786:13: 789:24 (#0)",
+            "second_lock_type": "StdMutex(std::option::Option<std::collections::VecDeque<runtime::task::Notified<std::sync::Arc<task::local::Shared, std::alloc::Global>>, std::alloc::Global>>)",
+            "second_lock_span": "tokio-1.53.2/src/task/local.rs:795:17: 798:28 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/task/local.rs:794:13: 801:15 (#0)"
+                ],
+                [
+                  "rust/library/core/src/option.rs:1656:21: 1656:24 (#0)"
+                ]
+              ],
+              [
+                []
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "5f9d54e030cf7182e5d9a40fc4da4e35d5b2f1a2f7188433f8348dc88cfcb64a",
+      "reason": "The Waitlist guard moves into Option; the fallback lock executes only after take() finds None, after the previous guard was dropped. Conditional branches/guard transfer are conflated.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:430:13: 430:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:318:60: 318:60 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:525:13: 525:55 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:525:13: 525:55 (#0)"
+                ],
+                []
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "0ee46ae55084ba0d58df4e1b36a0f541fb01d62465173be4f2bf7cb3205ab094",
+      "reason": "The Waitlist guard moves into Option; the fallback lock executes only after take() finds None, after the previous guard was dropped. Conditional branches/guard transfer are conflated.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:430:13: 430:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:318:17: 318:28 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:525:13: 525:55 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "367609c4e60aeb11d8fb94216d4206fb707bdca9a8b4fb8a2f8c0eca44958631",
+      "reason": "The Waitlist guard moves into Option; the fallback lock executes only after take() finds None, after the previous guard was dropped. Conditional branches/guard transfer are conflated.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:244:40: 244:59 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "tokio-1.53.2/src/loom/std/mutex.rs:21:34: 21:51 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:244:40: 244:59 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:244:9: 244:60 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:244:9: 244:60 (#0)"
+                ],
+                [],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "d2f569175468f59fcbb0250fef60f26cf09ee2c5c029130d270337592794f8b6",
+      "reason": "The Waitlist guard moves into Option; the fallback lock executes only after take() finds None, after the previous guard was dropped. Conditional branches/guard transfer are conflated.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:244:40: 244:59 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:318:60: 318:60 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:244:9: 244:60 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:244:9: 244:60 (#0)"
+                ],
+                []
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "73695fa4523f9cf8cea36b4ddc44e7d931c65c5429991e3a5447ad752d2ac7e5",
+      "reason": "The second acquisition runs in the newly spawned OS thread, after the caller releases its guard; thread-spawn closure inlining creates an impossible same-thread path.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(runtime::blocking::pool::Shared)",
+            "first_lock_span": "tokio-1.53.2/src/runtime/blocking/pool.rs:394:13: 394:23 (#0)",
+            "second_lock_type": "StdMutex(runtime::blocking::pool::Shared)",
+            "second_lock_span": "tokio-1.53.2/src/loom/std/mutex.rs:21:34: 21:51 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:394:26: 394:50 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:423:27: 423:65 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:473:9: 478:11 (#0)"
+                ],
+                [
+                  "rust/library/std/src/thread/builder.rs:191:18: 191:41 (#0)"
+                ],
+                [
+                  "rust/library/std/src/thread/builder.rs:261:32: 261:84 (#0)"
+                ],
+                [],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:476:13: 476:54 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:510:26: 510:44 (#0)",
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:522:26: 522:44 (#0)",
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:570:30: 570:48 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:423:27: 423:65 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:473:9: 478:11 (#0)"
+                ],
+                [
+                  "rust/library/std/src/thread/builder.rs:191:18: 191:41 (#0)"
+                ],
+                [
+                  "rust/library/std/src/thread/builder.rs:261:32: 261:84 (#0)"
+                ],
+                [],
+                [],
+                [
+                  "rust/library/std/src/thread/lifecycle.rs:91:13: 91:67 (#0)"
+                ],
+                [
+                  "rust/library/std/src/sys/backtrace.rs:166:18: 166:21 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:476:13: 476:54 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:510:26: 510:44 (#0)",
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:522:26: 522:44 (#0)",
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:570:30: 570:48 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:423:27: 423:65 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:473:9: 478:11 (#0)"
+                ],
+                [
+                  "rust/library/std/src/thread/builder.rs:191:18: 191:41 (#0)"
+                ],
+                [
+                  "rust/library/std/src/thread/builder.rs:261:32: 261:84 (#0)"
+                ],
+                [],
+                [],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:476:13: 476:54 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:510:26: 510:44 (#0)",
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:522:26: 522:44 (#0)",
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:570:30: 570:48 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:423:27: 423:65 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:473:9: 478:11 (#0)"
+                ],
+                [
+                  "rust/library/std/src/thread/builder.rs:191:18: 191:41 (#0)"
+                ],
+                [
+                  "rust/library/std/src/thread/builder.rs:261:32: 261:84 (#0)"
+                ],
+                [],
+                [],
+                [],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:476:13: 476:54 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:510:26: 510:44 (#0)",
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:522:26: 522:44 (#0)",
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:570:30: 570:48 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:423:27: 423:65 (#0)"
+                ],
+                [],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:476:13: 476:54 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:510:26: 510:44 (#0)",
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:522:26: 522:44 (#0)",
+                  "tokio-1.53.2/src/runtime/blocking/pool.rs:570:30: 570:48 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "34fb0ba9d11f7fc094af7d24a6043e43f896e6af1f3d3971bf88ca707039f814",
+      "reason": "The two queue acquisitions belong to mutually exclusive if/else branches; closure/branch insensitivity creates an impossible same-thread path.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(std::option::Option<std::collections::VecDeque<runtime::task::Notified<std::sync::Arc<task::local::Shared, std::alloc::Global>>, std::alloc::Global>>)",
+            "first_lock_span": "tokio-1.53.2/src/task/local.rs:786:13: 789:24 (#0)",
+            "second_lock_type": "StdMutex(std::option::Option<std::collections::VecDeque<runtime::task::Notified<std::sync::Arc<task::local::Shared, std::alloc::Global>>, std::alloc::Global>>)",
+            "second_lock_span": "tokio-1.53.2/src/loom/std/mutex.rs:21:34: 21:51 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/task/local.rs:786:13: 789:24 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/task/local.rs:794:13: 801:15 (#0)"
+                ],
+                [
+                  "rust/library/core/src/option.rs:1656:21: 1656:24 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/task/local.rs:795:17: 798:28 (#0)"
+                ]
+              ],
+              [
+                [],
+                [
+                  "tokio-1.53.2/src/task/local.rs:795:17: 798:28 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    },
+    {
+      "sha256": "f9e4fba5322ca7a0142953bb4628ab74a49f99cd440eba129e512fe52a6d4adf",
+      "reason": "The Waitlist guard moves into Option; the fallback lock executes only after take() finds None, after the previous guard was dropped. Conditional branches/guard transfer are conflated.",
+      "record": {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "tokio-1.53.2/src/sync/batch_semaphore.rs:748:13: 748:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "tokio-1.53.2/src/loom/std/mutex.rs:21:34: 21:51 (#0)",
+            "callchains": [
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:748:27: 748:56 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:757:13: 757:73 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ],
+              [
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:757:13: 757:73 (#0)"
+                ],
+                [],
+                [
+                  "tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    }
+  ]
+}
