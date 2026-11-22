@@ -81,6 +81,8 @@ types = { workspace = true }
 zstd = { workspace = true }
 
 [dev-dependencies]
+flate2 = { workspace = true }
+yaml_serde = { workspace = true }
 arbitrary = { workspace = true }
 beacon_chain = { path = ".", features = ["arbitrary"] }
 criterion = { workspace = true }
