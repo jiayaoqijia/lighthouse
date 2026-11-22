@@ -1,0 +1,12 @@
+[
+  {
+    "case": "clean",
+    "exit": 0,
+    "bug_marker": false
+  },
+  {
+    "case": "double",
+    "exit": 101,
+    "bug_marker": true
+  }
+]

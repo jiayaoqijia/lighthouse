@@ -1,0 +1,30 @@
+[
+  {
+    "name": "cl-registry-tests",
+    "command": [
+      "cargo",
+      "test",
+      "--release",
+      "-p",
+      "state_processing",
+      "--lib",
+      "builder_registry_tests",
+      "--",
+      "--nocapture"
+    ],
+    "seconds": 104.92791449697688,
+    "exit": 0
+  },
+  {
+    "name": "cl-final-check",
+    "command": [
+      "cargo",
+      "check",
+      "--release",
+      "-p",
+      "lighthouse"
+    ],
+    "seconds": 39.14267521502916,
+    "exit": 0
+  }
+]

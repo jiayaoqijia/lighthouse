@@ -1,0 +1,741 @@
+   Compiling aws-lc-sys v0.45.0
+   Compiling libz-sys v1.1.31
+   Compiling eth2_config v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eth2_config)
+   Compiling tokio v1.53.2
+   Compiling flate2 v1.1.10
+   Compiling eth2_network_config v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eth2_network_config)
+   Compiling compression-codecs v0.4.45
+   Compiling async-compression v0.4.50
+   Compiling logroller v0.1.12
+   Compiling tower-http v0.6.11
+   Compiling logging v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/logging)
+   Compiling icu_normalizer v2.3.0
+   Compiling fork_choice v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/fork_choice)
+   Compiling rustls v0.23.46
+   Compiling idna_adapter v1.2.2
+   Compiling serde_with v3.24.0
+   Compiling rustversion v1.0.23
+   Compiling alloy-eip2124 v0.2.0
+   Compiling clang-sys v1.9.1
+[2026-11-22T05:42:20Z WARN  lockbud::callbacks] [
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:244:40: 244:59 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:17: 318:28 (#0)",
+            "callchains": [
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:244:9: 244:60 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:430:13: 430:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/loom/std/mutex.rs:21:34: 21:51 (#0)",
+            "callchains": [
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:525:13: 525:55 (#0)"
+                ],
+                [],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:525:13: 525:55 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:456:29: 456:48 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:488:35: 488:54 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:748:13: 748:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:60: 318:60 (#0)",
+            "callchains": [
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:757:13: 757:73 (#0)"
+                ],
+                []
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:757:13: 757:73 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:748:13: 748:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:17: 318:28 (#0)",
+            "callchains": [
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:757:13: 757:73 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(std::option::Option<std::collections::VecDeque<runtime::task::Notified<std::sync::Arc<task::local::Shared, std::alloc::Global>>, std::alloc::Global>>)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/task/local.rs:786:13: 789:24 (#0)",
+            "second_lock_type": "StdMutex(std::option::Option<std::collections::VecDeque<runtime::task::Notified<std::sync::Arc<task::local::Shared, std::alloc::Global>>, std::alloc::Global>>)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/task/local.rs:795:17: 798:28 (#0)",
+            "callchains": [
+              [
+                []
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/task/local.rs:794:13: 801:15 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:1656:21: 1656:24 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:430:13: 430:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:60: 318:60 (#0)",
+            "callchains": [
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:525:13: 525:55 (#0)"
+                ],
+                []
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:525:13: 525:55 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:430:13: 430:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:17: 318:28 (#0)",
+            "callchains": [
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:525:13: 525:55 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:244:40: 244:59 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/loom/std/mutex.rs:21:34: 21:51 (#0)",
+            "callchains": [
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:244:9: 244:60 (#0)"
+                ],
+                [],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:244:9: 244:60 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:244:40: 244:59 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:244:40: 244:59 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:60: 318:60 (#0)",
+            "callchains": [
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:244:9: 244:60 (#0)"
+                ],
+                []
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:244:9: 244:60 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(runtime::blocking::pool::Shared)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:394:13: 394:23 (#0)",
+            "second_lock_type": "StdMutex(runtime::blocking::pool::Shared)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/loom/std/mutex.rs:21:34: 21:51 (#0)",
+            "callchains": [
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:423:27: 423:65 (#0)"
+                ],
+                [],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:476:13: 476:54 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:510:26: 510:44 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:522:26: 522:44 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:570:30: 570:48 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:423:27: 423:65 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:473:9: 478:11 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/builder.rs:191:18: 191:41 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/builder.rs:261:32: 261:84 (#0)"
+                ],
+                [],
+                [],
+                [],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:476:13: 476:54 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:510:26: 510:44 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:522:26: 522:44 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:570:30: 570:48 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:423:27: 423:65 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:473:9: 478:11 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/builder.rs:191:18: 191:41 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/builder.rs:261:32: 261:84 (#0)"
+                ],
+                [],
+                [],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:91:13: 91:67 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/backtrace.rs:166:18: 166:21 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:476:13: 476:54 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:510:26: 510:44 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:522:26: 522:44 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:570:30: 570:48 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:423:27: 423:65 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:473:9: 478:11 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/builder.rs:191:18: 191:41 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/builder.rs:261:32: 261:84 (#0)"
+                ],
+                [],
+                [],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:476:13: 476:54 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:510:26: 510:44 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:522:26: 522:44 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:570:30: 570:48 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:423:27: 423:65 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:473:9: 478:11 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/builder.rs:191:18: 191:41 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/builder.rs:261:32: 261:84 (#0)"
+                ],
+                [],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:476:13: 476:54 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:510:26: 510:44 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:522:26: 522:44 (#0)",
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:570:30: 570:48 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/runtime/blocking/pool.rs:394:26: 394:50 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(std::option::Option<std::collections::VecDeque<runtime::task::Notified<std::sync::Arc<task::local::Shared, std::alloc::Global>>, std::alloc::Global>>)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/task/local.rs:786:13: 789:24 (#0)",
+            "second_lock_type": "StdMutex(std::option::Option<std::collections::VecDeque<runtime::task::Notified<std::sync::Arc<task::local::Shared, std::alloc::Global>>, std::alloc::Global>>)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/loom/std/mutex.rs:21:34: 21:51 (#0)",
+            "callchains": [
+              [
+                [],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/task/local.rs:795:17: 798:28 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/task/local.rs:794:13: 801:15 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:1656:21: 1656:24 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/task/local.rs:795:17: 798:28 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/task/local.rs:786:13: 789:24 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      },
+      {
+        "DoubleLock": {
+          "bug_kind": "DoubleLock",
+          "possibility": "Possibly",
+          "diagnosis": {
+            "first_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "first_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:748:13: 748:24 (#0)",
+            "second_lock_type": "StdMutex(sync::batch_semaphore::Waitlist)",
+            "second_lock_span": "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/loom/std/mutex.rs:21:34: 21:51 (#0)",
+            "callchains": [
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:757:13: 757:73 (#0)"
+                ],
+                [],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:757:13: 757:73 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:31: 318:81 (#0)"
+                ],
+                [
+                  "/home/fy/.rustup/toolchains/nightly-2026-02-07-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/option.rs:1067:21: 1067:24 (#0)"
+                ],
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:318:61: 318:80 (#0)"
+                ]
+              ],
+              [
+                [
+                  "/home/fy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-1.53.2/src/sync/batch_semaphore.rs:748:27: 748:56 (#0)"
+                ]
+              ]
+            ]
+          },
+          "explanation": "The first lock is not released when acquiring the second lock"
+        }
+      }
+    ]
+[2026-11-22T05:42:20Z WARN  lockbud::callbacks] crate tokio contains bugs: { probably: 0, possibly: 12 }, conflictlock: { probably: 0, possibly: 0 }, condvar_deadlock: { probably: 0, possibly: 0 }, atomicity_violation: { possibly: 0 }, invalid_free: { possibly: 0 }, use_after_free: { possibly: 0 }
+   Compiling hashlink v0.11.1
+   Compiling rustls-webpki v0.103.16
+   Compiling alloy-eip2930 v0.2.4
+   Compiling alloy-eip7702 v0.6.3
+   Compiling alloy-eip7928 v0.3.7
+   Compiling alloy-serde v1.8.3
+   Compiling nybbles v0.4.8
+   Compiling tiny-keccak v2.0.2
+   Compiling prettyplease v0.2.37
+   Compiling alloy-eips v1.8.3
+   Compiling alloy-trie v0.9.8
+   Compiling hyper v1.12.0
+   Compiling idna v1.1.0
+   Compiling alloy-tx-macros v1.8.3
+   Compiling inout v0.2.2
+   Compiling ipnet v2.12.2
+   Compiling hyper-util v0.1.21
+   Compiling alloy-consensus v1.8.3
+   Compiling tokio-rustls v0.26.6
+   Compiling url v2.5.8
+   Compiling tower v0.5.3
+   Compiling nom v7.1.3
+   Compiling tokio-stream v0.1.19
+   Compiling zstd-sys v2.1.2+zstd.1.5.7
+   Compiling libloading v0.8.9
+   Compiling unicase v2.10.0
+   Compiling bitflags v1.3.2
+   Compiling bindgen v0.72.1
+   Compiling mime_guess v2.0.5
+   Compiling cexpr v0.6.0
+   Compiling hyper-rustls v0.27.10
+   Compiling cipher v0.5.2
+   Compiling tokio-util v0.7.19
+   Compiling opentelemetry v0.30.0
+   Compiling universal-hash v0.6.1
+   Compiling winnow v1.0.4
+   Compiling shlex v1.3.0
+   Compiling alloy-sol-type-parser v1.7.3
+   Compiling polyval v0.7.3
+   Compiling reqwest v0.12.28
+   Compiling alloy-network-primitives v1.8.3
+   Compiling alloy-consensus-any v1.8.3
+   Compiling arc-swap v1.9.2
+   Compiling leveldb-sys v2.0.9
+   Compiling headers-core v0.3.0
+   Compiling fs2 v0.4.3
+   Compiling bincode v1.3.3
+   Compiling zstd-safe v8.2.0
+   Compiling headers v0.4.2
+   Compiling xdelta3 v0.1.5 (https://github.com/sigp/xdelta3-rs?rev=fe3906605c87b6c0515bd7c8fc671f47875e3ccc#fe390660)
+   Compiling alloy-rpc-types-eth v1.8.3
+   Compiling deposit_contract v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/deposit_contract)
+   Compiling ghash v0.6.0
+   Compiling alloy-json-abi v1.7.3
+   Compiling opentelemetry_sdk v0.30.0
+   Compiling aes v0.9.3
+   Compiling ctr v0.10.1
+   Compiling aead v0.6.1
+   Compiling scoped-tls v1.0.1
+   Compiling ffi-opaque v2.0.1
+   Compiling warp v0.4.2 (https://github.com/macladson/warp?rev=6f5f21beab6a240e59470caaab56afd46d46b709#6f5f21be)
+   Compiling aes-gcm v0.11.1
+   Compiling alloy-dyn-abi v1.7.3
+   Compiling lockfile v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/lockfile)
+   Compiling uint v0.10.2
+   Compiling delay_map v0.4.1
+   Compiling db-key v0.0.5
+   Compiling utf-8 v0.7.6
+   Compiling rustc-hash v1.1.0
+   Compiling more-asserts v0.3.1
+   Compiling tiny-bip39 v2.0.0
+   Compiling discv5 v0.12.0
+   Compiling zstd v0.14.3
+   Compiling uint v0.9.5
+   Compiling fixed-hash v0.8.0
+   Compiling lru_cache v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/lru_cache)
+   Compiling lmdb-rkv-sys v0.11.2 (https://github.com/sigp/lmdb-rs?rev=f33845c6469b94265319aac0ed5085597862c27e#f33845c6)
+   Compiling snap v1.1.2
+   Compiling rustc-hex v2.1.0
+   Compiling rlp v0.5.2
+   Compiling primitive-types v0.12.2
+   Compiling eth2_wallet v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/crypto/eth2_wallet)
+   Compiling simple_asn1 v0.6.4
+   Compiling hash-db v0.15.2
+   Compiling triehash v0.8.4
+   Compiling jsonwebtoken v9.3.1
+   Compiling keccak-hash v0.10.0
+   Compiling validator_dir v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/validator_dir)
+   Compiling tracing-opentelemetry v0.31.0
+   Compiling hash256-std-hasher v0.15.2
+   Compiling libp2p-mplex v0.44.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling rpassword v5.0.1
+   Compiling if-addrs v0.14.0
+   Compiling account_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/account_utils)
+   Compiling lmdb-rkv v0.14.0 (https://github.com/sigp/lmdb-rs?rev=f33845c6469b94265319aac0ed5085597862c27e#f33845c6)
+   Compiling platforms v2.0.0
+   Compiling slasher v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/slasher)
+   Compiling leveldb v0.8.6
+   Compiling fast_confirmation v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/fast_confirmation)
+   Compiling genesis v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/genesis)
+   Compiling fs-err v3.3.2
+   Compiling oneshot_broadcast v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/oneshot_broadcast)
+   Compiling scheduled-thread-pool v0.2.7
+   Compiling tikv-jemalloc-sys v0.6.1+5.3.0-1-ge13ca993e8ccb9ba9847cc330696e02839f328f7
+   Compiling procfs v0.18.0
+   Compiling r2d2 v0.8.10
+   Compiling nix v0.24.3
+   Compiling procfs-core v0.18.0
+   Compiling derive_more v0.99.20
+   Compiling unescape v0.1.0
+   Compiling psutil v3.3.0
+   Compiling r2d2_sqlite v0.36.0
+   Compiling axum-core v0.5.6
+   Compiling rustls-pemfile v2.2.0
+   Compiling serde_path_to_error v0.1.20
+   Compiling matchit v0.8.4
+   Compiling axum v0.8.9
+   Compiling slashing_protection v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/slashing_protection)
+   Compiling validator_metrics v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/validator_metrics)
+   Compiling attohttpc v0.30.1
+   Compiling x509-cert v0.2.5
+   Compiling igd-next v0.17.1
+   Compiling cms v0.2.3
+   Compiling cbc v0.1.2
+   Compiling serde_array_query v0.1.0
+   Compiling sysinfo v0.26.9
+   Compiling pkcs5 v0.7.1
+   Compiling pkcs12 v0.1.0
+   Compiling rc2 v0.8.1
+   Compiling des v0.8.1
+   Compiling bs58 v0.4.0
+   Compiling p12-keystore v0.2.1
+   Compiling builder_store v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/builder_store)
+   Compiling alloy-json-rpc v1.8.3
+   Compiling graffiti_file v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/graffiti_file)
+   Compiling aws-lc-rs v1.18.1
+   Compiling futures-utils-wasm v0.1.0
+   Compiling prost-derive v0.13.5
+   Compiling alloy-transport v1.8.3
+   Compiling alloy-rpc-types-any v1.8.3
+   Compiling alloy-signer v1.8.3
+   Compiling reqwest v0.13.5
+   Compiling prost v0.13.5
+   Compiling phf_shared v0.14.0
+   Compiling hyper-timeout v0.5.2
+   Compiling fdlimit v0.3.0
+   Compiling num_enum_derive v0.7.6
+   Compiling num_enum v0.7.6
+   Compiling alloy-transport-http v1.8.3
+   Compiling phf v0.14.0
+   Compiling alloy-network v1.8.3
+   Compiling async-stream-impl v0.3.6
+   Compiling hashbrown v0.14.5
+   Compiling async-stream v0.3.6
+   Compiling alloy-chains v0.2.39
+   Compiling dashmap v6.2.1
+   Compiling alloy-rpc-client v1.8.3
+   Compiling eth2_wallet_manager v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eth2_wallet_manager)
+   Compiling quinn-proto v0.11.19
+   Compiling pretty_reqwest_error v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/pretty_reqwest_error)
+   Compiling futures-rustls v0.26.0
+   Compiling libp2p-tls v0.7.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling quinn v0.11.12
+   Compiling libp2p-quic v0.14.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling libp2p v0.58.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling reqwest-eventsource v0.6.0
+   Compiling eth2 v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eth2)
+   Compiling tungstenite v0.28.0
+   Compiling clap_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/clap_utils)
+   Compiling tokio-tungstenite v0.28.0
+   Compiling directory v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/directory)
+   Compiling network_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/network_utils)
+   Compiling store v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/store)
+   Compiling opentelemetry-http v0.30.0
+   Compiling builder_client v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/builder_client)
+   Compiling lighthouse_network v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/lighthouse_network)
+   Compiling execution_layer v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/execution_layer)
+   Compiling operation_pool v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/operation_pool)
+   Compiling environment v0.1.2 (/projects/eth2030/lighthouse-gloas-runtime-stall/lighthouse/environment)
+   Compiling proof_engine v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/proof_engine)
+   Compiling health_metrics v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/health_metrics)
+   Compiling axum-server v0.7.3
+   Compiling axum_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/axum_utils)
+   Compiling validator_store v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/validator_store)
+   Compiling beacon_node_fallback v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/beacon_node_fallback)
+   Compiling beacon_processor v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/beacon_processor)
+   Compiling beacon_chain v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/beacon_chain)
+   Compiling system_health v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/system_health)
+   Compiling warp_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/warp_utils)
+   Compiling signing_method v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/signing_method)
+   Compiling initialized_validators v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/initialized_validators)
+   Compiling doppelganger_service v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/doppelganger_service)
+   Compiling monitoring_api v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/monitoring_api)
+   Compiling lighthouse_validator_store v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/lighthouse_validator_store)
+   Compiling validator_services v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/validator_services)
+   Compiling tonic v0.13.1
+   Compiling opentelemetry-proto v0.30.0
+   Compiling validator_http_api v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/http_api)
+   Compiling assert-json-diff v2.0.2
+   Compiling similar v2.7.0
+   Compiling lighthouse v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/lighthouse)
+   Compiling colored v3.1.1
+   Compiling mockito v1.7.2
+   Compiling network v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/network)
+   Compiling timer v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/timer)
+   Compiling opentelemetry-otlp v0.30.0
+   Compiling validator_manager v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_manager)
+   Compiling account_manager v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/account_manager)
+   Compiling alloy-provider v1.8.3
+   Compiling alloy-signer-local v1.8.3
+   Compiling tracing_samplers v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/tracing_samplers)
+   Compiling state_transition_vectors v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/testing/state_transition_vectors)
+   Compiling slasher_service v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/slasher/service)
+   Compiling http_api v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/http_api)
+   Compiling execution_engine_integration v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/testing/execution_engine_integration)
+   Compiling ef_tests v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/testing/ef_tests)
+   Compiling validator_test_rig v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/testing/validator_test_rig)
+   Compiling tikv-jemalloc-ctl v0.6.1
+   Compiling tikv-jemallocator v0.6.1
+   Compiling malloc_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/malloc_utils)
+   Compiling http_metrics v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/http_metrics)
+   Compiling validator_http_metrics v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/http_metrics)
+   Compiling lcli v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/lcli)
+   Compiling validator_client v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client)
+   Compiling proto_array v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/proto_array)
+   Compiling target_check v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/target_check)
+   Compiling web3signer_tests v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/testing/web3signer_tests)
+   Compiling client v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/client)
+   Compiling beacon_node v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node)
+   Compiling database_manager v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/database_manager)
+   Compiling boot_node v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/boot_node)
+   Compiling node_test_rig v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/testing/node_test_rig)
+   Compiling simulator v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/testing/simulator)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 11m 19s

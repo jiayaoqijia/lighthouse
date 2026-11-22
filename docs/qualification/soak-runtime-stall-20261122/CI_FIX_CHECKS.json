@@ -1,0 +1,34 @@
+[
+  {
+    "name": "cargo-sort",
+    "command": [
+      "cargo",
+      "sort",
+      "--check",
+      "--workspace"
+    ],
+    "exit": 0,
+    "seconds": 0.02179369400255382
+  },
+  {
+    "name": "lockbud-contract",
+    "command": [
+      "bash",
+      "scripts/ci/test-check-lockbud.sh"
+    ],
+    "exit": 0,
+    "seconds": 0.03679363301489502
+  },
+  {
+    "name": "final-cargo-check",
+    "command": [
+      "cargo",
+      "check",
+      "--release",
+      "-p",
+      "lighthouse"
+    ],
+    "exit": 0,
+    "seconds": 40.10578307096148
+  }
+]

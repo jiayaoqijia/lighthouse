@@ -77,7 +77,7 @@ fn captured_nondefault_gloas_state_and_three_proofs_match_independent_reference(
             "changed leaf {name}"
         );
         let mut altered = branch.clone();
-        altered[0] = altered[0] ^ mask;
+        altered[0] ^= mask;
         assert!(
             !verify_merkle_proof(leaf, &altered, depth, position, vectors.state_root),
             "changed sibling {name}"

@@ -1,6 +1,9 @@
 use crate::{BeaconChain, BeaconChainTypes};
 use slot_clock::SlotClock;
-use std::sync::Arc;
+use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+};
 use std::time::Duration;
 use task_executor::TaskExecutor;
 use tokio::time::sleep;
@@ -31,6 +34,7 @@ async fn attestation_simulator_service<T: BeaconChainTypes>(
     chain: Arc<BeaconChain<T>>,
 ) {
     let slot_duration = chain.slot_clock.slot_duration();
+    let in_flight = Arc::new(AtomicBool::new(false));
 
     loop {
         match chain.slot_clock.now_duration() {
@@ -52,16 +56,15 @@ async fn attestation_simulator_service<T: BeaconChainTypes>(
 
                 // Run the task in the executor
                 let inner_chain = chain.clone();
-                executor.spawn(
-                    async move {
-                        if let Some(slot) = inner_chain.slot_clock.now() && slot == attestation_slot {
-                            produce_unaggregated_attestation(inner_chain, attestation_slot);
-                        } else {
-                            warn!(%attestation_slot, "Missed attestation simulator slot due to lag");
-                        }
-                    },
-                    "attestation_simulator_service",
-                );
+                spawn_simulation_task(&executor, in_flight.clone(), move || {
+                    if let Some(slot) = inner_chain.slot_clock.now()
+                        && slot == attestation_slot
+                    {
+                        produce_unaggregated_attestation(inner_chain, attestation_slot);
+                    } else {
+                        warn!(%attestation_slot, "Missed attestation simulator slot due to lag");
+                    }
+                });
             }
             None => {
                 error!("Failed to read slot clock");
@@ -70,6 +73,39 @@ async fn attestation_simulator_service<T: BeaconChainTypes>(
             }
         };
     }
+}
+
+struct SimulationPermit(Arc<AtomicBool>);
+
+impl Drop for SimulationPermit {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
+}
+
+fn spawn_simulation_task(
+    executor: &TaskExecutor,
+    in_flight: Arc<AtomicBool>,
+    task: impl FnOnce() + Send + 'static,
+) -> bool {
+    if in_flight
+        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+        .is_err()
+    {
+        return false;
+    }
+    let permit = SimulationPermit(in_flight);
+    // State/cache reads can wait for fork choice or the database. Keep them off
+    // the core executor so lock contention cannot prevent network/exit progress.
+    // A single permit also prevents one blocked read from growing a task backlog.
+    executor.spawn_blocking(
+        move || {
+            let _permit = permit;
+            task();
+        },
+        "attestation_simulator_service",
+    );
+    true
 }
 
 fn time_until_attestation_deadline<E: EthSpec>(
@@ -129,5 +165,52 @@ pub fn produce_unaggregated_attestation<T: BeaconChainTypes>(
                 "Failed to simulate attestation"
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod async_progress_tests {
+    use super::*;
+    use std::sync::mpsc;
+    use task_executor::test_utils::TestRuntime;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn blocked_simulation_preserves_async_progress_and_bounds_pending_work() {
+        let runtime = TestRuntime::default();
+        let in_flight = Arc::new(AtomicBool::new(false));
+        let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
+        let (started_tx, started_rx) = mpsc::channel();
+        let (heartbeat_tx, heartbeat_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let (progress_tx, progress_rx) = tokio::sync::oneshot::channel();
+        let releaser = std::thread::spawn(move || {
+            started_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+            let progressed = heartbeat_rx.recv_timeout(Duration::from_secs(2)).is_ok();
+            let _ = release_tx.send(());
+            let _ = progress_tx.send(progressed);
+        });
+        assert!(spawn_simulation_task(
+            &runtime.task_executor,
+            in_flight.clone(),
+            move || {
+                started_tx.send(()).unwrap();
+                entered_tx.send(()).unwrap();
+                release_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+            }
+        ));
+        entered_rx.await.unwrap();
+        let duplicate_was_rejected =
+            !spawn_simulation_task(&runtime.task_executor, in_flight, || {});
+        let _ = heartbeat_tx.send(());
+        let async_progressed_before_work_released = progress_rx.await.unwrap();
+        releaser.join().unwrap();
+        assert!(
+            async_progressed_before_work_released,
+            "blocking simulation occupied the core executor"
+        );
+        assert!(
+            duplicate_was_rejected,
+            "a second simulation queued behind blocked work"
+        );
     }
 }

@@ -100,10 +100,10 @@ async fn peer(runtime: Weak<Runtime>, spec: Arc<ChainSpec>, custody: u64) -> Pee
 async fn listen(peer: &mut Peer) -> libp2p::Multiaddr {
     timeout(Duration::from_secs(10), async {
         loop {
-            if let NetworkEvent::NewListenAddr(addr) = peer.node.next_event().await {
-                if addr.iter().any(|p| matches!(p, Protocol::Tcp(_))) {
-                    return addr;
-                }
+            if let NetworkEvent::NewListenAddr(addr) = peer.node.next_event().await
+                && addr.iter().any(|p| matches!(p, Protocol::Tcp(_)))
+            {
+                return addr;
             }
         }
     })

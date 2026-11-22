@@ -1,0 +1,9 @@
+   Compiling beacon_chain v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/beacon_chain)
+    Finished `release` profile [optimized] target(s) in 1m 14s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/beacon_chain-509e1ca6e2295ccb)
+
+running 1 test
+test attestation_simulator::async_progress_tests::blocked_simulation_preserves_async_progress_and_bounds_pending_work ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 375 filtered out; finished in 0.00s
+

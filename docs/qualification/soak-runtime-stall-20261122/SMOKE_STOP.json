@@ -1,0 +1,36 @@
+{
+  "cl": {
+    "seconds": 1.1829906799830496,
+    "stop_exit": 0,
+    "state": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-11-22T04:56:46.031000371Z",
+      "FinishedAt": "2026-11-22T05:06:29.122363999Z"
+    }
+  },
+  "el": {
+    "seconds": 0.4491076850099489,
+    "stop_exit": 0,
+    "state": {
+      "Status": "exited",
+      "Running": false,
+      "Paused": false,
+      "Restarting": false,
+      "OOMKilled": false,
+      "Dead": false,
+      "Pid": 0,
+      "ExitCode": 0,
+      "Error": "",
+      "StartedAt": "2026-11-22T04:56:45.846512504Z",
+      "FinishedAt": "2026-11-22T05:06:30.38279438Z"
+    }
+  }
+}
