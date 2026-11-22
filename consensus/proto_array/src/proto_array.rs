@@ -2455,3 +2455,81 @@ impl<'a> Iterator for Iter<'a> {
         Some(node)
     }
 }
+
+#[cfg(test)]
+mod committee_equivocation_reference_tests {
+    use super::*;
+    use types::{ForkName, MainnetEthSpec, MinimalEthSpec};
+
+    fn reference_case<E: EthSpec>(name: &str) {
+        let input: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../docs/qualification/gloas-committee-weight-20261122/reference/cases.json"
+        ))
+        .unwrap();
+        let case = input["cases"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|case| case["preset"] == name)
+            .unwrap();
+        let root: Hash256 = case["head_root"].as_str().unwrap().parse().unwrap();
+        let spec = ForkName::Gloas.make_genesis_spec(E::default_spec());
+        let balances = JustifiedBalances::from_effective_balances(
+            case["active_voting_balances"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|value| value.as_u64().unwrap())
+                .collect(),
+        )
+        .unwrap();
+        let mut dag = ProtoArray {
+            prune_threshold: 0,
+            nodes: vec![],
+            indices: HashMap::new(),
+            unsatisfied_inclusion_lists: BTreeSet::new(),
+            children: vec![],
+        };
+        let shuffling = AttestationShufflingId::from_components(Epoch::new(0), root);
+        dag.on_block::<E>(
+            Block {
+                slot: Slot::new(0),
+                root,
+                parent_root: None,
+                state_root: Hash256::zero(),
+                target_root: root,
+                current_epoch_shuffling_id: shuffling.clone(),
+                next_epoch_shuffling_id: shuffling,
+                justified_checkpoint: Checkpoint::default(),
+                finalized_checkpoint: Checkpoint::default(),
+                execution_status: ExecutionStatus::Valid(ExecutionBlockHash::zero()),
+                unrealized_justified_checkpoint: Some(Checkpoint::default()),
+                unrealized_finalized_checkpoint: Some(Checkpoint::default()),
+                execution_payload_parent_hash: Some(ExecutionBlockHash::zero()),
+                execution_payload_block_hash: Some(ExecutionBlockHash::zero()),
+                proposer_index: Some(0),
+                payload_received: true,
+            },
+            Slot::new(0),
+            &spec,
+            Duration::ZERO,
+        )
+        .unwrap();
+        assert_eq!(case["head_attestation_score"].as_u64().unwrap(), 0);
+        assert!(
+            case["equivocation_committee_weight"].as_u64().unwrap()
+                >= case["head_threshold"].as_u64().unwrap()
+        );
+        assert_eq!(
+            dag.is_head_weak::<E>(&dag.nodes[0], &balances, &spec),
+            case["head_weak"].as_bool().unwrap(),
+            "unchanged reference counts equivocators in the head committee even when they voted on another fork"
+        );
+    }
+
+    #[test]
+    fn shuffled_head_committee_equivocation_matches_independent_reference() {
+        reference_case::<MinimalEthSpec>("minimal");
+        reference_case::<MainnetEthSpec>("mainnet");
+    }
+}
