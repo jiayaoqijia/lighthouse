@@ -1,0 +1,21 @@
+{
+  "advisory_source": "https://github.com/RustSec/advisory-db",
+  "advisory_revision": "55e1c3dfbd834237a05bbbf7b50ba3b5be27b662",
+  "cargo_audit_version": "0.22.2",
+  "command": [
+    "cargo",
+    "audit",
+    "--db",
+    "FRESH_ADVISORY_DB",
+    "--no-fetch",
+    "--ignore",
+    "RUSTSEC-2026-0387"
+  ],
+  "audit_exit": 0,
+  "allowed_warnings": 10,
+  "libz_sys_before": "1.1.31",
+  "libz_sys_after": "1.1.33",
+  "required_cargo_check_release_locked_exit": 0,
+  "scope": "Only libz-sys version/checksum differ in Cargo.lock. The resolver-proposed unrelated tempfile/getrandom edge was restored and --locked check passed. Existing project advisory ignore policy is unchanged. Original make-audit fetch failure remains an infrastructure failure; fresh CLI-fetched revision is evaluated by the same actual audit engine and ignore policy.",
+  "cumulative_release_build": "pending"
+}

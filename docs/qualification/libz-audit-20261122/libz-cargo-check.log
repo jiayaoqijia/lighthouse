@@ -1,0 +1,114 @@
+ Downloading crates ...
+  Downloaded libz-sys v1.1.33
+   Compiling aws-lc-sys v0.45.0
+    Checking fixed_bytes v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/consensus/fixed_bytes)
+    Checking kzg v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/crypto/kzg)
+    Checking int_to_bytes v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/consensus/int_to_bytes)
+   Compiling libz-sys v1.1.33
+    Checking bls v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/crypto/bls)
+    Checking swap_or_not_shuffle v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/consensus/swap_or_not_shuffle)
+    Checking merkle_proof v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/consensus/merkle_proof)
+    Checking eth2_interop_keypairs v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/eth2_interop_keypairs)
+    Checking metrics v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/metrics)
+    Checking types v0.2.1 (/projects/eth2030/lighthouse-libz-audit-fix/consensus/types)
+    Checking flate2 v1.1.10
+    Checking eth2_key_derivation v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/crypto/eth2_key_derivation)
+    Checking eth2_keystore v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/crypto/eth2_keystore)
+    Checking compression-codecs v0.4.45
+    Checking async-compression v0.4.50
+   Compiling workspace_members v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/workspace_members)
+    Checking tower-http v0.6.11
+    Checking logroller v0.1.12
+    Checking logging v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/logging)
+   Compiling lighthouse_version v8.4.0-rc.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/lighthouse_version)
+    Checking task_executor v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/task_executor)
+    Checking filesystem v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/filesystem)
+    Checking lockfile v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/lockfile)
+   Compiling deposit_contract v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/deposit_contract)
+    Checking eth2_wallet v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/crypto/eth2_wallet)
+    Checking lru_cache v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/lru_cache)
+    Checking lmdb-rkv-sys v0.11.2 (https://github.com/sigp/lmdb-rs?rev=f33845c6469b94265319aac0ed5085597862c27e#f33845c6)
+    Checking lmdb-rkv v0.14.0 (https://github.com/sigp/lmdb-rs?rev=f33845c6469b94265319aac0ed5085597862c27e#f33845c6)
+    Checking oneshot_broadcast v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/oneshot_broadcast)
+    Checking validator_metrics v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/validator_metrics)
+    Checking malloc_utils v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/malloc_utils)
+    Checking eth2_wallet_manager v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/eth2_wallet_manager)
+   Compiling lighthouse v8.4.0-rc.0 (/projects/eth2030/lighthouse-libz-audit-fix/lighthouse)
+    Checking tracing_samplers v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/tracing_samplers)
+    Checking state_processing v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/consensus/state_processing)
+    Checking builder_types v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/builder_types)
+    Checking proto_array v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/consensus/proto_array)
+    Checking eip_3076 v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/eip_3076)
+    Checking eth2_config v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/eth2_config)
+    Checking slot_clock v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/slot_clock)
+    Checking fork_choice v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/consensus/fork_choice)
+    Checking validator_dir v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/validator_dir)
+    Checking account_utils v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/account_utils)
+    Checking fast_confirmation v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/consensus/fast_confirmation)
+    Checking genesis v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/genesis)
+    Checking slasher v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/slasher)
+    Checking slashing_protection v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/slashing_protection)
+    Checking builder_store v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/builder_store)
+    Checking graffiti_file v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/graffiti_file)
+   Compiling eth2_network_config v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/eth2_network_config)
+   Compiling aws-lc-rs v1.18.1
+   Compiling rustls v0.23.46
+    Checking rustls-webpki v0.103.16
+    Checking tokio-rustls v0.26.6
+    Checking futures-rustls v0.26.0
+    Checking quinn-proto v0.11.19
+    Checking tungstenite v0.28.0
+    Checking libp2p-tls v0.7.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+    Checking hyper-rustls v0.27.10
+    Checking reqwest v0.12.28
+    Checking axum-server v0.7.3
+    Checking tokio-tungstenite v0.28.0
+    Checking tonic v0.13.1
+    Checking axum_utils v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/axum_utils)
+    Checking pretty_reqwest_error v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/pretty_reqwest_error)
+    Checking reqwest-eventsource v0.6.0
+    Checking opentelemetry-http v0.30.0
+    Checking clap_utils v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/clap_utils)
+    Checking environment v0.1.2 (/projects/eth2030/lighthouse-libz-audit-fix/lighthouse/environment)
+    Checking directory v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/directory)
+    Checking proof_engine v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/proof_engine)
+    Checking store v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/store)
+    Checking signing_method v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/signing_method)
+    Checking opentelemetry-proto v0.30.0
+    Checking initialized_validators v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/initialized_validators)
+    Checking quinn v0.11.12
+    Checking opentelemetry-otlp v0.30.0
+    Checking libp2p-quic v0.14.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+    Checking libp2p v0.58.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+    Checking operation_pool v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/operation_pool)
+    Checking eth2 v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/eth2)
+    Checking network_utils v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/network_utils)
+    Checking lighthouse_network v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/lighthouse_network)
+    Checking builder_client v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/builder_client)
+    Checking health_metrics v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/health_metrics)
+    Checking warp_utils v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/warp_utils)
+    Checking beacon_node_fallback v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/beacon_node_fallback)
+    Checking validator_store v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/validator_store)
+    Checking monitoring_api v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/monitoring_api)
+    Checking execution_layer v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/execution_layer)
+    Checking account_manager v8.4.0-rc.0 (/projects/eth2030/lighthouse-libz-audit-fix/account_manager)
+    Checking doppelganger_service v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/doppelganger_service)
+    Checking validator_services v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/validator_services)
+    Checking lighthouse_validator_store v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/lighthouse_validator_store)
+    Checking validator_manager v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_manager)
+    Checking system_health v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/common/system_health)
+    Checking beacon_processor v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/beacon_processor)
+    Checking validator_http_api v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/http_api)
+    Checking validator_http_metrics v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client/http_metrics)
+    Checking beacon_chain v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/beacon_chain)
+    Checking validator_client v8.4.0-rc.0 (/projects/eth2030/lighthouse-libz-audit-fix/validator_client)
+    Checking network v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/network)
+    Checking http_metrics v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/http_metrics)
+    Checking timer v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/timer)
+    Checking http_api v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/http_api)
+    Checking slasher_service v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/slasher/service)
+    Checking client v0.2.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node/client)
+    Checking beacon_node v8.4.0-rc.0 (/projects/eth2030/lighthouse-libz-audit-fix/beacon_node)
+    Checking boot_node v8.4.0-rc.0 (/projects/eth2030/lighthouse-libz-audit-fix/boot_node)
+    Checking database_manager v0.1.0 (/projects/eth2030/lighthouse-libz-audit-fix/database_manager)
+    Finished `release` profile [optimized] target(s) in 1m 17s
