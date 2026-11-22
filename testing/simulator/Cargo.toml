@@ -11,6 +11,7 @@ spec-minimal = ["types/spec-minimal"]
 [dependencies]
 beacon_chain = { workspace = true }
 clap = { workspace = true }
+discv5 = { workspace = true }
 environment = { workspace = true }
 execution_layer = { workspace = true }
 futures = { workspace = true }
