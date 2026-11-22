@@ -250,7 +250,11 @@ mod tests {
         use types::{EthSpec, ForkName};
         let harness =
             BeaconChainHarness::<EphemeralHarnessType<MinimalEthSpec>>::builder(MinimalEthSpec)
-                .spec(ForkName::Gloas.make_genesis_spec(MinimalEthSpec::default_spec()))
+                .spec(
+                    ForkName::Gloas
+                        .make_genesis_spec(MinimalEthSpec::default_spec())
+                        .into(),
+                )
                 .deterministic_keypairs(32)
                 .fresh_ephemeral_store()
                 .mock_execution_layer()
