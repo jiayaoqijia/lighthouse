@@ -1,0 +1,27 @@
+    Blocking waiting for file lock on build directory
+   Compiling eth2 v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/eth2)
+   Compiling validator_dir v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/validator_dir)
+   Compiling slashing_protection v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/slashing_protection)
+   Compiling account_utils v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/account_utils)
+   Compiling initialized_validators v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/initialized_validators)
+   Compiling builder_store v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/builder_store)
+   Compiling beacon_node_fallback v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/beacon_node_fallback)
+   Compiling validator_store v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/validator_store)
+   Compiling doppelganger_service v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/doppelganger_service)
+   Compiling lighthouse_validator_store v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/lighthouse_validator_store)
+   Compiling validator_test_rig v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/testing/validator_test_rig)
+   Compiling validator_services v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/validator_services)
+    Finished `release` profile [optimized] target(s) in 6m 28s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/validator_services-988d124d25ac9f39)
+
+running 1 test
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+test block_service::tests::stateful_envelope_rejects_mismatched_cache_responses ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 81 filtered out; finished in 1.80s
+

@@ -1,0 +1,22 @@
+    Blocking waiting for file lock on build directory
+   Compiling validator_services v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/validator_services)
+    Finished `release` profile [optimized] target(s) in 1m 34s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/validator_services-988d124d25ac9f39)
+
+running 1 test
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+
+thread 'block_service::tests::stateful_envelope_rejects_mismatched_cache_responses' (1516574) panicked at validator_client/validator_services/src/block_service.rs:2185:17:
+mismatched root response was accepted
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test block_service::tests::stateful_envelope_rejects_mismatched_cache_responses ... FAILED
+
+failures:
+
+failures:
+    block_service::tests::stateful_envelope_rejects_mismatched_cache_responses
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 81 filtered out; finished in 0.56s
+
+error: test failed, to rerun pass `-p validator_services --lib`
