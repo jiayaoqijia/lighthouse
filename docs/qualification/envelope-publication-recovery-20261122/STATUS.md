@@ -1,0 +1,3 @@
+# Envelope publication investigation
+
+The full corrected-listener fallback simulator exits101 at422.97s. It produced/published envelopes at all six subsequently missing canonical slots21/37/62/77/101/115, so its canonical completeness failure requires further fork-choice/mock-payload investigation. Error logs also expose stateful multi-BN publication using a different provider after fetching a producer-local cached envelope. HTTP EnvelopeOnly publication destructively takes cached blobs before gossip/consensus validation, so rejection/retry loses the cache. These are separate confirmed source defects, not yet a proven explanation for every simulator miss. Original records remain immutable; no test threshold, KZG/BLS/hash check or fork rule is weakened.
