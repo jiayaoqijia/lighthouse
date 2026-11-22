@@ -11957,6 +11957,67 @@ async fn payload_attestation_present_after_envelope_publish() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn envelope_column_publication_failure_preserves_cache() {
+    if !fork_name_from_env().is_some_and(|fork| fork.gloas_enabled()) {
+        return;
+    }
+    let mut tester = ApiTester::new_with_hard_forks().await;
+    let fork = tester.chain.canonical_head.cached_head().head_fork();
+    let genesis_validators_root = tester.chain.genesis_validators_root;
+    let (slot, epoch, fork_name) = tester.advance_to_gloas_slot().expect("Gloas must execute");
+    let (sk, _, envelope) = tester
+        .build_and_post_block_for_envelope(slot, epoch, &fork, genesis_validators_root)
+        .await;
+    let block_root = envelope.beacon_block_root;
+    assert!(
+        envelope.payload.blob_gas_used > 0,
+        "must exercise actual blob column publication"
+    );
+    let signed = tester.sign_envelope(envelope, &sk, epoch, &fork, genesis_validators_root);
+    while tester
+        .network_rx
+        .network_recv
+        .recv()
+        .now_or_never()
+        .is_some()
+    {}
+    let publication = tester.client.post_beacon_execution_payload_envelopes(
+        &signed,
+        fork_name,
+        Some(BroadcastValidation::Consensus),
+    );
+    tokio::pin!(publication);
+    // Fail the publication channel only after the envelope itself was broadcast.
+    // Columns must still report their failure and preserve producer-local retry data.
+    tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            tokio::select! {
+                response = &mut publication => panic!("publication finished before envelope broadcast: {response:?}"),
+                message = tester.network_rx.network_recv.recv() => {
+                    if let Some(network::NetworkMessage::Publish { messages }) = message
+                        && messages.iter().any(|message| matches!(message, lighthouse_network::PubsubMessage::ExecutionPayload(_))) {
+                        tester.network_rx.network_recv.close();
+                        break;
+                    }
+                }
+            }
+        }
+    }).await.expect("envelope broadcast must execute before column failure injection");
+    let error = publication
+        .await
+        .expect_err("column publication failure must not be reported as accepted");
+    assert_eq!(error.status(), Some(StatusCode::INTERNAL_SERVER_ERROR));
+    assert!(
+        tester
+            .chain
+            .pending_payload_envelopes
+            .read()
+            .has_blobs(block_root),
+        "failed column publication consumed retry data"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn envelope_rejection_preserves_cached_blobs() {
     if !fork_name_from_env().is_some_and(|fork| fork.gloas_enabled()) {
         return;
