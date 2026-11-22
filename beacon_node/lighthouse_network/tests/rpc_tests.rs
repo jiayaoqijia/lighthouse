@@ -564,7 +564,7 @@ fn test_blobs_by_range_chunked_rpc() {
 fn test_tcp_blocks_by_range_over_limit() {
     // Set up the logging.
     let log_level = "debug";
-    let enable_logging = false;
+    let enable_logging = true;
     let _subscriber = build_tracing_subscriber(log_level, enable_logging);
 
     let messages_to_send = 5;
@@ -586,12 +586,21 @@ fn test_tcp_blocks_by_range_over_limit() {
         .await;
 
         // BlocksByRange Request
+        // Negotiation selects V2 for Bellatrix. Matching a V1 object here
+        // silently ignored the received request and passed on StreamTimeout.
         let rpc_request =
-            RequestType::BlocksByRange(OldBlocksByRangeRequest::V1(OldBlocksByRangeRequestV1 {
-                start_slot: 0,
-                count: messages_to_send,
-                step: 1,
-            }));
+            RequestType::BlocksByRange(OldBlocksByRangeRequest::new(0, messages_to_send, 1));
+        let request_id = Some(SyncRequestId::BlocksByRange(BlocksByRangeRequestId {
+            id: 1,
+            parent_request_id: ComponentsByRangeRequestId {
+                id: 1,
+                requester: RangeRequestId::RangeSync {
+                    chain_id: 1,
+                    batch_id: Epoch::new(1),
+                },
+            },
+        }));
+        let response_attempted = std::cell::Cell::new(false);
 
         // BlocksByRange Response
         let full_block = bellatrix_block_large(&spec);
@@ -607,14 +616,41 @@ fn test_tcp_blocks_by_range_over_limit() {
                         // Send a STATUS message
                         debug!("Sending RPC");
                         sender
-                            .send_request(peer_id, None, rpc_request.clone())
+                            .send_request(peer_id, request_id, rpc_request.clone())
                             .unwrap();
                     }
-                    // The request will fail because the sender will refuse to send anything > MAX_RPC_SIZE
                     NetworkEvent::RPCFailed {
-                        sync_request_id, ..
-                    } => {
-                        assert!(sync_request_id.is_none());
+                        sync_request_id,
+                        error,
+                        ..
+                    } if sync_request_id == request_id => {
+                        assert!(
+                            response_attempted.get(),
+                            "no oversized response was attempted"
+                        );
+                        assert!(
+                            matches!(
+                                error,
+                                lighthouse_network::rpc::RPCError::IncompleteStream
+                                    | lighthouse_network::rpc::RPCError::IoError(_)
+                            ),
+                            "expected rejected-response stream closure, got {error:?}"
+                        );
+                        return;
+                    }
+                    NetworkEvent::ResponseReceived {
+                        sync_request_id,
+                        response,
+                        ..
+                    } if sync_request_id == request_id => {
+                        assert!(
+                            response_attempted.get(),
+                            "no oversized response was attempted"
+                        );
+                        assert!(
+                            matches!(response, Response::BlocksByRange(None)),
+                            "an oversized block must never reach the application"
+                        );
                         return;
                     }
                     _ => {} // Ignore other behaviour events
@@ -634,6 +670,7 @@ fn test_tcp_blocks_by_range_over_limit() {
                     } if request_type == rpc_request => {
                         // send the response
                         warn!("Receiver got request");
+                        response_attempted.set(true);
                         for _ in 0..messages_to_send {
                             let rpc_response = rpc_response_bellatrix_large.clone();
                             receiver.send_response(

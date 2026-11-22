@@ -24,3 +24,11 @@ The old simulator fails deterministically in16.84s with actual libp2p EADDRINUSE
 ## Pinned analyzer parity
 
 The exact fail-closed modern Lockbud toolchain, real compiler smoke, raw-log preservation and individually reviewed diagnostic policy from runtime review4 are shared identically here. This prevents a standalone qualification review from inheriting the old analyzer's false success. A subsequent hosted minimal-spec run also exposes rpc_tests::test_tcp_blocks_by_range_over_limit timing out; its actual transport/fixture behavior is being reproduced and remains an open CI gate.
+
+## RPC over-limit control correction
+
+The hosted minimal network suite times out at30s. Actual local logs prove the old V1-object receiver guard never matched the negotiated V2 request: no oversized response was sent, and StreamTimeout after10s falsely satisfied the previous assertion. The corrected request uses canonical V2 and a correlated sync ID, requires the actual response attempt, rejects timeout/negotiation errors and rejects an oversized application response. Actual receiver encoding reports InternalError for the size limit and the client closes with IoError in0.06s. A direct production codec control accepts the below-limit block and rejects the above-limit block.
+
+Both compiled negative controls fail for their intended assertions: removing the encoder size guard and restoring the old V1 request mismatch. Restoring the source passes both consumers. All original logs and source fingerprints are retained. No production limit, transport deadline or size check is weakened.
+
+The complete corrected-listener simulator runs422.97s and still fails canonical completeness, with six missing slots despite successful envelope publication at each. This run uses the old runtime scheduler (review4 is not included in this independent review). A cumulative fixed-runtime integration run remains required; independent provider/cache side effects are separately investigated. The old v1.7.0-beta.4 transition suite also derives fork-boundary roots from the older contract; complete source-generated transition coverage (including generic inherited transition tests) is being added, preserving every prior case.

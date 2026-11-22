@@ -1192,6 +1192,33 @@ mod tests {
         Ok(buf)
     }
 
+    #[test]
+    fn test_encode_block_exceeding_packet_limit() {
+        let spec = spec_with_all_forks_enabled();
+        let response =
+            |block| RpcResponse::Success(RpcSuccessResponse::BlocksByRange(Arc::new(block)));
+        assert!(
+            encode_response(
+                SupportedProtocol::BlocksByRangeV2,
+                response(bellatrix_block_small(&spec)),
+                ForkName::Bellatrix,
+                &spec,
+            )
+            .is_ok()
+        );
+        assert_eq!(
+            encode_response(
+                SupportedProtocol::BlocksByRangeV2,
+                response(bellatrix_block_large(&spec)),
+                ForkName::Bellatrix,
+                &spec,
+            ),
+            Err(RPCError::InternalError(
+                "attempting to encode data > max_packet_size"
+            ))
+        );
+    }
+
     fn encode_without_length_checks(
         bytes: Vec<u8>,
         fork_name: ForkName,
