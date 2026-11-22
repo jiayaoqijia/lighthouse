@@ -1,10 +1,18 @@
 #!/bin/bash
+set -euo pipefail
 
 # Run lockbud to check for deadlocks and capture the output
-output=$(cargo lockbud -k deadlock -b -l tokio_util 2>&1)
+if output=$(cargo lockbud -k deadlock -b -l tokio_util 2>&1); then
+  :
+else
+  status=$?
+  printf '%s\n' "$output" >&2
+  printf 'Lockbud did not complete successfully (exit %s).\n' "$status" >&2
+  exit "$status"
+fi
 
 # Check if lockbud returned any issues
-if echo "$output" | grep -q '"bug_kind"'; then
+if [[ "$output" == *'"bug_kind"'* ]]; then
   # Print the JSON payload
   echo "Lockbud detected issues:"
   echo "$output"

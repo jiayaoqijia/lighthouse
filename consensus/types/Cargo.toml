@@ -73,9 +73,9 @@ typenum = { workspace = true }
 yaml_serde = { workspace = true }
 
 [dev-dependencies]
-flate2 = { workspace = true }
 beacon_chain = { workspace = true }
 criterion = { workspace = true }
+flate2 = { workspace = true }
 tokio = { workspace = true }
 types = { path = ".", features = ["arbitrary"] }
 

@@ -38,3 +38,7 @@ The same2CPU/4,096,000,000-byte profile passes4096 concurrent read calls with no
 Full workspace/bench/test make-lint with the repository's existing policy passes. The final source suffix also fixes pre-existing test-only cloned-slice, checked-sum and xor-assignment lint expressions without changing production behavior. The selected release fingerprint remains that of functional57ccb466. A newly declared full-duration run plus strict evidence/cleanup gate is still required.
 
 The new48h round04 runs with native2c0df12f and the fixed57ccb466 release, under the original resource/deadline limits and independent sampler/finality/strict-supervisor processes. Start/catchup is separate; the clock begins only after non-optimistic commitment agreement. Source time from failed03 is not reused. EL review132 owns its independent final gate and public historical replay.
+
+## Hosted CI reconciliation
+
+The fork review exposes inherited unsorted dependency tables in beacon_chain/lighthouse_network/types; cargo-sort now changes ordering only, with no dependency version/feature changes. The existing lockbud wrapper also reported success if the analyzer exited unsuccessfully without a bug_kind record. It now propagates command failure and detects findings without a producer/grep pipe that can lose large output under pipefail. A real shell regression distinguishes failed analysis, findings, large findings and clean analysis; the workflow executes it before the actual analyzer. No skip-ci label or reduced analysis is used.
