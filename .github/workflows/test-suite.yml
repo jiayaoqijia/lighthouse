@@ -74,6 +74,7 @@ jobs:
           CARGO_TARGET_DIR: ${{ runner.temp }}/lockbud-target
         run: |
           ./scripts/ci/test-check-lockbud.sh
+          ./scripts/ci/test-lockbud-toolchain.sh
           ./scripts/ci/check-lockbud.sh
 
   target-branch-check:
