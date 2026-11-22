@@ -14,3 +14,9 @@ The currently running48h observer uses functional57ccb466 and is not modified by
 ## Simulator listener collision
 
 The retained hosted fallback-simulator log proves the boot node HTTP API binds127.0.0.1:42429 before the sixth node attempts fixed P2P0.0.0.0:42429 and fails EADDRINUSE. This is an actual internal listener collision, not a consensus failure or a retry-worthy network flake. The simulator now requests port0 for all TCP/discovery/QUIC P2P listeners and uses the network service's actual ENRs, matching the existing node-test-rig policy. The OS reserves the sockets while they are in use; no free-port probe or fixed alternative range is introduced. Actual simulator regression/build remains pending.
+
+## Source generation and admission result
+
+Both independent unchanged-reference generator runs pass86 tests (44 minimal,42 mainnet; two mainnet-only large-validator preset exclusions declared upstream). Fresh source modules are regenerated from the original archive; all344 generated files exactly match the initial run. The public3,890,744-byte vector archive is07bd5e170824851ff0af5a33efd24a8cd99021e72d32eeb754fdf0d7868304a9. The original source archive remains1fc9482c214443d708b4ae4b225dce47246331e530361de56e0277400517bc94. The six admission/rollback controls pass. Archives are intentionally tracked despite the generic tarball ignore rule.
+
+The old simulator fails deterministically in16.84s with actual libp2p EADDRINUSE while an owned socket reserves42429; this reproduces the hosted collision. The fixed simulator's actual complete fallback run and Rust minimal/mainnet state consumers remain pending. Identical pre-existing dependency-order and equivalent test/malloc lint cleanups from runtime review4 are included for independently reviewable current-compiler CI; they merge identically in either order.
