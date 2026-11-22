@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
 subject="$(cd "$(dirname "$0")" && pwd)/check-lockbud.sh"
 temporary="$(mktemp -d)"
 trap 'rm -rf "$temporary"' EXIT

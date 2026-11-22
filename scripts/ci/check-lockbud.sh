@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+export PYTHONDONTWRITEBYTECODE=1
 script_directory="$(cd "$(dirname "$0")" && pwd)"
 log="${LOCKBUD_LOG_PATH:-lockbud-analysis.log}"
 # Collect all crates rather than stopping at the first reviewed dependency report.
