@@ -2191,6 +2191,41 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn stateful_cache_provider_imports_signed_block_before_envelope() {
+        let mut test = TestHarness::new_with_validators(1).await;
+        let slot = Slot::new(1);
+        let block = self_build_block(&test.harness.spec);
+        let root = block.canonical_root();
+        let envelope = cached_self_build_envelope(slot, root);
+        test.bn1()
+            .mock_post_validator_blocks_v4_ssz_error(slot, false);
+        test.bn2().mock_post_validator_blocks_v4_ssz(
+            &block_only(&block),
+            false,
+            ForkName::Gloas,
+            slot,
+        );
+        let publish_first = test.bn1().mock_post_beacon_blocks_v2_ssz(ForkName::Gloas);
+        let publish_cache = test.bn2().mock_post_beacon_blocks_v2_ssz(ForkName::Gloas);
+        test.bn1()
+            .mock_get_validator_execution_payload_envelope_ssz_error(slot, root);
+        test.bn2()
+            .mock_get_validator_execution_payload_envelope_ssz(&envelope, slot, root);
+        let wrong = test.bn1().mock_post_beacon_execution_payload_envelope_ssz();
+        let correct = test.bn2().mock_post_envelope_requires_imported_block();
+        test.publish(slot).await;
+        publish_first.expect(1).assert();
+        publish_cache.expect(1).assert();
+        wrong.expect(0).assert();
+        correct.expect(1).assert();
+        test.assert_signed_once(&block, None);
+        assert_eq!(
+            test.service.validator_store.signed_envelope_block_roots(),
+            vec![root]
+        );
+    }
+
+    #[tokio::test]
     async fn stateful_envelope_publishes_to_the_cache_provider() {
         let mut test = TestHarness::new_with_validators(1).await;
         let slot = Slot::new(1);

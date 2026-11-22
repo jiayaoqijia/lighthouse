@@ -609,6 +609,27 @@ impl<E: EthSpec> MockBeaconNode<E> {
             .create()
     }
 
+    /// Return the same BlockRootUnknown rejection as a BN that has not imported the block.
+    pub fn mock_post_envelope_requires_imported_block(&mut self) -> Mock {
+        let blocks_for_status = Arc::clone(&self.received_full_blocks);
+        let blocks_for_body = Arc::clone(&self.received_full_blocks);
+        let envelopes = Arc::clone(&self.execution_payload_envelope);
+        self.post_beacon_execution_payload_envelope_ssz_mock(false)
+            .with_status_code_from_request(move |request| {
+                let envelope = SignedExecutionPayloadEnvelope::<E>::from_ssz_bytes(request.body().unwrap()).unwrap();
+                if blocks_for_status.lock().unwrap().iter().any(|block| block.signed_block().canonical_root() == envelope.message.beacon_block_root) { 200 } else { 400 }
+            })
+            .with_body_from_request(move |request| {
+                let envelope = SignedExecutionPayloadEnvelope::<E>::from_ssz_bytes(request.body().unwrap()).unwrap();
+                if blocks_for_body.lock().unwrap().iter().any(|block| block.signed_block().canonical_root() == envelope.message.beacon_block_root) {
+                    envelopes.lock().unwrap().push(envelope);
+                    vec![]
+                } else {
+                    br#"{"code":400,"message":"BlockRootUnknown: provider has not imported the signed block"}"#.to_vec()
+                }
+            }).create()
+    }
+
     /// Mocks `POST /eth/v1/beacon/execution_payload_envelopes` (SSZ) to receive envelope contents.
     pub fn mock_post_beacon_execution_payload_envelope_contents_ssz(&mut self) -> Mock {
         let received = Arc::clone(&self.execution_payload_envelope_contents);
