@@ -2142,6 +2142,81 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn stateful_envelope_publishes_to_the_cache_provider() {
+        let mut test = TestHarness::new_with_validators(1).await;
+        let slot = Slot::new(1);
+        let root = Hash256::default();
+        let envelope = ExecutionPayloadEnvelope::empty();
+        let get_wrong = test
+            .bn1()
+            .mock_get_validator_execution_payload_envelope_ssz_error(slot, root);
+        let get_producer = test
+            .bn2()
+            .mock_get_validator_execution_payload_envelope_ssz(&envelope, slot, root);
+        let publish_wrong = test.bn1().mock_post_beacon_execution_payload_envelope_ssz();
+        let publish_producer = test.bn2().mock_post_beacon_execution_payload_envelope_ssz();
+        let fallback = ProposerFallback {
+            beacon_nodes: test.service.beacon_nodes.clone(),
+            proposer_nodes: test.service.proposer_nodes.clone(),
+        };
+        test.service
+            .fetch_sign_and_publish_payload_envelope(
+                &fallback,
+                slot,
+                root,
+                &test.harness.pubkeys[0],
+            )
+            .await
+            .unwrap();
+        get_wrong.expect(1).assert();
+        get_producer.expect(1).assert();
+        publish_wrong.expect(0).assert();
+        publish_producer.expect(1).assert();
+        assert_eq!(
+            test.harness
+                .mock_beacon_node_2
+                .execution_payload_envelope
+                .lock()
+                .unwrap()[0]
+                .message,
+            envelope
+        );
+    }
+
+    #[tokio::test]
+    async fn stateful_envelope_uses_configured_proposer_cache() {
+        let mut producer = MockBeaconNode::<MainnetEthSpec>::new().await;
+        let mut test = TestHarness::new(1, false, Some(&producer)).await;
+        let slot = Slot::new(1);
+        let root = Hash256::default();
+        let envelope = ExecutionPayloadEnvelope::empty();
+        test.bn1()
+            .mock_get_validator_execution_payload_envelope_ssz_error(slot, root);
+        test.bn2()
+            .mock_get_validator_execution_payload_envelope_ssz_error(slot, root);
+        let get_producer =
+            producer.mock_get_validator_execution_payload_envelope_ssz(&envelope, slot, root);
+        let publish_producer = producer.mock_post_beacon_execution_payload_envelope_ssz();
+        let publish_wrong = test.bn1().mock_post_beacon_execution_payload_envelope_ssz();
+        let fallback = ProposerFallback {
+            beacon_nodes: test.service.beacon_nodes.clone(),
+            proposer_nodes: test.service.proposer_nodes.clone(),
+        };
+        test.service
+            .fetch_sign_and_publish_payload_envelope(
+                &fallback,
+                slot,
+                root,
+                &test.harness.pubkeys[0],
+            )
+            .await
+            .unwrap();
+        get_producer.expect(1).assert();
+        publish_producer.expect(1).assert();
+        publish_wrong.expect(0).assert();
+    }
+
+    #[tokio::test]
     async fn post_beacon_execution_payload_envelope_ssz_fails() {
         let mut test_harness = TestHarness::new_with_validators(1).await;
 
