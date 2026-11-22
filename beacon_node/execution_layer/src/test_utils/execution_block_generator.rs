@@ -331,7 +331,7 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
             .values()
             .filter_map(Block::as_execution_payload)
             .collect();
-        payloads.sort_by_key(|payload| (payload.block_number(), payload.block_hash()));
+        payloads.sort_by_key(|payload| (payload.block_number(), payload.block_hash().0));
         payloads
     }
 
