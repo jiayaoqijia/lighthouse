@@ -1325,6 +1325,8 @@ mod tests {
         let BeaconBlock::Gloas(gloas_block) = &mut block else {
             panic!("expected Gloas block");
         };
+        gloas_block.slot = Slot::new(1);
+        gloas_block.body.signed_execution_payload_bid.message.slot = Slot::new(1);
         gloas_block
             .body
             .signed_execution_payload_bid
@@ -1483,7 +1485,7 @@ mod tests {
 
         let slot = Slot::new(1);
         let block = self_build_block(&test_harness.harness.spec);
-        let envelope = ExecutionPayloadEnvelope::empty();
+        let envelope = cached_self_build_envelope(slot, block.canonical_root());
 
         test_harness
             .harness
