@@ -1,0 +1,103 @@
+   Compiling digest v0.11.3
+   Compiling eth2_network_config v0.2.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/eth2_network_config)
+   Compiling pkcs5 v0.7.1
+   Compiling pkcs12 v0.1.0
+   Compiling bincode v1.3.3
+   Compiling sha3 v0.11.0
+   Compiling signature v3.0.0
+   Compiling alloy-primitives v1.7.3
+   Compiling elliptic-curve v0.14.1
+   Compiling hmac v0.13.0
+   Compiling rfc6979 v0.6.0
+   Compiling sha2 v0.11.0
+   Compiling ecdsa v0.17.0
+   Compiling primeorder v0.14.0
+   Compiling ethereum_serde_utils v0.8.1
+   Compiling fixed_bytes v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/consensus/fixed_bytes)
+   Compiling ethereum_ssz v0.10.4 (https://github.com/sigp/ethereum_ssz?rev=974f78f421fbf70cba4e8f84e0fa28c23ad54f34#974f78f4)
+   Compiling swap_or_not_shuffle v0.2.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/consensus/swap_or_not_shuffle)
+   Compiling alloy-json-abi v1.7.3
+   Compiling tree_hash v0.12.1 (https://github.com/sigp/tree_hash?rev=e5ea1875edddf12438506c3751cbb313f9c52d08#e5ea1875)
+   Compiling alloy-sol-types v1.7.3
+   Compiling bls v0.2.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/crypto/bls)
+   Compiling ssz_types v0.14.1 (https://github.com/sigp/ssz_types?rev=8955d22edc7633f26fe3b5ac933facb5121d717a#8955d22e)
+   Compiling eth2_interop_keypairs v0.2.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/eth2_interop_keypairs)
+   Compiling milhouse v0.9.0 (https://github.com/sigp/milhouse?rev=d67aabd2a7c405b3c16f4aaff159b137dc5b5e38#d67aabd2)
+   Compiling merkle_proof v0.2.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/consensus/merkle_proof)
+   Compiling kzg v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/crypto/kzg)
+   Compiling types v0.2.1 (/projects/eth2030/lighthouse-envelope-publish-recovery/consensus/types)
+   Compiling eth2_key_derivation v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/crypto/eth2_key_derivation)
+   Compiling eth2_keystore v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/crypto/eth2_keystore)
+   Compiling alloy-dyn-abi v1.7.3
+   Compiling ed25519 v3.0.0
+   Compiling curve25519-dalek v5.0.0
+   Compiling ed25519-dalek v3.0.0
+   Compiling k256 v0.14.0
+   Compiling sha3 v0.12.0
+   Compiling eth2_wallet v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/crypto/eth2_wallet)
+   Compiling enr v0.14.0
+   Compiling p12-keystore v0.2.1
+   Compiling assert-json-diff v2.0.2
+   Compiling colored v3.1.1
+   Compiling similar v2.7.0
+   Compiling mockito v1.7.2
+   Compiling builder_types v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/builder_types)
+   Compiling proto_array v0.2.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/consensus/proto_array)
+   Compiling state_processing v0.2.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/consensus/state_processing)
+   Compiling deposit_contract v0.2.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/deposit_contract)
+   Compiling fork_choice v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/consensus/fork_choice)
+   Compiling eth2 v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/eth2)
+   Compiling validator_dir v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/validator_dir)
+   Compiling eip_3076 v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/eip_3076)
+   Compiling eth2_config v0.2.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/eth2_config)
+   Compiling slashing_protection v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/slashing_protection)
+   Compiling account_utils v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/account_utils)
+   Compiling slot_clock v0.2.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/slot_clock)
+   Compiling beacon_node_fallback v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/beacon_node_fallback)
+   Compiling validator_store v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/validator_store)
+   Compiling environment v0.1.2 (/projects/eth2030/lighthouse-envelope-publish-recovery/lighthouse/environment)
+   Compiling signing_method v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/signing_method)
+   Compiling builder_store v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/builder_store)
+   Compiling initialized_validators v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/initialized_validators)
+   Compiling doppelganger_service v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/doppelganger_service)
+   Compiling lighthouse_validator_store v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/lighthouse_validator_store)
+   Compiling graffiti_file v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/graffiti_file)
+   Compiling validator_test_rig v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/testing/validator_test_rig)
+   Compiling validator_services v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/validator_services)
+    Finished `release` profile [optimized] target(s) in 47.24s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/validator_services-988d124d25ac9f39)
+
+running 2 tests
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+
+thread 'block_service::tests::stateful_envelope_uses_configured_proposer_cache' (1463920) panicked at validator_client/validator_services/src/block_service.rs:2213:14:
+called `Result::unwrap()` on an `Err` value: Recoverable("Some endpoints failed, num_failed: 4 http://127.0.0.1:45241/ => RequestFailed(Recoverable(\"Error fetching execution payload envelope: StatusCode(500)\")), http://127.0.0.1:33681/ => RequestFailed(Recoverable(\"Error fetching execution payload envelope: StatusCode(500)\")), http://127.0.0.1:45241/ => RequestFailed(Recoverable(\"Error fetching execution payload envelope: StatusCode(500)\")), http://127.0.0.1:33681/ => RequestFailed(Recoverable(\"Error fetching execution payload envelope: StatusCode(500)\"))")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'block_service::tests::stateful_envelope_publishes_to_the_cache_provider' (1463919) panicked at validator_client/validator_services/src/block_service.rs:2173:33:
+
+> Expected 0 request(s) to:
+
+POST ^/eth/v1/beacon/execution_payload_envelopes$ (regex)
+content-type: application/octet-stream
+eth-consensus-version: gloas
+eth-blob-data-included: false
+
+...but received 1
+
+
+test block_service::tests::stateful_envelope_publishes_to_the_cache_provider ... FAILED
+test block_service::tests::stateful_envelope_uses_configured_proposer_cache ... FAILED
+
+failures:
+
+failures:
+    block_service::tests::stateful_envelope_publishes_to_the_cache_provider
+    block_service::tests::stateful_envelope_uses_configured_proposer_cache
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 79 filtered out; finished in 0.60s
+
+error: test failed, to rerun pass `-p validator_services --lib`

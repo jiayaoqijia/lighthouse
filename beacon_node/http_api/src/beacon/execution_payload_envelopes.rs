@@ -225,8 +225,8 @@ pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
         SignedEnvelopeSubmission::EnvelopeOnly(envelope) => {
             let blobs = chain
                 .pending_payload_envelopes
-                .write()
-                .take_blobs(envelope.message.beacon_block_root);
+                .read()
+                .get_blobs(envelope.message.beacon_block_root);
             (*envelope, blobs.map(|blobs| (blobs, None)))
         }
     };
@@ -241,11 +241,19 @@ pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
         "Publishing signed execution payload envelope to network"
     );
 
-    // Spawn the column-build task (CPU-bound KZG cell-and-proof computation) before
-    // publishing the envelope so it runs in parallel with envelope gossip, narrowing
-    // the window in which peers see envelope-without-columns. If envelope import
-    // fails below, dropping this future drops the spawned `JoinHandle` (the running
-    // closure on the blocking pool finishes and is then discarded — no work cancellation).
+    // Gossip-verify the envelope before publishing.
+    let gossip_verified = chain
+        .verify_envelope_for_gossip(Arc::new(envelope), EnvelopeSource::Http)
+        .await
+        .map_err(|e| {
+            warn!(%slot, error = ?e, "Execution payload envelope failed gossip verification");
+            warp_utils::reject::custom_bad_request(format!(
+                "envelope failed gossip verification: {e}"
+            ))
+        })?;
+
+    // Only authenticated, state-consistent envelopes may start column work.
+    // Cached blobs remain available until complete import, including failed retries.
     let column_build_future = match blobs_and_proofs {
         Some((blobs, cell_proofs)) if !blobs.is_empty() => {
             Some(spawn_build_gloas_data_columns_task(
@@ -258,17 +266,6 @@ pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
         }
         _ => None,
     };
-
-    // Gossip-verify the envelope before publishing.
-    let gossip_verified = chain
-        .verify_envelope_for_gossip(Arc::new(envelope), EnvelopeSource::Http)
-        .await
-        .map_err(|e| {
-            warn!(%slot, error = ?e, "Execution payload envelope failed gossip verification");
-            warp_utils::reject::custom_bad_request(format!(
-                "envelope failed gossip verification: {e}"
-            ))
-        })?;
 
     // Reject stateful submissions before broadcast when the block commits to blobs but the
     // node has none cached.
@@ -365,11 +362,8 @@ pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
         }
     };
 
-    // The envelope has already been published over gossip, only columns can fail from here.
-    // `EnvelopeAndBlobData`: the caller still holds the blobs so we return an error. The caller
-    // can retry against a different beacon node.
-    // `EnvelopeOnly`: the cached blobs have been consumed, a retry cannot rebuild the columns. We
-    // also cant retry against another beacon node. So we just log a failure and continue.
+    // Publication failures remain retryable for both submission forms. Stateful
+    // callers retain the producer's cached blobs until complete import succeeds.
     if let Some(column_build_future) = column_build_future {
         match column_build_future.await {
             Ok(columns) => {
@@ -379,11 +373,7 @@ pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
                             envelope_imported = true;
                         }
                     }
-                    Err(rejection) => {
-                        if includes_blob_data {
-                            return Err(rejection);
-                        }
-                    }
+                    Err(rejection) => return Err(rejection),
                 }
             }
             Err(e) => {
@@ -392,9 +382,7 @@ pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
                     error = ?e,
                     "Failed to build data columns after envelope publication"
                 );
-                if includes_blob_data {
-                    return Err(e);
-                }
+                return Err(e);
             }
         }
     }
@@ -403,6 +391,10 @@ pub async fn publish_execution_payload_envelope<T: BeaconChainTypes>(
     // 202 applies at every validation level: missing components here are node-cached columns
     // rather than request-supplied blobs, so incomplete import is not the submitter's fault.
     if envelope_imported {
+        chain
+            .pending_payload_envelopes
+            .write()
+            .take_blobs(beacon_block_root);
         chain.recompute_head_at_current_slot().await;
         Ok(warp::reply().into_response())
     } else {
