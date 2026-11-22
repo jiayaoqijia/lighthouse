@@ -68,8 +68,10 @@ jobs:
           components: rust-src,rustc-dev,llvm-tools-preview
           cache: false
       - name: Build pinned lockbud
-        run: cargo install --locked --git https://github.com/BurtonQin/lockbud --rev a1b5303cdbb1d4d0ad886359cc71418570e7c5fd
+        run: cargo install --locked --git https://github.com/BurtonQin/lockbud --rev a1b5303cdbb1d4d0ad886359cc71418570e7c5fd lockbud
       - name: Check for deadlocks
+        env:
+          CARGO_TARGET_DIR: ${{ runner.temp }}/lockbud-target
         run: |
           ./scripts/ci/test-check-lockbud.sh
           ./scripts/ci/check-lockbud.sh

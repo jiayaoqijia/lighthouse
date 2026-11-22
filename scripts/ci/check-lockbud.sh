@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Run lockbud to check for deadlocks and capture the output
-if output=$(cargo lockbud -k deadlock -b -l tokio_util 2>&1); then
+if output=$(cargo lockbud -k deadlock --exit-code-on-bug -b -l tokio_util -- --locked 2>&1); then
   :
 else
   status=$?
