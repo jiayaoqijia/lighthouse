@@ -1,0 +1,22 @@
+   Compiling execution_layer v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/beacon_node/execution_layer)
+    Finished `release` profile [optimized] target(s) in 19.39s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/execution_layer-4f9e72e3a3ac17b5)
+
+running 1 test
+2026-11-22T07:46:36.704591Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:36539"
+2026-11-22T07:46:36.704638Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV1"
+2026-11-22T07:46:36.704662Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=Some(V1(JsonPayloadAttributesV1 { timestamp: 2, prev_randao: 0x0000000000000000000000000000000000000000000000000000000000000000, suggested_fee_recipient: 0x0000000000000000000000000000000000000000 })) forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0x0101010101010101010101010101010101010101010101010101010101010101, safe_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c, finalized_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c }
+
+thread 'test_utils::handle_rpc::test::non_valid_forkchoice_neither_builds_nor_changes_head' (1759725) panicked at beacon_node/execution_layer/src/test_utils/handle_rpc.rs:983:13:
+non-VALID FCU must not expose a build ID
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test test_utils::handle_rpc::test::non_valid_forkchoice_neither_builds_nor_changes_head ... FAILED
+
+failures:
+
+failures:
+    test_utils::handle_rpc::test::non_valid_forkchoice_neither_builds_nor_changes_head
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 43 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p execution_layer --lib`

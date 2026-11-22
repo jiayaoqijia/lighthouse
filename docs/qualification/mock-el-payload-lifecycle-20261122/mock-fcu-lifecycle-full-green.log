@@ -1,0 +1,261 @@
+   Compiling execution_layer v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/beacon_node/execution_layer)
+    Finished `release` profile [optimized] target(s) in 18.36s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/execution_layer-4f9e72e3a3ac17b5)
+
+running 44 tests
+2026-11-22T07:48:35.749072Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:45831"
+2026-11-22T07:48:35.749076Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:45529"
+2026-11-22T07:48:35.749079Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:37977"
+2026-11-22T07:48:35.749115Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:37505"
+2026-11-22T07:48:35.749117Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:38305"
+2026-11-22T07:48:35.749207Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:41181"
+2026-11-22T07:48:35.749240Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:37019"
+2026-11-22T07:48:35.749480Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:45845"
+test block_hash::test::test_rlp_encode_bellatrix_block ... ok
+test block_hash::test::test_rlp_encode_block_16182891 ... ok
+test block_hash::test::test_rlp_encode_block_deneb ... ok
+test block_hash::test::test_rlp_encode_eip1559_block ... ok
+test block_hash::test::test_rlp_encode_block_electra ... ok
+test engine_api::auth::tests::test_roundtrip ... ok
+test engine_api::http::test::inclusion_list_serde ... ok
+test engine_api::http::test::str_payload_id ... ok
+test engine_api::json_structures::payload_status_tests::v1_response_carries_no_inclusion_list_information ... ok
+test engine_api::json_structures::payload_status_tests::v1_response_does_not_serialize_inclusion_list_satisfied ... ok
+test engine_api::json_structures::tests::custody_columns_bitarray_hex_serde ... ok
+test engine_api::json_structures::tests::payload_body_block_access_list_round_trip ... ok
+test engine_api::json_structures::tests::test_gloas_execution_requests ... ok
+test test_utils::execution_block_generator::test::payload_lifecycle_keeps_unknown_and_invalid_rejection ... ok
+test engine_api::json_structures::payload_status_tests::v2_response_round_trips_inclusion_list_satisfied ... ok
+test test_utils::execution_block_generator::test::valid_parent_supports_child_before_canonical_forkchoice ... ok
+test engine_api::json_structures::tests::custody_columns_bitarray_from_indices_round_trip ... ok
+test engine_api::json_structures::payload_status_tests::v2_response_serializes_inclusion_list_satisfied ... ok
+test engine_api::json_structures::tests::test_invalid_execution_requests ... ok
+test versioned_hashes::test::frame_hash_extraction_rejects_malformed_wire_bytes ... ok
+test versioned_hashes::test::test_decode_static_transaction ... ok
+test versioned_hashes::test::test_extract_versioned_hashes ... ok
+test engine_api::http::deposit_log::tests::can_parse_example_log ... ok
+2026-11-22T07:48:35.754817Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:45015"
+2026-11-22T07:48:35.762411Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:45831/
+2026-11-22T07:48:35.762432Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:45831
+2026-11-22T07:48:35.762537Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:45831
+2026-11-22T07:48:35.763650Z DEBUG execution_layer: Loaded execution endpoint endpoint=http://127.0.0.1:45015/ jwt_path="/tmp/.tmpUjnvxJ"
+test engines::tests::test_state_notifier ... ok
+verification_result: Err(BlockHashMismatch { computed: 0xc64f3a43c64aeb98518a237f6279fa03095b9f95ca673c860ad7f16fb9340062, payload: 0x4242424242424242424242424242424242424242424242424242424242424242, transactions_root: 0xd0dad85e336926e0d1e114a9052f2a5172dffc15e3d5e1a4b2c538e6597aa181 })
+verification_result: Err(VerifyingVersionedHashes(VersionHashMismatch { expected: 0x01520d69f3f11587370d69cc7e6254100397c7479810ce1a913e721107f1e020, found: 0x015a73e97950397896ed2c47dcab7c0360220bcfb413a8f210a7b6e6264e6988 }))
+test test::test_expected_gas_limit ... ok
+test engine_api::new_payload_request::test::test_optimistic_sync_verifications_valid_block ... ok
+test engine_api::new_payload_request::test::test_optimistic_sync_verifications_bad_block_hash ... ok2026-11-22T07:48:35.763815Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:45831)
+
+test engine_api::new_payload_request::test::test_optimistic_sync_verifications_bad_versioned_hashes ... ok
+2026-11-22T07:48:35.763887Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:45831/
+2026-11-22T07:48:35.763895Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:45831
+2026-11-22T07:48:35.763918Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:38845"
+2026-11-22T07:48:35.763936Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV1"
+2026-11-22T07:48:35.763950Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=Some(V1(JsonPayloadAttributesV1 { timestamp: 2, prev_randao: 0x0000000000000000000000000000000000000000000000000000000000000000, suggested_fee_recipient: 0x0000000000000000000000000000000000000000 })) forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0x0101010101010101010101010101010101010101010101010101010101010101, safe_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c, finalized_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c }
+2026-11-22T07:48:35.763964Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV1"
+2026-11-22T07:48:35.763970Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:45831
+2026-11-22T07:48:35.763970Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=Some(V1(JsonPayloadAttributesV1 { timestamp: 2, prev_randao: 0x0000000000000000000000000000000000000000000000000000000000000000, suggested_fee_recipient: 0x0000000000000000000000000000000000000000 })) forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0x0101010101010101010101010101010101010101010101010101010101010101, safe_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c, finalized_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c }
+2026-11-22T07:48:35.764072Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:44015"
+2026-11-22T07:48:35.764083Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV1"
+2026-11-22T07:48:35.764090Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=Some(V1(JsonPayloadAttributesV1 { timestamp: 2, prev_randao: 0x0000000000000000000000000000000000000000000000000000000000000000, suggested_fee_recipient: 0x0000000000000000000000000000000000000000 })) forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0x0101010101010101010101010101010101010101010101010101010101010101, safe_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c, finalized_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c }
+2026-11-22T07:48:35.764097Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV1"
+2026-11-22T07:48:35.764103Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=Some(V1(JsonPayloadAttributesV1 { timestamp: 2, prev_randao: 0x0000000000000000000000000000000000000000000000000000000000000000, suggested_fee_recipient: 0x0000000000000000000000000000000000000000 })) forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0x0101010101010101010101010101010101010101010101010101010101010101, safe_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c, finalized_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c }
+2026-11-22T07:48:35.764138Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:45831)
+test test_utils::handle_rpc::test::non_valid_forkchoice_neither_builds_nor_changes_head ... ok
+2026-11-22T07:48:35.764239Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:43405"
+2026-11-22T07:48:35.764939Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:43979"
+2026-11-22T07:48:35.764997Z DEBUG execution_layer: Loaded execution endpoint endpoint=http://127.0.0.1:43979/ jwt_path="/tmp/.tmpzzTVwe"
+2026-11-22T07:48:35.769411Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:45015/
+2026-11-22T07:48:35.769423Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:45015
+2026-11-22T07:48:35.769504Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:45015
+2026-11-22T07:48:35.769636Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_exchangeCapabilities"
+2026-11-22T07:48:35.769686Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:45015)
+2026-11-22T07:48:35.769724Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:45015)
+2026-11-22T07:48:35.769759Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_getPayloadBodiesByHashV2"
+2026-11-22T07:48:35.769798Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:45015)
+test test::get_gloas_payload_bodies_v2 ... ok
+2026-11-22T07:48:35.772351Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:37019/
+2026-11-22T07:48:35.772362Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:37019
+2026-11-22T07:48:35.772400Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:37505/
+2026-11-22T07:48:35.772407Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:37505
+2026-11-22T07:48:35.772431Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:37019
+2026-11-22T07:48:35.772474Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:37505
+2026-11-22T07:48:35.772540Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.772587Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37505)
+2026-11-22T07:48:35.772588Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:37019/
+2026-11-22T07:48:35.772608Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:37019
+2026-11-22T07:48:35.772662Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:35425"
+2026-11-22T07:48:35.772663Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:37019
+2026-11-22T07:48:35.772778Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.772809Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.772861Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.772871Z DEBUG execution_layer: Issuing engine_forkchoiceUpdated finalized_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 justified_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 head_block_hash=0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c head_block_root=0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a current_slot=Slot(0)
+2026-11-22T07:48:35.772889Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.772918Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:43979/
+2026-11-22T07:48:35.772932Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:43979
+2026-11-22T07:48:35.772944Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.772949Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:45529/
+2026-11-22T07:48:35.772958Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:45529
+2026-11-22T07:48:35.772986Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.773012Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:43979
+2026-11-22T07:48:35.773037Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.773039Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:45529
+2026-11-22T07:48:35.773072Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.773124Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_exchangeCapabilities"
+2026-11-22T07:48:35.773134Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.773159Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.773166Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:45529)
+2026-11-22T07:48:35.773177Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.773206Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.773221Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.773233Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.773253Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:42789"
+2026-11-22T07:48:35.773269Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV5"
+2026-11-22T07:48:35.773279Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=None forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c, safe_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000, finalized_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000 }
+2026-11-22T07:48:35.773285Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37019)
+2026-11-22T07:48:35.773323Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.773413Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.773471Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV2"
+test engine_api::http::test::geth_test_vectors ... ok
+2026-11-22T07:48:35.773486Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=Some(V1(JsonPayloadAttributesV1 { timestamp: 1, prev_randao: 0x0000000000000000000000000000000000000000000000000000000000000001, suggested_fee_recipient: 0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a })) forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c, safe_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000, finalized_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000 }
+2026-11-22T07:48:35.773523Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:38305/
+2026-11-22T07:48:35.773530Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:38305
+2026-11-22T07:48:35.773551Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.773588Z DEBUG get_payload:get_full_payload_with: execution_layer: Issuing engine_getPayload suggested_fee_recipient=0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a prev_randao=0x0000000000000000000000000000000000000000000000000000000000000001 timestamp=1 parent_hash=0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c
+2026-11-22T07:48:35.773613Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:38305
+2026-11-22T07:48:35.773624Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.773672Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_getPayloadV2"
+2026-11-22T07:48:35.773719Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:38305)
+2026-11-22T07:48:35.773728Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.773788Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:32975"
+2026-11-22T07:48:35.773803Z DEBUG get_payload:get_full_payload_with: execution_layer: Issuing engine_getPayload suggested_fee_recipient=0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a prev_randao=0x0000000000000000000000000000000000000000000000000000000000000001 timestamp=1 parent_hash=0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c
+2026-11-22T07:48:35.773831Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.773881Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_getPayloadV2"
+2026-11-22T07:48:35.773934Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774031Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774084Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_newPayloadV2"
+2026-11-22T07:48:35.774147Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774170Z DEBUG execution_layer: Processed engine_newPayload status="valid" parent_hash=0xc78009fdf07fc56a11f122370658a353aaa542ed63e44c4bc15ff4cd105ab33c block_hash=0xd78d3948fa7268b78c5745273ded267763ff4f81f1e340db38d8c89c2e40a54c block_number=1 response_time_ms=0
+2026-11-22T07:48:35.774177Z DEBUG execution_layer: Issuing engine_forkchoiceUpdated finalized_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 justified_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 head_block_hash=0xd78d3948fa7268b78c5745273ded267763ff4f81f1e340db38d8c89c2e40a54c head_block_root=0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d current_slot=Slot(0)
+2026-11-22T07:48:35.774200Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774244Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV5"
+2026-11-22T07:48:35.774252Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=None forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0xd78d3948fa7268b78c5745273ded267763ff4f81f1e340db38d8c89c2e40a54c, safe_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000, finalized_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000 }
+2026-11-22T07:48:35.774291Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774312Z DEBUG execution_layer: Issuing engine_forkchoiceUpdated finalized_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 justified_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 head_block_hash=0xd78d3948fa7268b78c5745273ded267763ff4f81f1e340db38d8c89c2e40a54c head_block_root=0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a current_slot=Slot(0)
+2026-11-22T07:48:35.774341Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774384Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV5"
+2026-11-22T07:48:35.774392Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=None forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0xd78d3948fa7268b78c5745273ded267763ff4f81f1e340db38d8c89c2e40a54c, safe_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000, finalized_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000 }
+2026-11-22T07:48:35.774430Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774467Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774484Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:45845/
+2026-11-22T07:48:35.774492Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:45845
+2026-11-22T07:48:35.774515Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV2"
+2026-11-22T07:48:35.774527Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=Some(V1(JsonPayloadAttributesV1 { timestamp: 2, prev_randao: 0x0000000000000000000000000000000000000000000000000000000000000002, suggested_fee_recipient: 0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a })) forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0xd78d3948fa7268b78c5745273ded267763ff4f81f1e340db38d8c89c2e40a54c, safe_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000, finalized_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000 }
+2026-11-22T07:48:35.774589Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:45845
+2026-11-22T07:48:35.774600Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774622Z DEBUG get_payload:get_full_payload_with: execution_layer: Issuing engine_getPayload suggested_fee_recipient=0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a prev_randao=0x0000000000000000000000000000000000000000000000000000000000000002 timestamp=2 parent_hash=0xd78d3948fa7268b78c5745273ded267763ff4f81f1e340db38d8c89c2e40a54c
+2026-11-22T07:48:35.774641Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:37977/
+2026-11-22T07:48:35.774650Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:37977
+2026-11-22T07:48:35.774650Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774698Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_getPayloadV2"
+2026-11-22T07:48:35.774727Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:41181/
+2026-11-22T07:48:35.774735Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:41181
+2026-11-22T07:48:35.774739Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:37977
+2026-11-22T07:48:35.774745Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:45845)
+2026-11-22T07:48:35.774749Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774806Z DEBUG get_payload:get_full_payload_with: execution_layer: Issuing engine_getPayload suggested_fee_recipient=0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a prev_randao=0x0000000000000000000000000000000000000000000000000000000000000002 timestamp=2 parent_hash=0xd78d3948fa7268b78c5745273ded267763ff4f81f1e340db38d8c89c2e40a54c
+2026-11-22T07:48:35.774819Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:41181
+2026-11-22T07:48:35.774838Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:39903"
+2026-11-22T07:48:35.774840Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774883Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37977)
+2026-11-22T07:48:35.774893Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_getPayloadV2"
+2026-11-22T07:48:35.774950Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.774957Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:41181)
+2026-11-22T07:48:35.774979Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:37239"
+2026-11-22T07:48:35.775044Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775050Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:38785"
+2026-11-22T07:48:35.775095Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_newPayloadV2"
+2026-11-22T07:48:35.775148Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775165Z DEBUG execution_layer: Processed engine_newPayload status="valid" parent_hash=0xd78d3948fa7268b78c5745273ded267763ff4f81f1e340db38d8c89c2e40a54c block_hash=0x07268037e8fb8d7b606edf5e121c15b0c7e046c9b14fd2e2efe2bbd6f8942f53 block_number=2 response_time_ms=0
+2026-11-22T07:48:35.775170Z DEBUG execution_layer: Issuing engine_forkchoiceUpdated finalized_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 justified_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 head_block_hash=0x07268037e8fb8d7b606edf5e121c15b0c7e046c9b14fd2e2efe2bbd6f8942f53 head_block_root=0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d current_slot=Slot(0)
+2026-11-22T07:48:35.775190Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775230Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV5"
+2026-11-22T07:48:35.775236Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=None forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0x07268037e8fb8d7b606edf5e121c15b0c7e046c9b14fd2e2efe2bbd6f8942f53, safe_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000, finalized_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000 }
+2026-11-22T07:48:35.775271Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775289Z DEBUG execution_layer: Issuing engine_forkchoiceUpdated finalized_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 justified_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 head_block_hash=0x07268037e8fb8d7b606edf5e121c15b0c7e046c9b14fd2e2efe2bbd6f8942f53 head_block_root=0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a current_slot=Slot(0)
+2026-11-22T07:48:35.775309Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775347Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV5"
+2026-11-22T07:48:35.775353Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=None forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0x07268037e8fb8d7b606edf5e121c15b0c7e046c9b14fd2e2efe2bbd6f8942f53, safe_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000, finalized_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000 }
+2026-11-22T07:48:35.775394Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775431Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775473Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV2"
+2026-11-22T07:48:35.775484Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=Some(V1(JsonPayloadAttributesV1 { timestamp: 3, prev_randao: 0x0000000000000000000000000000000000000000000000000000000000000003, suggested_fee_recipient: 0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a })) forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0x07268037e8fb8d7b606edf5e121c15b0c7e046c9b14fd2e2efe2bbd6f8942f53, safe_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000, finalized_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000 }
+2026-11-22T07:48:35.775536Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775553Z DEBUG get_payload:get_full_payload_with: execution_layer: Issuing engine_getPayload suggested_fee_recipient=0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a prev_randao=0x0000000000000000000000000000000000000000000000000000000000000003 timestamp=3 parent_hash=0x07268037e8fb8d7b606edf5e121c15b0c7e046c9b14fd2e2efe2bbd6f8942f53
+2026-11-22T07:48:35.775579Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775625Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_getPayloadV2"
+2026-11-22T07:48:35.775672Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775719Z DEBUG get_payload:get_full_payload_with: execution_layer: Issuing engine_getPayload suggested_fee_recipient=0x2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a2a prev_randao=0x0000000000000000000000000000000000000000000000000000000000000003 timestamp=3 parent_hash=0x07268037e8fb8d7b606edf5e121c15b0c7e046c9b14fd2e2efe2bbd6f8942f53
+2026-11-22T07:48:35.775738Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775780Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_getPayloadV2"
+2026-11-22T07:48:35.775830Z DEBUG get_payload:get_full_payload_with: hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775914Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.775966Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_newPayloadV2"
+2026-11-22T07:48:35.776024Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.776042Z DEBUG execution_layer: Processed engine_newPayload status="valid" parent_hash=0x07268037e8fb8d7b606edf5e121c15b0c7e046c9b14fd2e2efe2bbd6f8942f53 block_hash=0x99c1591671ebbe3414efb5354547b5a8d2a9fe05ea4bd0566c431a4402a096b6 block_number=3 response_time_ms=0
+2026-11-22T07:48:35.776048Z DEBUG execution_layer: Issuing engine_forkchoiceUpdated finalized_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 justified_block_hash=0x0000000000000000000000000000000000000000000000000000000000000000 head_block_hash=0x99c1591671ebbe3414efb5354547b5a8d2a9fe05ea4bd0566c431a4402a096b6 head_block_root=0x0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d0d current_slot=Slot(0)
+2026-11-22T07:48:35.776075Z DEBUG hyper_util::client::legacy::pool: reuse idle connection for ("http", 127.0.0.1:43979)
+2026-11-22T07:48:35.776120Z DEBUG execution_layer::test_utils::handle_rpc: Mock execution engine method="engine_forkchoiceUpdatedV5"
+2026-11-22T07:48:35.776127Z DEBUG execution_layer::test_utils::handle_rpc: ENGINE_FORKCHOICE_UPDATED payload_attributes=None forkchoice_state=JsonForkchoiceStateV1 { head_block_hash: 0x99c1591671ebbe3414efb5354547b5a8d2a9fe05ea4bd0566c431a4402a096b6, safe_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000, finalized_block_hash: 0x0000000000000000000000000000000000000000000000000000000000000000 }
+2026-11-22T07:48:35.776165Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43979)
+test test::produce_three_valid_pos_execution_blocks ... ok
+2026-11-22T07:48:35.777174Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:43405/
+2026-11-22T07:48:35.777183Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:43405
+2026-11-22T07:48:35.777274Z DEBUG warp::server::run: shutdown signal received, starting graceful shutdown
+2026-11-22T07:48:35.777379Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:43405
+2026-11-22T07:48:35.777485Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:43405)
+test engine_api::http::test::forkchoice_updated_v5_with_payload_attributes_request ... ok
+2026-11-22T07:48:35.781111Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:35425/
+2026-11-22T07:48:35.781121Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:35425
+2026-11-22T07:48:35.781194Z DEBUG warp::server::run: shutdown signal received, starting graceful shutdown
+2026-11-22T07:48:35.781238Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:35425
+2026-11-22T07:48:35.781327Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:35425)
+2026-11-22T07:48:35.781454Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:42789/
+2026-11-22T07:48:35.781462Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:42789
+test engine_api::http::test::forkchoice_updated_v1_request ... ok
+2026-11-22T07:48:35.781540Z DEBUG warp::server::run: shutdown signal received, starting graceful shutdown
+2026-11-22T07:48:35.781593Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:42789
+2026-11-22T07:48:35.781682Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:42789)
+test engine_api::http::test::forkchoice_updated_v1_with_payload_attributes_request ... ok
+2026-11-22T07:48:35.782152Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:32975/
+2026-11-22T07:48:35.782159Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:32975
+2026-11-22T07:48:35.782232Z DEBUG warp::server::run: shutdown signal received, starting graceful shutdown
+2026-11-22T07:48:35.782276Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:32975
+2026-11-22T07:48:35.782359Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:32975)
+test engine_api::http::test::get_inclusion_list_v1_request ... ok
+2026-11-22T07:48:35.783397Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:39903/
+2026-11-22T07:48:35.783407Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:39903
+2026-11-22T07:48:35.783486Z DEBUG warp::server::run: shutdown signal received, starting graceful shutdown
+2026-11-22T07:48:35.783531Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:39903
+2026-11-22T07:48:35.783621Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:39903)
+2026-11-22T07:48:35.783753Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:38785/
+2026-11-22T07:48:35.783770Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:38785
+test engine_api::http::test::new_payload_v1_request ... ok
+2026-11-22T07:48:35.783844Z DEBUG warp::server::run: shutdown signal received, starting graceful shutdown
+2026-11-22T07:48:35.783891Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:38785
+2026-11-22T07:48:35.783975Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:38785)
+test engine_api::http::test::get_payload_v1_request ... ok
+2026-11-22T07:48:35.787311Z DEBUG reqwest::connect: starting new connection: http://127.0.0.1:37239/
+2026-11-22T07:48:35.787324Z DEBUG hyper_util::client::legacy::connect::http: connecting to 127.0.0.1:37239
+2026-11-22T07:48:35.787405Z DEBUG warp::server::run: shutdown signal received, starting graceful shutdown
+2026-11-22T07:48:35.787452Z DEBUG hyper_util::client::legacy::connect::http: connected to 127.0.0.1:37239
+2026-11-22T07:48:35.787534Z DEBUG hyper_util::client::legacy::pool: pooling idle connection for ("http", 127.0.0.1:37239)
+test engine_api::http::test::get_block_by_number_request ... ok
+test engine_api::json_structures::tests::deposit_request_limits_by_fork ... ok
+test engine_api::http::test::transaction_serde ... ok
+test test_utils::execution_block_generator::test::valid_test_blob_cells ... ok
+test test_utils::execution_block_generator::test::valid_test_blobs_bundle_v2 ... ok
+test test_utils::execution_block_generator::test::valid_test_blobs_bundle_v1 ... ok
+
+test result: ok. 44 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.37s
+
