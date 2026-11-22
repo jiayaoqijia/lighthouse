@@ -722,6 +722,61 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn deadline_ignores_wrong_slot_response_and_uses_ready_peer() {
+        let mut test = TestHarness::new_with_validators(1, None).await;
+        let slot = Slot::new(1);
+        test.insert_ptc_duties(slot);
+        let wrong = attestation_data(Slot::new(2));
+        let complete = attestation_data(slot);
+        test.harness
+            .mock_beacon_node_1
+            .mock_get_validator_payload_attestation_data(&wrong, ForkName::Gloas, slot);
+        test.harness
+            .mock_beacon_node_2
+            .mock_get_validator_payload_attestation_data(&complete, ForkName::Gloas, slot);
+        let (_, selected) = test
+            .service
+            .produce_payload_attestation_data(PayloadAttestationTrigger::Deadline(slot))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(selected, complete);
+    }
+
+    #[tokio::test]
+    async fn deadline_preserves_no_block_and_all_error_results() {
+        for no_block in [true, false] {
+            let mut test = TestHarness::new_with_validators(1, None).await;
+            let slot = Slot::new(1);
+            test.insert_ptc_duties(slot);
+            if no_block {
+                test.harness
+                    .mock_beacon_node_1
+                    .mock_get_validator_payload_attestation_data_no_block(slot);
+                test.harness
+                    .mock_beacon_node_2
+                    .mock_get_validator_payload_attestation_data_no_block(slot);
+            } else {
+                test.harness
+                    .mock_beacon_node_1
+                    .mock_get_validator_payload_attestation_data_error(slot);
+                test.harness
+                    .mock_beacon_node_2
+                    .mock_get_validator_payload_attestation_data_error(slot);
+            }
+            let result = test
+                .service
+                .produce_payload_attestation_data(PayloadAttestationTrigger::Deadline(slot))
+                .await;
+            if no_block {
+                assert!(result.unwrap().is_none());
+            } else {
+                assert!(result.is_err());
+            }
+        }
+    }
+
+    #[tokio::test]
     async fn deadline_preserves_coherent_negative_data_without_combining_flags() {
         let mut test = TestHarness::new_with_validators(1, None).await;
         let slot = Slot::new(1);
