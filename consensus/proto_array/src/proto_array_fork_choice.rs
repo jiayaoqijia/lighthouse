@@ -464,6 +464,16 @@ pub struct ProposerHeadInfo {
     /// The current slot from fork choice's point of view, may lead the wall-clock slot by upto
     /// 500ms.
     pub current_slot: Slot,
+    /// Exact credit for equivocators belonging to this head's slot committees.
+    pub head_equivocating_balance: u64,
+}
+
+impl ProposerHeadInfo {
+    pub fn head_weight(&self) -> u64 {
+        self.head_node
+            .attestation_score(PayloadStatus::Pending)
+            .saturating_add(self.head_equivocating_balance)
+    }
 }
 
 /// Error type to enable short-circuiting checks in `get_proposer_head`.
@@ -822,6 +832,7 @@ impl ProtoArrayForkChoice {
         proposer_boost_root: Hash256,
         equivocating_indices: &BTreeSet<u64>,
         current_slot: Slot,
+        equivocating_committee_weight: u64,
         spec: &ChainSpec,
     ) -> Result<ForkChoiceNode, String> {
         let old_balances = &mut self.balances;
@@ -859,6 +870,7 @@ impl ProtoArrayForkChoice {
                 finalized_checkpoint,
                 proposer_boost_root,
                 new_balances,
+                equivocating_committee_weight,
                 spec,
             )
             .map(|(root, payload_status)| ForkChoiceNode::new(root, payload_status))
@@ -873,12 +885,14 @@ impl ProtoArrayForkChoice {
         current_slot: Slot,
         canonical_head: Hash256,
         justified_balances: &JustifiedBalances,
+        equivocating_committee_weight: u64,
         spec: &ChainSpec,
     ) -> Result<ProposerHeadInfo, ProposerHeadError<Error>> {
         let info = self.get_proposer_head_info::<E>(
             current_slot,
             canonical_head,
             justified_balances,
+            equivocating_committee_weight,
             spec,
         )?;
 
@@ -889,7 +903,7 @@ impl ProtoArrayForkChoice {
         }
 
         // Only re-org if the head's weight is less than the heads configured committee fraction.
-        let head_weight = info.head_node.weight();
+        let head_weight = info.head_weight();
         let re_org_head_weight_threshold = info.re_org_head_weight_threshold;
         let weak_head = head_weight < re_org_head_weight_threshold;
         if !weak_head {
@@ -925,6 +939,7 @@ impl ProtoArrayForkChoice {
         current_slot: Slot,
         canonical_head: Hash256,
         justified_balances: &JustifiedBalances,
+        equivocating_committee_weight: u64,
         spec: &ChainSpec,
     ) -> Result<ProposerHeadInfo, ProposerHeadError<Error>> {
         let mut nodes = self
@@ -989,6 +1004,7 @@ impl ProtoArrayForkChoice {
             re_org_head_weight_threshold,
             re_org_parent_weight_threshold,
             current_slot,
+            head_equivocating_balance: equivocating_committee_weight,
         })
     }
 
@@ -1294,6 +1310,7 @@ impl ProtoArrayForkChoice {
         block_root: &Hash256,
         current_slot: Slot,
         proposer_boost_root: Hash256,
+        equivocating_committee_weight: u64,
         spec: &ChainSpec,
     ) -> Result<PayloadStatus, Error> {
         self.proto_array.get_canonical_payload_status::<E>(
@@ -1301,6 +1318,7 @@ impl ProtoArrayForkChoice {
             current_slot,
             proposer_boost_root,
             &self.balances,
+            equivocating_committee_weight,
             spec,
         )
     }
@@ -2569,6 +2587,7 @@ mod test_find_head {
                     Hash256::zero(),
                     &equivocating_indices,
                     Slot::new(1),
+                    0, // No equivocators in this fixture.
                     &spec,
                 )
                 .unwrap();
@@ -2598,6 +2617,7 @@ mod test_find_head {
                     Hash256::zero(),
                     &equivocating_indices,
                     Slot::new(1),
+                    0, // No equivocators in this fixture.
                     &spec,
                 )
                 .unwrap();

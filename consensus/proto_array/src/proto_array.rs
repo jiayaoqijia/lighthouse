@@ -792,21 +792,13 @@ impl ProtoArray {
     }
 
     /// Spec: `is_head_weak`.
-    // TODO(gloas): the spec adds weight from equivocating validators in the
-    // head slot's *committees*, regardless of who they voted for. We approximate
-    // with `equivocating_attestation_score` which only tracks equivocating
-    // validators whose vote pointed at this block. This under-counts when an
-    // equivocating validator is in the committee but voted for a different fork,
-    // which could allow a re-org the spec wouldn't. In practice the deviation
-    // is small — it requires equivocating validators voting for competing forks
-    // AND the head weight to be exactly at the reorg threshold boundary.
-    // Fixing this properly requires committee computation from BeaconState,
-    // which is not available in proto_array. The fix would be to pass
-    // pre-computed equivocating committee weight from the beacon_chain caller.
+    /// The caller provides exact head-slot committee credit from the authenticated
+    /// head state and raw justified balances, independently of latest-vote roots.
     fn is_head_weak<E: EthSpec>(
         &self,
         head_node: &ProtoNode,
         justified_balances: &JustifiedBalances,
+        equivocating_committee_weight: u64,
         spec: &ChainSpec,
     ) -> bool {
         let reorg_threshold =
@@ -815,7 +807,7 @@ impl ProtoArray {
 
         let head_weight = head_node
             .attestation_score(PayloadStatus::Pending)
-            .saturating_add(head_node.equivocating_attestation_score().unwrap_or(0));
+            .saturating_add(equivocating_committee_weight);
 
         head_weight < reorg_threshold
     }
@@ -829,6 +821,7 @@ impl ProtoArray {
         &self,
         proposer_boost_root: Hash256,
         justified_balances: &JustifiedBalances,
+        equivocating_committee_weight: u64,
         spec: &ChainSpec,
     ) -> Result<bool, Error> {
         if proposer_boost_root.is_zero() {
@@ -858,7 +851,12 @@ impl ProtoArray {
         }
 
         // Apply proposer boost if `parent` is not weak
-        if !self.is_head_weak::<E>(parent, justified_balances, spec) {
+        if !self.is_head_weak::<E>(
+            parent,
+            justified_balances,
+            equivocating_committee_weight,
+            spec,
+        ) {
             return Ok(true);
         }
 
@@ -1262,6 +1260,7 @@ impl ProtoArray {
         best_finalized_checkpoint: Checkpoint,
         proposer_boost_root: Hash256,
         justified_balances: &JustifiedBalances,
+        equivocating_committee_weight: u64,
         spec: &ChainSpec,
     ) -> Result<(Hash256, PayloadStatus), Error> {
         let justified_index = self
@@ -1277,6 +1276,7 @@ impl ProtoArray {
             best_finalized_checkpoint,
             proposer_boost_root,
             justified_balances,
+            equivocating_committee_weight,
             spec,
         )?;
 
@@ -1455,6 +1455,7 @@ impl ProtoArray {
         best_finalized_checkpoint: Checkpoint,
         proposer_boost_root: Hash256,
         justified_balances: &JustifiedBalances,
+        equivocating_committee_weight: u64,
         spec: &ChainSpec,
     ) -> Result<IndexedForkChoiceNode, Error> {
         let mut head = IndexedForkChoiceNode {
@@ -1477,8 +1478,12 @@ impl ProtoArray {
         }
 
         // Compute once rather than per-child per-level.
-        let apply_proposer_boost =
-            self.should_apply_proposer_boost::<E>(proposer_boost_root, justified_balances, spec)?;
+        let apply_proposer_boost = self.should_apply_proposer_boost::<E>(
+            proposer_boost_root,
+            justified_balances,
+            equivocating_committee_weight,
+            spec,
+        )?;
 
         loop {
             let children: Vec<_> = self
@@ -1536,6 +1541,7 @@ impl ProtoArray {
         finalized_checkpoint: Checkpoint,
         proposer_boost_root: Hash256,
         justified_balances: &JustifiedBalances,
+        equivocating_committee_weight: u64,
         spec: &ChainSpec,
     ) -> Result<Vec<(Hash256, PayloadStatus, u64)>, Error> {
         let start_index = self
@@ -1551,8 +1557,12 @@ impl ProtoArray {
             finalized_checkpoint,
         )?;
 
-        let apply_proposer_boost =
-            self.should_apply_proposer_boost::<E>(proposer_boost_root, justified_balances, spec)?;
+        let apply_proposer_boost = self.should_apply_proposer_boost::<E>(
+            proposer_boost_root,
+            justified_balances,
+            equivocating_committee_weight,
+            spec,
+        )?;
 
         let mut leaves = Vec::new();
         let mut stack = vec![IndexedForkChoiceNode {
@@ -1696,6 +1706,7 @@ impl ProtoArray {
         current_slot: Slot,
         proposer_boost_root: Hash256,
         justified_balances: &JustifiedBalances,
+        equivocating_committee_weight: u64,
         spec: &ChainSpec,
     ) -> Result<PayloadStatus, Error> {
         let proto_node_index = *self.indices.get(&root).ok_or(Error::NodeUnknown(root))?;
@@ -1726,8 +1737,12 @@ impl ProtoArray {
 
         // Matches the hoisting optimization in `find_head`: `get_weight`'s spec-level
         // `should_apply_proposer_boost` check is precomputed once.
-        let apply_proposer_boost =
-            self.should_apply_proposer_boost::<E>(proposer_boost_root, justified_balances, spec)?;
+        let apply_proposer_boost = self.should_apply_proposer_boost::<E>(
+            proposer_boost_root,
+            justified_balances,
+            equivocating_committee_weight,
+            spec,
+        )?;
 
         let full_weight = self.get_weight::<E>(
             &full_fc,
@@ -2521,7 +2536,12 @@ mod committee_equivocation_reference_tests {
                 >= case["head_threshold"].as_u64().unwrap()
         );
         assert_eq!(
-            dag.is_head_weak::<E>(&dag.nodes[0], &balances, &spec),
+            dag.is_head_weak::<E>(
+                &dag.nodes[0],
+                &balances,
+                case["equivocation_committee_weight"].as_u64().unwrap(),
+                &spec
+            ),
             case["head_weak"].as_bool().unwrap(),
             "unchanged reference counts equivocators in the head committee even when they voted on another fork"
         );

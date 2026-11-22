@@ -2,6 +2,8 @@ import importlib,json,hashlib
 from pathlib import Path
 from eth_consensus_specs.test.helpers.genesis import create_genesis_state
 from eth_consensus_specs.test.helpers.attester_slashings import get_valid_attester_slashing_by_indices
+from eth_consensus_specs.utils import bls
+if not __debug__ or not bls.bls_active:raise RuntimeError("real BLS and Python assertions must be active")
 out=Path(__file__).parent
 out.mkdir(parents=True,exist_ok=True)
 EXPECTED_GENERATED_SHAS={'minimal': 'aa50441092c6599819bbb2d987ed9c801203daa24fa40f4816c0e8665f82cde4', 'mainnet': '533f62dc20e90272a314365ce900e0bef0a70769dc71a5eba97d2fae262a3cf3'}
