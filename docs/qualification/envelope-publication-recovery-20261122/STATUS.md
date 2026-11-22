@@ -13,3 +13,7 @@ Cumulative native build and existing-policy full workspace lint pass at62a08e3. 
 ## Hosted Gloas API fixture correction
 
 The complete `tests::envelope_api` harness passed (43.32s) after replacing its stale mutated-gas-limit 202 fixture with a valid signed envelope and a per-payload INVALID Engine response. Invalid headers still fail before gossip; 202 now tests the intended post-broadcast execution failure. Log: `envelope-api-gloas-fixture-02.log` in the private qualification archive.
+
+## Block-import fence follow-up
+
+The4933 final fallback simulation still failed (125/129 blocks, head93.56%). Actual logs include BlockRootUnknown when publishing an envelope. The signed block is published by an independent proposer-first fallback, while the envelope returns to its cache provider; production of an unsigned block does not import its signed form. Add a causal real-HTTP/service counterexample requiring the actual signed block on the cache provider before its envelope. This is not a reason to relax block-root/signature validation or add an arbitrary gossip delay. The counterexample is being compiled against the current path before the fix.
