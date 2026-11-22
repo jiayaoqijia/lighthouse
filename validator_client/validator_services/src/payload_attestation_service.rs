@@ -653,6 +653,71 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn deadline_tries_ready_provider_after_missing_or_negative_data() {
+        for missing in [true, false] {
+            let mut test = TestHarness::new_with_validators(1, None).await;
+            let slot = Slot::new(1);
+            test.insert_ptc_duties(slot);
+            let mut negative = attestation_data(slot);
+            negative.beacon_block_root = Hash256::repeat_byte(3);
+            negative.payload_present = false;
+            let mut complete = attestation_data(slot);
+            complete.beacon_block_root = Hash256::repeat_byte(4);
+            if missing {
+                test.harness
+                    .mock_beacon_node_1
+                    .mock_get_validator_payload_attestation_data_no_block(slot);
+            } else {
+                test.harness
+                    .mock_beacon_node_1
+                    .mock_get_validator_payload_attestation_data(&negative, ForkName::Gloas, slot);
+            }
+            let ready = test
+                .harness
+                .mock_beacon_node_2
+                .mock_get_validator_payload_attestation_data(&complete, ForkName::Gloas, slot);
+            let (_, selected) = test
+                .service
+                .produce_payload_attestation_data(PayloadAttestationTrigger::Deadline(slot))
+                .await
+                .unwrap()
+                .expect("ready provider must not be suppressed by first provider");
+            assert_eq!(selected, complete);
+            ready.expect(1).assert();
+        }
+    }
+
+    #[tokio::test]
+    async fn deadline_preserves_coherent_negative_data_without_combining_flags() {
+        let mut test = TestHarness::new_with_validators(1, None).await;
+        let slot = Slot::new(1);
+        test.insert_ptc_duties(slot);
+        let mut first = attestation_data(slot);
+        first.beacon_block_root = Hash256::repeat_byte(3);
+        first.blob_data_available = false;
+        let mut second = attestation_data(slot);
+        second.beacon_block_root = Hash256::repeat_byte(4);
+        second.payload_present = false;
+        test.harness
+            .mock_beacon_node_1
+            .mock_get_validator_payload_attestation_data(&first, ForkName::Gloas, slot);
+        test.harness
+            .mock_beacon_node_2
+            .mock_get_validator_payload_attestation_data(&second, ForkName::Gloas, slot);
+        let (_, selected) = test
+            .service
+            .produce_payload_attestation_data(PayloadAttestationTrigger::Deadline(slot))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            selected, first,
+            "flags and block root must come from one real provider response"
+        );
+        assert!(!(selected.payload_present && selected.blob_data_available));
+    }
+
+    #[tokio::test]
     async fn publish_payload_attestation_ssz() {
         let mut test_harness = TestHarness::new_with_validators(1, None).await;
 
