@@ -7,7 +7,8 @@
 - [ ] Reproduce with the same CL/EL binaries and CPU/memory caps, capture thread stacks and identify the actual dependency cycle.
 - [x] Reproduce definite core-executor blocking in both observed dispatch paths; move them to monitored blocking work with bounded simulation admission.
 - [x] Pass both regressions,60 repeats, real captured Gloas consumer, client library tests and required cargo check.
-- [ ] Finish project lint/release and publish; keep original incident causality subject to full-duration requalification.
+- [x] Finish required cargo check, full workspace project lint, release build,67 state-processing tests and actual captured Gloas consumer.
+- [ ] Publish the independent fork review and verify the eth2030 integration; retain the original incident causality/full-duration boundary.
 - [ ] Publish the CL correction independently and restart a newly declared48h qualification under the strict EL evidence gate.
 
 ## Observed failure
@@ -35,3 +36,5 @@ The release executable is built from clean functional source57ccb4661822406adc49
 The same2CPU/4,096,000,000-byte profile passes4096 concurrent read calls with no error, and45s P2P isolation keeps API responses below the unchanged10s timeout and recovers in12.006s. Native/Geth finalized commitments agree. Both old healthy diagnostic and fixed smoke exit cleanly under the original30s stop request. These finite checks are not a48-hour result.
 
 Full workspace/bench/test make-lint with the repository's existing policy passes. The final source suffix also fixes pre-existing test-only cloned-slice, checked-sum and xor-assignment lint expressions without changing production behavior. The selected release fingerprint remains that of functional57ccb466. A newly declared full-duration run plus strict evidence/cleanup gate is still required.
+
+The new48h round04 runs with native2c0df12f and the fixed57ccb466 release, under the original resource/deadline limits and independent sampler/finality/strict-supervisor processes. Start/catchup is separate; the clock begins only after non-optimistic commitment agreement. Source time from failed03 is not reused. EL review132 owns its independent final gate and public historical replay.
