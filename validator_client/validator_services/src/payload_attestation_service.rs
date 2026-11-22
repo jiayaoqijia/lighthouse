@@ -303,6 +303,9 @@ where
                             .ok_or_else(|| {
                                 format!("No payload attestation data on node {beacon_node_index}")
                             })?;
+                        if data.slot != slot {
+                            return Err(format!("Payload attestation slot mismatch: expected {slot}, got {}", data.slot));
+                        }
                         if data.beacon_block_root != expected_block_root {
                             return Err(format!(
                                 "Payload attestation block root mismatch: expected {expected_block_root:?}, got {:?}",
@@ -327,26 +330,57 @@ where
                     })?
             }
             PayloadAttestationTrigger::Deadline(_) => {
-                match self
+                // A successful negative/204 response from one BN must not hide a
+                // complete authenticated view on another configured provider.
+                // Keep one coherent real negative tuple; never combine flags/roots.
+                let unavailable = Mutex::new((None::<PayloadAttestationData>, false));
+                let complete = self
                     .beacon_nodes
-                    .first_success(|beacon_node| async move {
-                        let _timer = validator_metrics::start_timer_vec(
-                            &validator_metrics::PAYLOAD_ATTESTATION_SERVICE_TIMES,
-                            &[validator_metrics::PAYLOAD_ATTESTATIONS_HTTP_GET],
-                        );
-                        beacon_node
-                            .get_validator_payload_attestation_data(slot)
-                            .await
-                            .map(|opt| opt.map(|resp| resp.into_data()))
+                    .first_success(|beacon_node| {
+                        let unavailable = &unavailable;
+                        async move {
+                            let _timer = validator_metrics::start_timer_vec(
+                                &validator_metrics::PAYLOAD_ATTESTATION_SERVICE_TIMES,
+                                &[validator_metrics::PAYLOAD_ATTESTATIONS_HTTP_GET],
+                            );
+                            let response = beacon_node
+                                .get_validator_payload_attestation_data(slot)
+                                .await
+                                .map_err(|error| {
+                                    format!("Failed to get payload attestation data: {error:?}")
+                                })?;
+                            let Some(response) = response else {
+                                unavailable.lock().await.1 = true;
+                                return Err("No block on this provider".to_string());
+                            };
+                            let data = response.into_data();
+                            if data.slot != slot {
+                                return Err(format!(
+                                    "Payload attestation slot mismatch: expected {slot}, got {}",
+                                    data.slot
+                                ));
+                            }
+                            if data.payload_present && data.blob_data_available {
+                                return Ok(data);
+                            }
+                            unavailable.lock().await.0.get_or_insert(data);
+                            Err("Provider has incomplete payload availability".to_string())
+                        }
                     })
-                    .await
-                {
-                    Ok(Some(data)) => data,
-                    Ok(None) => {
-                        debug!(%slot, "No block received for slot, skipping payload attestation");
-                        return Ok(None);
+                    .await;
+                match complete {
+                    Ok(data) => data,
+                    Err(errors) => {
+                        let (negative, no_block) = unavailable.into_inner();
+                        if let Some(data) = negative {
+                            data
+                        } else if no_block {
+                            debug!(%slot, "No block received for slot, skipping payload attestation");
+                            return Ok(None);
+                        } else {
+                            return Err(errors.to_string());
+                        }
                     }
-                    Err(e) => return Err(e.to_string()),
                 }
             }
         };
@@ -650,6 +684,126 @@ mod tests {
             Some(Slot::new(32)),
             "The first Gloas slot must be attested"
         );
+    }
+
+    #[tokio::test]
+    async fn deadline_tries_ready_provider_after_missing_or_negative_data() {
+        for missing in [true, false] {
+            let mut test = TestHarness::new_with_validators(1, None).await;
+            let slot = Slot::new(1);
+            test.insert_ptc_duties(slot);
+            let mut negative = attestation_data(slot);
+            negative.beacon_block_root = Hash256::repeat_byte(3);
+            negative.payload_present = false;
+            let mut complete = attestation_data(slot);
+            complete.beacon_block_root = Hash256::repeat_byte(4);
+            if missing {
+                test.harness
+                    .mock_beacon_node_1
+                    .mock_get_validator_payload_attestation_data_no_block(slot);
+            } else {
+                test.harness
+                    .mock_beacon_node_1
+                    .mock_get_validator_payload_attestation_data(&negative, ForkName::Gloas, slot);
+            }
+            let ready = test
+                .harness
+                .mock_beacon_node_2
+                .mock_get_validator_payload_attestation_data(&complete, ForkName::Gloas, slot);
+            let (_, selected) = test
+                .service
+                .produce_payload_attestation_data(PayloadAttestationTrigger::Deadline(slot))
+                .await
+                .unwrap()
+                .expect("ready provider must not be suppressed by first provider");
+            assert_eq!(selected, complete);
+            ready.expect(1).assert();
+        }
+    }
+
+    #[tokio::test]
+    async fn deadline_ignores_wrong_slot_response_and_uses_ready_peer() {
+        let mut test = TestHarness::new_with_validators(1, None).await;
+        let slot = Slot::new(1);
+        test.insert_ptc_duties(slot);
+        let wrong = attestation_data(Slot::new(2));
+        let complete = attestation_data(slot);
+        test.harness
+            .mock_beacon_node_1
+            .mock_get_validator_payload_attestation_data(&wrong, ForkName::Gloas, slot);
+        test.harness
+            .mock_beacon_node_2
+            .mock_get_validator_payload_attestation_data(&complete, ForkName::Gloas, slot);
+        let (_, selected) = test
+            .service
+            .produce_payload_attestation_data(PayloadAttestationTrigger::Deadline(slot))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(selected, complete);
+    }
+
+    #[tokio::test]
+    async fn deadline_preserves_no_block_and_all_error_results() {
+        for no_block in [true, false] {
+            let mut test = TestHarness::new_with_validators(1, None).await;
+            let slot = Slot::new(1);
+            test.insert_ptc_duties(slot);
+            if no_block {
+                test.harness
+                    .mock_beacon_node_1
+                    .mock_get_validator_payload_attestation_data_no_block(slot);
+                test.harness
+                    .mock_beacon_node_2
+                    .mock_get_validator_payload_attestation_data_no_block(slot);
+            } else {
+                test.harness
+                    .mock_beacon_node_1
+                    .mock_get_validator_payload_attestation_data_error(slot);
+                test.harness
+                    .mock_beacon_node_2
+                    .mock_get_validator_payload_attestation_data_error(slot);
+            }
+            let result = test
+                .service
+                .produce_payload_attestation_data(PayloadAttestationTrigger::Deadline(slot))
+                .await;
+            if no_block {
+                assert!(result.unwrap().is_none());
+            } else {
+                assert!(result.is_err());
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn deadline_preserves_coherent_negative_data_without_combining_flags() {
+        let mut test = TestHarness::new_with_validators(1, None).await;
+        let slot = Slot::new(1);
+        test.insert_ptc_duties(slot);
+        let mut first = attestation_data(slot);
+        first.beacon_block_root = Hash256::repeat_byte(3);
+        first.blob_data_available = false;
+        let mut second = attestation_data(slot);
+        second.beacon_block_root = Hash256::repeat_byte(4);
+        second.payload_present = false;
+        test.harness
+            .mock_beacon_node_1
+            .mock_get_validator_payload_attestation_data(&first, ForkName::Gloas, slot);
+        test.harness
+            .mock_beacon_node_2
+            .mock_get_validator_payload_attestation_data(&second, ForkName::Gloas, slot);
+        let (_, selected) = test
+            .service
+            .produce_payload_attestation_data(PayloadAttestationTrigger::Deadline(slot))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            selected, first,
+            "flags and block root must come from one real provider response"
+        );
+        assert!(!(selected.payload_present && selected.blob_data_available));
     }
 
     #[tokio::test]
