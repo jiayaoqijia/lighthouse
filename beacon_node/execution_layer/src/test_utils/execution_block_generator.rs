@@ -158,7 +158,6 @@ pub struct ExecutionBlockGenerator<E: EthSpec> {
     /*
      * PoS block parameters
      */
-    pub pending_payloads: HashMap<ExecutionBlockHash, ExecutionPayload<E>>,
     pub next_payload_id: u64,
     pub payload_ids: HashMap<PayloadId, ExecutionPayload<E>>,
     min_blobs_count: usize,
@@ -221,7 +220,6 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
             terminal_total_difficulty: Default::default(),
             terminal_block_number: 0,
             terminal_block_hash: Default::default(),
-            pending_payloads: <_>::default(),
             next_payload_id: 0,
             payload_ids: <_>::default(),
             min_blobs_count: 0,
@@ -595,7 +593,12 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
         }
 
         let valid_hash = payload.block_hash();
-        self.pending_payloads.insert(payload.block_hash(), payload);
+        // VALID payloads are known execution blocks even before FCU selects a
+        // canonical head. Gloas may validate descendants during that interval.
+        if !self.blocks.contains_key(&valid_hash) {
+            self.insert_block(Block::PoS(payload))
+                .expect("new_payload already checked the parent");
+        }
 
         PayloadStatusV1 {
             status: PayloadStatusV1Status::Valid,
@@ -619,10 +622,6 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
             && genesis_pow_block.block_hash() == head_block_hash
         {
             self.terminal_block_hash = head_block_hash;
-        }
-
-        if let Some(payload) = self.pending_payloads.remove(&head_block_hash) {
-            self.insert_block(Block::PoS(payload))?;
         }
 
         // If Gloas was enabled from genesis, the justified and finalized block hashes must be
@@ -1202,11 +1201,12 @@ mod test {
         parent: &Block<MinimalEthSpec>,
         marker: u8,
     ) -> ExecutionPayload<MinimalEthSpec> {
+        let number = parent.block_number().checked_add(1).unwrap();
         let payload = ExecutionPayloadBellatrix {
             parent_hash: parent.block_hash(),
             block_hash: ExecutionBlockHash::from_root(Hash256::repeat_byte(marker)),
-            block_number: parent.block_number() + 1,
-            timestamp: parent.block_number() + 1,
+            block_number: number,
+            timestamp: number,
             ..Default::default()
         };
         ExecutionPayload::Bellatrix(payload)
@@ -1279,7 +1279,8 @@ mod test {
         );
         assert!(generator.block_by_hash(unknown.block_hash()).is_none());
         let mut invalid = child_payload(&genesis, 8);
-        *invalid.block_number_mut() += 1;
+        let invalid_number = invalid.block_number().checked_add(1).unwrap();
+        *invalid.block_number_mut() = invalid_number;
         assert_eq!(
             generator.new_payload(invalid.clone()).status,
             PayloadStatusV1Status::Invalid
