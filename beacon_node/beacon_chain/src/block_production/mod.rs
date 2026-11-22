@@ -284,7 +284,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         info!(
             weak_head = ?canonical_head,
             parent = ?re_org_parent_block,
-            head_weight = proposer_head.head_node.weight(),
+            head_weight = proposer_head.head_weight(),
             threshold_weight = proposer_head.re_org_head_weight_threshold,
             "Attempting re-org due to weak head"
         );

@@ -10,6 +10,9 @@ pub struct JustifiedBalances {
     /// Any validator who is not active in the epoch of the justified state is assigned a balance of
     /// zero.
     pub effective_balances: Vec<u64>,
+    /// Unfiltered justified-state balances for Gloas committee-equivocation credit.
+    /// Voting balances above must continue to exclude inactive/slashed validators.
+    pub validator_effective_balances: Vec<u64>,
     /// The sum of `self.effective_balances`.
     pub total_effective_balance: u64,
     /// The number of active validators included in `self.effective_balances`.
@@ -46,6 +49,11 @@ impl JustifiedBalances {
             .collect::<Result<Vec<_>, _>>()?;
 
         Ok(Self {
+            validator_effective_balances: state
+                .validators()
+                .iter()
+                .map(|v| v.effective_balance)
+                .collect(),
             effective_balances,
             total_effective_balance,
             num_active_validators,
@@ -65,6 +73,7 @@ impl JustifiedBalances {
         }
 
         Ok(Self {
+            validator_effective_balances: effective_balances.clone(),
             effective_balances,
             total_effective_balance,
             num_active_validators,
@@ -128,6 +137,15 @@ mod tests {
         assert_eq!(
             justified_balances.effective_balances,
             vec![32_000_000_000, 0, 0, 0]
+        );
+        assert_eq!(
+            justified_balances.validator_effective_balances,
+            vec![
+                32_000_000_000,
+                31_000_000_000,
+                30_000_000_000,
+                29_000_000_000
+            ]
         );
         assert_eq!(justified_balances.total_effective_balance, 32_000_000_000);
         assert_eq!(justified_balances.num_active_validators, 1);

@@ -1,0 +1,5 @@
+# Frozen reference committee counterexample
+
+Generate with the unchanged Ethereum consensus-specs2ea9d96a package (Python3.14, py_arkworks_bls12381==0.5.0, assertions/BLS enabled). `generate.py` checks the generated Gloas module hashes, constructs actual shuffled genesis committees for both presets, signs and validates the indexed slashing attestations, and invokes the stock fork-choice on_attester_slashing before is_head_weak. No latest head vote is inserted. The head's attestation score is0 but its equivocating committee contribution reaches the threshold, so the reference returns head_weak=false. The old head-vote-only approximation returns true.
+
+The SSZ states/slashings and complete numeric inputs are retained. This is an isolated committee-weight function/cryptographic-slashing counterexample; it does not substitute for full block/process acceptance. Source and derived vectors use the reference's CC0-1.0 license. The unchanged source archive is available in source qualification review5; generated module hashes are included in cases.json.
