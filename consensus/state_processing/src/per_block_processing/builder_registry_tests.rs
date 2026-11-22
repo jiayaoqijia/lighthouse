@@ -170,7 +170,12 @@ async fn exited_topups_sweep_once_and_reused_index_requires_new_registration() {
         vec![(BUILDER_INDEX_FLAG, Address::repeat_byte(0x44), AMOUNT)]
     );
     let replacement = signed_deposit(&harness, 1, 0x66);
-    process_builder_deposit_requests(&mut state, &[replacement.clone()], &harness.spec).unwrap();
+    process_builder_deposit_requests(
+        &mut state,
+        std::slice::from_ref(&replacement),
+        &harness.spec,
+    )
+    .unwrap();
     assert_eq!(state.builders().unwrap().len(), 1);
     let builder = state.get_builder(0).unwrap();
     assert_eq!(builder.pubkey, replacement.pubkey);
@@ -245,7 +250,11 @@ async fn registry_reuses_first_eligible_zero_balance_index_after_actual_sweep() 
             ))
             .collect::<Vec<_>>()
     );
-    assert_eq!(paid.iter().map(|x| x.2).sum::<u64>(), 3 * AMOUNT);
+    assert_eq!(
+        paid.iter()
+            .try_fold(0_u64, |total, item| total.checked_add(item.2)),
+        Some(3 * AMOUNT)
+    );
     assert!(sweep(&mut state, &harness).is_empty());
     // A real same-key deposit fills index 0 again and delays its sweep, so select 1 then 2.
     process_builder_deposit_requests(
@@ -257,7 +266,8 @@ async fn registry_reuses_first_eligible_zero_balance_index_after_actual_sweep() 
     for (key, expected_index) in [(3, 1), (4, 2)] {
         assert_eq!(state.get_index_for_new_builder().unwrap(), expected_index);
         let deposit = signed_deposit(&harness, key, 0x70 + key as u8);
-        process_builder_deposit_requests(&mut state, &[deposit.clone()], &harness.spec).unwrap();
+        process_builder_deposit_requests(&mut state, std::slice::from_ref(&deposit), &harness.spec)
+            .unwrap();
         assert_eq!(
             state.get_builder(expected_index).unwrap().pubkey,
             deposit.pubkey
@@ -278,7 +288,12 @@ async fn registry_reuses_first_eligible_zero_balance_index_after_actual_sweep() 
     );
     assert_eq!(state.get_index_for_new_builder().unwrap(), 0);
     let replacement = signed_deposit(&harness, 5, 0x88);
-    process_builder_deposit_requests(&mut state, &[replacement.clone()], &harness.spec).unwrap();
+    process_builder_deposit_requests(
+        &mut state,
+        std::slice::from_ref(&replacement),
+        &harness.spec,
+    )
+    .unwrap();
     assert_eq!(state.builders().unwrap().len(), 3);
     assert_eq!(state.get_builder(0).unwrap().pubkey, replacement.pubkey);
     assert_eq!(

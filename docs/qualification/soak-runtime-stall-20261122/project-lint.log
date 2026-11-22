@@ -1,0 +1,51 @@
+cargo clippy --workspace --benches --tests --release --features "" -- \
+	-D clippy::fn_to_numeric_cast_any \
+	-D clippy::manual_let_else \
+	-D clippy::large_stack_frames \
+	-D clippy::disallowed_methods \
+	-D warnings \
+	-A clippy::derive_partial_eq_without_eq \
+	-A clippy::upper-case-acronyms \
+	-A clippy::vec-init-then-push \
+	-A clippy::question-mark \
+	-A clippy::uninlined-format-args \
+	-A clippy::enum_variant_names
+    Checking client v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/client)
+    Checking validator_manager v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_manager)
+    Checking http_api v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/http_api)
+    Checking beacon_node v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node)
+    Checking types v0.2.1 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/types)
+    Checking lighthouse_validator_store v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/lighthouse_validator_store)
+    Checking lcli v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/lcli)
+    Checking node_test_rig v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/testing/node_test_rig)
+    Checking database_manager v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/database_manager)
+    Checking boot_node v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/boot_node)
+    Checking simulator v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/testing/simulator)
+    Checking lighthouse v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/lighthouse)
+    Checking http_metrics v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/http_metrics)
+    Checking warp_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/warp_utils)
+    Checking doppelganger_service v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/doppelganger_service)
+    Checking monitoring_api v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/monitoring_api)
+    Checking health_metrics v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/health_metrics)
+    Checking validator_store v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/validator_store)
+    Checking lighthouse_network v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/lighthouse_network)
+    Checking state_transition_vectors v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/testing/state_transition_vectors)
+    Checking state_processing v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/state_processing)
+    Checking operation_pool v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/operation_pool)
+    Checking timer v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/timer)
+    Checking execution_layer v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/execution_layer)
+    Checking proof_engine v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/proof_engine)
+    Checking eth2_key_derivation v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/crypto/eth2_key_derivation)
+    Checking slot_clock v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/slot_clock)
+    Checking validator_metrics v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/validator_metrics)
+    Checking metrics v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/metrics)
+    Checking graffiti_file v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/validator_client/graffiti_file)
+    Checking eip_3076 v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eip_3076)
+    Checking eth2_config v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eth2_config)
+    Checking bls v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/crypto/bls)
+    Checking merkle_proof v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/merkle_proof)
+    Checking fixed_bytes v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/fixed_bytes)
+    Checking target_check v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/target_check)
+    Checking oneshot_broadcast v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/oneshot_broadcast)
+    Checking filesystem v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/filesystem)
+    Finished `release` profile [optimized] target(s) in 9.41s

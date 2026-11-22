@@ -27,3 +27,11 @@ The same frozen diagnostic pair recovered a45s P2P-only loss and4096 concurrent 
 ## Validation scope
 
 The two runtime tests fail with the original inline/async dispatch after extracting the production boundary, then pass after moving the same reader/work to the blocking executor. Both are repeated30times. Existing client serde and actual captured Gloas state/BLS/partial consumers pass. The production state/fork-choice/attestation computations are unchanged. One pre-existing Rust1.99 collapsible-if lint in malloc threshold setup is expressed equivalently; project lint allowances for question-mark/enum naming remain unchanged. An initial make command-line variable leaked into jemalloc MAKEFLAGS; the corrected invocation supplies EXTRA_CLIPPY_OPTS through the environment. These original tooling failures are retained, not treated as green runs.
+
+## Release and smoke result
+
+The release executable is built from clean functional source57ccb4661822406adc490089e8d5ae5bfb36003e, SHA2563158ae6dc22db03e406b710bd9188ade72d9aad1c0d8cc4a493e4a0d09d6f142. Docker image0d6e69a184552f8b045be8197e75aafe561a56b12c771b545014cc1b47a5b3af uses the unchanged runtime base with only this executable replaced. Actual/proc/1/exe is checked during smoke.
+
+The same2CPU/4,096,000,000-byte profile passes4096 concurrent read calls with no error, and45s P2P isolation keeps API responses below the unchanged10s timeout and recovers in12.006s. Native/Geth finalized commitments agree. Both old healthy diagnostic and fixed smoke exit cleanly under the original30s stop request. These finite checks are not a48-hour result.
+
+Full workspace/bench/test make-lint with the repository's existing policy passes. The final source suffix also fixes pre-existing test-only cloned-slice, checked-sum and xor-assignment lint expressions without changing production behavior. The selected release fingerprint remains that of functional57ccb466. A newly declared full-duration run plus strict evidence/cleanup gate is still required.
