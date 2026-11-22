@@ -18,6 +18,11 @@ fn mock_forkchoice_response(
     mut payload_status: PayloadStatusV1,
     payload_id: Option<TransparentJsonPayloadId>,
 ) -> JsonValue {
+    let payload_id = if payload_status.status == PayloadStatusV1Status::Valid {
+        payload_id
+    } else {
+        None
+    };
     if method == ENGINE_FORKCHOICE_UPDATED_V5 {
         if payload_status.status == PayloadStatusV1Status::Valid {
             payload_status.inclusion_list_satisfied.get_or_insert(true);
@@ -777,6 +782,15 @@ pub async fn handle_rpc<E: EthSpec>(
                     .map_err(|message| (message, GENERIC_ERROR_CODE));
             }
 
+            // A non-VALID FCU cannot select a canonical head or start a build.
+            // Returning a real build ID with a canned SYNCING status made the
+            // fallback simulator's disconnected Engine remain usable.
+            if let Some(status) = ctx.static_forkchoice_updated_response.lock().clone()
+                && status.status != PayloadStatusV1Status::Valid
+            {
+                return Ok(mock_forkchoice_response(method, status, None));
+            }
+
             let response = ctx
                 .execution_block_generator
                 .write()
@@ -931,4 +945,85 @@ fn get_param<T: DeserializeOwned>(params: &JsonValue, index: usize) -> Result<T,
             serde_json::from_value(param.clone())
                 .map_err(|e| format!("failed to deserialize param[{}]: {:?}", index, e))
         })
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::test_utils::MockServer;
+    use fixed_bytes::FixedBytesExtended;
+    use types::{
+        ExecutionBlockHash, ExecutionPayload, ExecutionPayloadBellatrix, Hash256, MinimalEthSpec,
+    };
+
+    #[tokio::test]
+    async fn non_valid_forkchoice_neither_builds_nor_changes_head() {
+        for syncing in [true, false] {
+            let server = MockServer::<MinimalEthSpec>::unit_testing();
+            let genesis = server.execution_block_generator().genesis_block().unwrap();
+            let payload: ExecutionPayload<MinimalEthSpec> =
+                ExecutionPayload::Bellatrix(ExecutionPayloadBellatrix {
+                    parent_hash: genesis.block_hash(),
+                    block_hash: ExecutionBlockHash::from_root(Hash256::repeat_byte(1)),
+                    block_number: 1,
+                    timestamp: 1,
+                    ..Default::default()
+                });
+            let hash = payload.block_hash();
+            assert_eq!(
+                server
+                    .execution_block_generator()
+                    .new_payload(payload)
+                    .status,
+                PayloadStatusV1Status::Valid
+            );
+            if syncing {
+                server.all_payloads_syncing(false);
+            } else {
+                server.all_payloads_invalid(genesis.block_hash());
+            }
+            let body = serde_json::json!({
+                "jsonrpc":"2.0", "id":1, "method":ENGINE_FORKCHOICE_UPDATED_V1,
+                "params":[
+                    {"headBlockHash":hash,"safeBlockHash":genesis.block_hash(),"finalizedBlockHash":genesis.block_hash()},
+                    {"timestamp":"0x2","prevRandao":Hash256::zero(),"suggestedFeeRecipient":types::Address::zero()}
+                ]
+            });
+            let result = handle_rpc(body.clone(), server.ctx.clone()).await.unwrap();
+            assert_eq!(
+                result["payloadStatus"]["status"],
+                if syncing { "SYNCING" } else { "INVALID" }
+            );
+            assert!(
+                result["payloadId"].is_null(),
+                "non-VALID FCU must not expose a build ID"
+            );
+            {
+                let generator = server.execution_block_generator();
+                assert_eq!(
+                    generator.latest_block().unwrap().block_hash(),
+                    genesis.block_hash()
+                );
+                assert!(
+                    generator.payload_ids.is_empty(),
+                    "non-VALID FCU started a payload build"
+                );
+            }
+            server.all_payloads_valid();
+            let valid = handle_rpc(body, server.ctx.clone()).await.unwrap();
+            assert_eq!(valid["payloadStatus"]["status"], "VALID");
+            assert!(
+                !valid["payloadId"].is_null(),
+                "VALID FCU must still start the requested build"
+            );
+            assert_eq!(
+                server
+                    .execution_block_generator()
+                    .latest_block()
+                    .unwrap()
+                    .block_hash(),
+                hash
+            );
+        }
+    }
 }
