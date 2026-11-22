@@ -30,6 +30,31 @@ pub struct LocalNetworkParams {
     pub genesis_delay: u64,
 }
 
+async fn configure_ephemeral_network(config: &mut ClientConfig) -> Result<(), String> {
+    // Keep the kernel-assigned discovery socket open through startup. Merely using
+    // port zero binds successfully but leaves boot ENRs without a usable UDP port.
+    let socket = Arc::new(
+        tokio::net::UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0))
+            .await
+            .map_err(|error| format!("Cannot bind simulator discovery socket: {error}"))?,
+    );
+    let port = socket
+        .local_addr()
+        .map_err(|error| format!("Cannot inspect simulator discovery socket: {error}"))?
+        .port();
+    config
+        .network
+        .set_ipv4_listening_address(Ipv4Addr::UNSPECIFIED, 0, port, 0);
+    config.network.discv5_config.listen_config = discv5::ListenConfig::FromSockets {
+        ipv4: Some(socket),
+        ipv6: None,
+    };
+    config.network.enr_udp4_port = std::num::NonZeroU16::new(port);
+    config.network.enr_tcp4_port = None;
+    config.network.discv5_config.table_filter = |_| true;
+    Ok(())
+}
+
 fn default_client_config(network_params: LocalNetworkParams, genesis_time: u64) -> ClientConfig {
     let mut beacon_config = testing_client_config();
 
@@ -213,15 +238,7 @@ impl<E: EthSpec> LocalNetwork<E> {
         mut beacon_config: ClientConfig,
         mock_execution_config: MockExecutionConfig,
     ) -> Result<(LocalBeaconNode<E>, LocalExecutionNode<E>), String> {
-        beacon_config
-            .network
-            .set_ipv4_listening_address(std::net::Ipv4Addr::UNSPECIFIED, 0, 0, 0);
-
-        // HTTP and other simulator nodes also use ephemeral ports. Reserve P2P
-        // sockets through the OS instead of guessing future unused port numbers.
-        beacon_config.network.enr_udp4_port = None;
-        beacon_config.network.enr_tcp4_port = None;
-        beacon_config.network.discv5_config.table_filter = |_| true;
+        configure_ephemeral_network(&mut beacon_config).await?;
 
         let execution_node = LocalExecutionNode::new(self.context.clone(), mock_execution_config);
 
@@ -245,12 +262,7 @@ impl<E: EthSpec> LocalNetwork<E> {
     ) -> Result<(LocalBeaconNode<E>, LocalExecutionNode<E>), String> {
         let count = (self.beacon_node_count() + self.proposer_node_count()) as u16;
 
-        beacon_config
-            .network
-            .set_ipv4_listening_address(std::net::Ipv4Addr::UNSPECIFIED, 0, 0, 0);
-        beacon_config.network.enr_udp4_port = None;
-        beacon_config.network.enr_tcp4_port = None;
-        beacon_config.network.discv5_config.table_filter = |_| true;
+        configure_ephemeral_network(&mut beacon_config).await?;
         beacon_config.network.proposer_only = is_proposer;
 
         mock_execution_config.server_config.listen_port = EXECUTION_PORT + count;
@@ -471,5 +483,45 @@ impl<E: EthSpec> LocalNetwork<E> {
             "The genesis time has already passed since all nodes started. The node startup time \
             may have regressed, and the current `GENESIS_DELAY` is no longer sufficient.",
         )
+    }
+}
+
+#[cfg(test)]
+mod ephemeral_discovery_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn advertised_udp_port_is_held_and_receives_on_the_same_socket() {
+        let mut config = testing_client_config();
+        configure_ephemeral_network(&mut config).await.unwrap();
+        let advertised = config.network.enr_udp4_port.unwrap().get();
+        let cloned = config.network.discv5_config.listen_config.clone();
+        drop(config);
+        let discv5::ListenConfig::FromSockets {
+            ipv4: Some(socket),
+            ipv6: None,
+        } = cloned
+        else {
+            panic!("discovery must consume the already-bound socket");
+        };
+        assert_eq!(socket.local_addr().unwrap().port(), advertised);
+        assert!(
+            tokio::net::UdpSocket::bind((Ipv4Addr::UNSPECIFIED, advertised))
+                .await
+                .is_err()
+        );
+        let sender = tokio::net::UdpSocket::bind((Ipv4Addr::LOCALHOST, 0))
+            .await
+            .unwrap();
+        sender
+            .send_to(b"actual-bound-discovery", (Ipv4Addr::LOCALHOST, advertised))
+            .await
+            .unwrap();
+        let mut bytes = [0; 64];
+        let (len, _) = tokio::time::timeout(Duration::from_secs(2), socket.recv_from(&mut bytes))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(&bytes[..len], b"actual-bound-discovery");
     }
 }

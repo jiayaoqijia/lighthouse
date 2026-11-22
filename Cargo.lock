@@ -9359,6 +9359,7 @@ version = "0.2.0"
 dependencies = [
  "beacon_chain",
  "clap",
+ "discv5",
  "environment",
  "execution_layer",
  "futures",
