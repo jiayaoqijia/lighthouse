@@ -1,0 +1,21 @@
+{
+  "root": {
+    "exit": 101,
+    "compiled_test_failed": true,
+    "seconds": 94.73541020299308
+  },
+  "slot": {
+    "exit": 101,
+    "compiled_test_failed": true,
+    "seconds": 20.793319432996213
+  },
+  "builder": {
+    "exit": 101,
+    "compiled_test_failed": true,
+    "seconds": 21.1998948790133
+  },
+  "restored": {
+    "exit": 0,
+    "source_sha256": "8223468cf257d53d05d8e75345941fff77add0ebde25bea3933104f2a1672216"
+  }
+}
