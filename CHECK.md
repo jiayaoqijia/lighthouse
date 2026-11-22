@@ -1,3 +1,7 @@
+## Gloas reference-vector source alignment (2026-11-22)
+
+The inherited v1.7.0-beta.4 fork vectors conflict with selected consensus reference2ea9d96a on the fork-slot availability and credential-first independent builder/validator onboarding updates. Production behavior matches the selected source. A separate review is generating source-pinned reference vectors and retaining actual BLS/full-state comparisons rather than reverting or skipping the normative behavior. [Checklist](docs/qualification/gloas-vector-source-alignment-20261122.md). Generation and consumer CI remain pending.
+
 ## Glamsterdam adversarial and cross-client qualification (2026-11-19)
 
 - [x] Reproduce and close signed-but-state-inconsistent envelope gossip/cache admission; the remaining R06 lifecycle matrix stays open.
