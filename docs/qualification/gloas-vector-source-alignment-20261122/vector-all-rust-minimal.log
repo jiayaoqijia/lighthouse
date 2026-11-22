@@ -1,0 +1,45 @@
+   Compiling aws-lc-rs v1.18.1
+   Compiling logging v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/logging)
+   Compiling eth2_network_config v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2_network_config)
+   Compiling slasher v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/slasher)
+   Compiling fork_choice v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/fork_choice)
+   Compiling rustls-webpki v0.103.16
+   Compiling rustls v0.23.46
+   Compiling tokio-rustls v0.26.6
+   Compiling futures-rustls v0.26.0
+   Compiling quinn-proto v0.11.19
+   Compiling libp2p-tls v0.7.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling hyper-rustls v0.27.10
+   Compiling reqwest v0.12.28
+   Compiling tungstenite v0.28.0
+   Compiling pretty_reqwest_error v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/pretty_reqwest_error)
+   Compiling quinn v0.11.12
+   Compiling libp2p-quic v0.14.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling libp2p v0.58.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling clap_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/clap_utils)
+   Compiling reqwest-eventsource v0.6.0
+   Compiling eth2 v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2)
+   Compiling directory v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/directory)
+   Compiling tokio-tungstenite v0.28.0
+   Compiling store v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/store)
+   Compiling network_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/network_utils)
+   Compiling operation_pool v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/operation_pool)
+   Compiling proof_engine v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/proof_engine)
+   Compiling builder_client v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/builder_client)
+   Compiling lighthouse_network v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/lighthouse_network)
+   Compiling execution_layer v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/execution_layer)
+   Compiling beacon_processor v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/beacon_processor)
+   Compiling beacon_chain v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/beacon_chain)
+   Compiling network v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/network)
+   Compiling ef_tests v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/testing/ef_tests)
+    Finished `release` profile [optimized] target(s) in 1m 30s
+     Running tests/tests.rs (/projects/eth2030/lighthouse/target/release/deps/tests-94d6db6c4db7cbce)
+
+running 2 tests
+Passed 44 tests in /projects/eth2030/lighthouse-gloas-vector-alignment/testing/ef_tests/consensus-spec-tests/tests/minimal/gloas/fork/fork
+test gloas_source_pinned_fork_upgrade ... ok
+Passed 37 tests in /projects/eth2030/lighthouse-gloas-vector-alignment/testing/ef_tests/consensus-spec-tests/tests/minimal/gloas/transition/core
+test gloas_source_pinned_transition ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 105 filtered out; finished in 0.34s
+
