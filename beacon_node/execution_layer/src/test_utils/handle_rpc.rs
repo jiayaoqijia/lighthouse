@@ -1026,4 +1026,76 @@ mod test {
             );
         }
     }
+    #[tokio::test]
+    async fn reconnect_obtains_missing_peer_data_before_returning_valid_builds() {
+        let peer = MockServer::<MinimalEthSpec>::unit_testing();
+        let recovering = MockServer::<MinimalEthSpec>::unit_testing();
+        let genesis = peer.execution_block_generator().genesis_block().unwrap();
+        let mut parent = genesis.block_hash();
+        for number in 1..=2 {
+            let payload = ExecutionPayload::Bellatrix(ExecutionPayloadBellatrix {
+                parent_hash: parent,
+                block_hash: ExecutionBlockHash::from_root(Hash256::repeat_byte(number as u8)),
+                block_number: number,
+                timestamp: number,
+                ..Default::default()
+            });
+            parent = payload.block_hash();
+            assert_eq!(
+                peer.execution_block_generator().new_payload(payload).status,
+                PayloadStatusV1Status::Valid
+            );
+        }
+        recovering.all_payloads_syncing(false);
+        let request = serde_json::json!({"jsonrpc":"2.0","id":1,"method":ENGINE_FORKCHOICE_UPDATED_V1,"params":[
+            {"headBlockHash":parent,"safeBlockHash":genesis.block_hash(),"finalizedBlockHash":genesis.block_hash()},
+            {"timestamp":"0x3","prevRandao":Hash256::zero(),"suggestedFeeRecipient":types::Address::zero()}
+        ]});
+        let syncing = handle_rpc(request.clone(), recovering.ctx.clone())
+            .await
+            .unwrap();
+        assert_eq!(syncing["payloadStatus"]["status"], "SYNCING");
+        assert!(syncing["payloadId"].is_null());
+        assert!(
+            recovering
+                .execution_block_generator()
+                .block_by_hash(parent)
+                .is_none()
+        );
+        recovering.sync_from_peer_then_resume(&peer).unwrap();
+        assert_eq!(
+            recovering
+                .execution_block_generator()
+                .latest_block()
+                .unwrap()
+                .block_hash(),
+            genesis.block_hash(),
+            "catchup must not select a canonical head before FCU"
+        );
+        let resumed = handle_rpc(request.clone(), recovering.ctx.clone())
+            .await
+            .unwrap();
+        assert_eq!(resumed["payloadStatus"]["status"], "VALID");
+        assert!(
+            !resumed["payloadId"].is_null(),
+            "reconnect must actually obtain the peer chain; canned VALID with no payload ID is not recovery"
+        );
+        assert_eq!(
+            recovering
+                .execution_block_generator()
+                .latest_block()
+                .unwrap()
+                .block_hash(),
+            parent
+        );
+        let mut unknown = request;
+        unknown["params"][0]["headBlockHash"] =
+            serde_json::to_value(ExecutionBlockHash::from_root(Hash256::repeat_byte(99))).unwrap();
+        let not_known = handle_rpc(unknown, recovering.ctx.clone()).await.unwrap();
+        assert_eq!(
+            not_known["payloadStatus"]["status"], "SYNCING",
+            "recovery must clear the static VALID override"
+        );
+        assert!(not_known["payloadId"].is_null());
+    }
 }

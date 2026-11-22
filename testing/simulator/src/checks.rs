@@ -473,9 +473,24 @@ pub async fn reconnect_to_execution_layer<E: EthSpec>(
     network: LocalNetwork<E>,
     node_index: usize,
 ) -> Result<(), String> {
-    network.execution_nodes.read()[node_index]
-        .server
-        .all_payloads_valid();
+    let nodes = network.execution_nodes.read();
+    let recovering = nodes
+        .get(node_index)
+        .ok_or("missing recovering execution node")?;
+    let peer = nodes
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| *index != node_index)
+        .max_by_key(|(_, node)| {
+            node.server
+                .execution_block_generator()
+                .latest_block()
+                .map(|block| block.block_number())
+                .unwrap_or(0)
+        })
+        .map(|(_, node)| node)
+        .ok_or("execution recovery requires an available peer")?;
+    recovering.server.sync_from_peer_then_resume(&peer.server)?;
 
     eprintln!("Enabling Execution Node {node_index}");
     Ok(())
