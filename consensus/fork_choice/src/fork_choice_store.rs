@@ -1,7 +1,9 @@
 use proto_array::JustifiedBalances;
 use std::collections::BTreeSet;
 use std::fmt::Debug;
-use types::{AbstractExecPayload, BeaconBlockRef, BeaconState, Checkpoint, EthSpec, Hash256, Slot};
+use types::{
+    AbstractExecPayload, BeaconBlockRef, BeaconState, ChainSpec, Checkpoint, EthSpec, Hash256, Slot,
+};
 
 /// Approximates the `Store` in "Ethereum 2.0 Phase 0 -- Beacon Chain Fork Choice":
 ///
@@ -86,6 +88,16 @@ pub trait ForkChoiceStore<E: EthSpec>: Sized {
 
     /// Gets the equivocating indices.
     fn equivocating_indices(&self) -> &BTreeSet<u64>;
+
+    /// Exact justified raw balance of equivocators in the given block-slot committees.
+    /// Errors must propagate rather than substituting zero for unavailable state.
+    fn equivocating_committee_balance(
+        &self,
+        block_root: Hash256,
+        state_root: Hash256,
+        slot: Slot,
+        spec: &ChainSpec,
+    ) -> Result<u64, Self::Error>;
 
     /// Adds to the set of equivocating indices.
     fn extend_equivocating_indices(&mut self, indices: impl IntoIterator<Item = u64>);

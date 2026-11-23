@@ -176,6 +176,8 @@ impl ForkChoiceTestDefinition {
             &spec,
         )
         .expect("should create fork choice struct");
+        // These abstract fixtures do not add any equivocating indices, so their
+        // exact committee contribution is always zero; real-state coverage is separate.
         let equivocating_indices = BTreeSet::new();
         let mut last_current_slot = Slot::new(0);
 
@@ -200,6 +202,7 @@ impl ForkChoiceTestDefinition {
                             Hash256::zero(),
                             &equivocating_indices,
                             current_slot,
+                            0,
                             &spec,
                         )
                         .unwrap_or_else(|e| {
@@ -250,6 +253,7 @@ impl ForkChoiceTestDefinition {
                             proposer_boost_root,
                             &equivocating_indices,
                             Slot::new(0),
+                            0,
                             &spec,
                         )
                         .unwrap_or_else(|e| {
@@ -288,6 +292,7 @@ impl ForkChoiceTestDefinition {
                         Hash256::zero(),
                         &equivocating_indices,
                         Slot::new(0),
+                        0,
                         &spec,
                     );
 
@@ -611,6 +616,7 @@ impl ForkChoiceTestDefinition {
                             &block_root,
                             current_slot.unwrap_or(last_current_slot),
                             proposer_boost_root.unwrap_or_else(Hash256::zero),
+                            0,
                             &spec,
                         )
                         .unwrap();
@@ -683,6 +689,7 @@ fn assert_canonical_payload_status_matches_find_head(
         head,
         current_slot,
         proposer_boost_root,
+        0,
         spec,
     ) {
         Ok(actual) => assert_eq!(

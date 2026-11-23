@@ -103,6 +103,7 @@ fn bench_find_head(c: &mut Criterion) {
                             Hash256::zero(),
                             &equivocating_indices,
                             Slot::new(num_blocks),
+                            0, // The benchmark has no equivocating validators.
                             &spec,
                         )
                         .expect("should find head")

@@ -1389,6 +1389,9 @@ impl<E: EthSpec> Tester<E> {
         let current_slot = fork_choice.fc_store().get_current_slot();
         let proposer_boost_root = fork_choice.proposer_boost_root();
         let justified_balances = fork_choice.fc_store().justified_balances().clone();
+        let committee_balance = fork_choice
+            .proposer_boost_committee_balance(&self.spec)
+            .map_err(|e| Error::InternalError(format!("committee context failed: {e:?}")))?;
         let actual = fork_choice
             .proto_array()
             .core_proto_array()
@@ -1399,6 +1402,7 @@ impl<E: EthSpec> Tester<E> {
                 finalized,
                 proposer_boost_root,
                 &justified_balances,
+                committee_balance,
                 &self.spec,
             )
             .map_err(|e| {

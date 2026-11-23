@@ -5572,9 +5572,9 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             return Err(Box::new(DoNotReOrg::HeadDistance.into()));
         }
 
-        // TODO(gloas): reorg weight logic needs updating for Gloas. For now use
-        // total weight which is correct for pre-Gloas and conservative for post-Gloas.
-        let head_weight = info.head_node.weight();
+        // Gloas FCU overrides already returned above. The shared accessor also
+        // retains the exact committee correction for proposer-head consumers.
+        let head_weight = info.head_weight();
         let parent_weight = info.parent_node.weight();
 
         let (head_weak, parent_strong) = if fork_choice_slot == re_org_block_slot {

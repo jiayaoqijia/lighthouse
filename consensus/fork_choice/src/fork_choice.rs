@@ -559,6 +559,71 @@ where
         self.get_ancestor(block_root, dependent_slot)
     }
 
+    /// Exact committee credit is sourced from authenticated block/checkpoint states.
+    fn committee_equivocation_balance(
+        &self,
+        root: Hash256,
+        spec: &ChainSpec,
+    ) -> Result<u64, Error<T::Error>> {
+        if self.fc_store.equivocating_indices().is_empty() {
+            return Ok(0);
+        }
+        let block = self
+            .get_block(&root)
+            .ok_or(Error::MissingProtoArrayBlock(root))?;
+        self.fc_store
+            .equivocating_committee_balance(root, block.state_root, block.slot, spec)
+            .map_err(Error::ForkChoiceStoreError)
+    }
+
+    pub fn proposer_boost_committee_balance(
+        &self,
+        spec: &ChainSpec,
+    ) -> Result<u64, Error<T::Error>> {
+        let root = self.fc_store.proposer_boost_root();
+        if root.is_zero() || self.fc_store.equivocating_indices().is_empty() {
+            return Ok(0);
+        }
+        let block = self
+            .get_block(&root)
+            .ok_or(Error::MissingProtoArrayBlock(root))?;
+        if !spec.fork_name_at_slot::<E>(block.slot).gloas_enabled() {
+            return Ok(0);
+        }
+        let parent = block
+            .parent_root
+            .ok_or(Error::MissingProtoArrayBlock(root))?;
+        let parent_block = self
+            .get_block(&parent)
+            .ok_or(Error::MissingProtoArrayBlock(parent))?;
+        // The frozen rule returns before is_head_weak for a skipped parent slot.
+        // Its unused committee credit must not require an unrelated state read.
+        if parent_block.slot.saturating_add(1u64) < block.slot {
+            return Ok(0);
+        }
+        self.committee_equivocation_balance(parent, spec)
+    }
+
+    fn proposer_head_committee_balance(
+        &self,
+        root: Hash256,
+        spec: &ChainSpec,
+    ) -> Result<u64, Error<T::Error>> {
+        if self.fc_store.equivocating_indices().is_empty() {
+            return Ok(0);
+        }
+        let block = self
+            .get_block(&root)
+            .ok_or(Error::MissingProtoArrayBlock(root))?;
+        if !spec
+            .fork_name_at_slot::<E>(block.slot.saturating_add(1u64))
+            .gloas_enabled()
+        {
+            return Ok(0);
+        }
+        self.committee_equivocation_balance(root, spec)
+    }
+
     /// Run the fork choice rule to determine the head.
     ///
     /// ## Specification
@@ -577,6 +642,7 @@ where
         // decreasing, a property which we must maintain.
         let current_slot = self.update_time(system_time_current_slot)?;
 
+        let committee_balance = self.proposer_boost_committee_balance(spec)?;
         let store = &mut self.fc_store;
 
         let head_node = self.proto_array.find_head::<E>(
@@ -586,6 +652,7 @@ where
             store.proposer_boost_root(),
             store.equivocating_indices(),
             current_slot,
+            committee_balance,
             spec,
         )?;
         let (head_root, head_payload_status) = head_node.as_pair();
@@ -655,11 +722,19 @@ where
             ));
         }
 
+        let committee_balance = self
+            .proposer_head_committee_balance(canonical_head, spec)
+            .map_err(|error| {
+                ProposerHeadError::Error(Error::ProtoArrayError(
+                    proto_array::Error::CommitteeContextUnavailable(format!("{error:?}")),
+                ))
+            })?;
         self.proto_array
             .get_proposer_head::<E>(
                 current_slot,
                 canonical_head,
                 self.fc_store.justified_balances(),
+                committee_balance,
                 spec,
             )
             .map_err(ProposerHeadError::convert_inner_error)
@@ -671,11 +746,19 @@ where
         spec: &ChainSpec,
     ) -> Result<ProposerHeadInfo, ProposerHeadError<Error<proto_array::Error>>> {
         let current_slot = self.fc_store.get_current_slot();
+        let committee_balance = self
+            .proposer_head_committee_balance(canonical_head, spec)
+            .map_err(|error| {
+                ProposerHeadError::Error(Error::ProtoArrayError(
+                    proto_array::Error::CommitteeContextUnavailable(format!("{error:?}")),
+                ))
+            })?;
         self.proto_array
             .get_proposer_head_info::<E>(
                 current_slot,
                 canonical_head,
                 self.fc_store.justified_balances(),
+                committee_balance,
                 spec,
             )
             .map_err(ProposerHeadError::convert_inner_error)
@@ -1819,6 +1902,7 @@ where
                     block_root,
                     current_slot,
                     proposer_boost_root,
+                    self.proposer_boost_committee_balance(spec)?,
                     spec,
                 )
                 .map_err(Error::ProtoArrayError)

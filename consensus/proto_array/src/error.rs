@@ -4,6 +4,7 @@ use types::{Epoch, ExecutionBlockHash, Hash256, Slot};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Error {
+    CommitteeContextUnavailable(String),
     FinalizedNodeUnknown(Hash256),
     JustifiedNodeUnknown(Hash256),
     NodeUnknown(Hash256),

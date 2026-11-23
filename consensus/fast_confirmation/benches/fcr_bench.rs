@@ -236,6 +236,7 @@ fn build_chain_inner(
         Hash256::zero(), // no proposer boost
         &BTreeSet::new(),
         Slot::new(CHAIN_TIP_SLOT),
+        0, // This benchmark has neither equivocations nor a proposer boost.
         &spec,
     )
     .expect("find head");
