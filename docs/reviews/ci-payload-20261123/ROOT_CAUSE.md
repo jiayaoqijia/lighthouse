@@ -6,8 +6,8 @@ These cases asked the same mock Engine to build a new payload while its retained
 
 Preparation now uses a working producer before each import's fault response is applied. Invalid-parent and invalid-head recovery fixtures explicitly restore the consumer's SYNCING response after preparation. Heze's child fixture restores SYNCING before import; the original deferred-execution/EMPTY-head, inclusion-satisfaction and proof-relay assertions remain. API fixtures build first, then import with SYNCING newPayload/FCU, assert actual optimistic fork-choice state, and allow the local producer to build the fallback proposal while the CL still classifies its head as optimistic. Original fee recipient, local payload cache and extra-data assertions remain.
 
-No production Engine, fork-choice validation, signature, gas or deadline code changes.32-bit/64-bit presets and complete recent-fork hosted runs remain required; a selected pass is not full CI.
+No production Engine, fork-choice validation, signature, gas or deadline code changes.Mainnet/minimal presets and complete recent-fork hosted runs remain required; a selected pass is not full CI.
 
 Validation so far: full locked workspace/all-target cargo check;31 selected beacon tests pass, including all original20 failures; both API cases pass. Full Fulu API and hosted matrices are in progress. Negative mock non-VALID FCU/no-ID and genuine peer recovery controls must stay enabled.
 
-References: refs/execution-apis/src/engine/paris.md#engine_forkchoiceUpdatedV1 and frozen consensus-specs2ea9d96a Gloas/Heze contracts. This explains the newly observed CI regressions, not the unrelated historical5.5h native EL waiter.
+References: refs/execution-apis/src/engine/paris.md#engine_forkchoiceUpdatedV1 and frozen consensus-specs2ea9d96a Gloas and separately retained Heze test contracts. This explains the newly observed CI regressions, not the unrelated historical5.5h native EL waiter.
