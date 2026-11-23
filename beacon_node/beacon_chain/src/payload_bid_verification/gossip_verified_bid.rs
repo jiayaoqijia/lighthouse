@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use crate::{
     BeaconChain, BeaconChainTypes, BeaconStore, CachedHead, CanonicalHead,
@@ -29,6 +29,30 @@ use types::{
 
 pub(crate) fn verify_bid_slot(bid_slot: Slot, current_slot: Slot) -> Result<(), PayloadBidError> {
     if bid_slot == current_slot || bid_slot == current_slot.saturating_add(1u64) {
+        Ok(())
+    } else {
+        Err(PayloadBidError::InvalidBidSlot { bid_slot })
+    }
+}
+
+// Slot-clock tolerance applies both before a slot begins and just after it ends.
+// Preserve the ordinary current/next fast path and admit only the specified
+// MAXIMUM_GOSSIP_CLOCK_DISPARITY window at either boundary.
+fn verify_bid_slot_with_tolerance<C: SlotClock>(
+    bid_slot: Slot,
+    clock: &C,
+    tolerance: Duration,
+) -> Result<(), PayloadBidError> {
+    let current = clock.now().ok_or(PayloadBidError::UnableToReadSlot)?;
+    if verify_bid_slot(bid_slot, current).is_ok() {
+        return Ok(());
+    }
+    let earliest = clock.now_with_past_tolerance(tolerance).unwrap_or(current);
+    let latest = clock
+        .now_with_future_tolerance(tolerance)
+        .unwrap_or(current)
+        .saturating_add(1u64);
+    if bid_slot >= earliest && bid_slot <= latest {
         Ok(())
     } else {
         Err(PayloadBidError::InvalidBidSlot { bid_slot })
@@ -303,11 +327,11 @@ impl<E: EthSpec> GossipVerifiedPayloadBid<E> {
         let bid_parent = BidParent::from_bid(signed_bid.message());
         let bid_parent_block_root = signed_bid.message().parent_block_root();
         let bid_value = signed_bid.message().value();
-        let current_slot = ctx
-            .slot_clock
-            .now()
-            .ok_or(PayloadBidError::UnableToReadSlot)?;
-        verify_bid_slot(bid_slot, current_slot)?;
+        verify_bid_slot_with_tolerance(
+            bid_slot,
+            ctx.slot_clock,
+            ctx.spec.maximum_gossip_clock_disparity(),
+        )?;
 
         // TODO(gloas): Extract into `bid_value_over_threshold` on the bid cache and potentially
         // make this more sophisticated than just a <= check.

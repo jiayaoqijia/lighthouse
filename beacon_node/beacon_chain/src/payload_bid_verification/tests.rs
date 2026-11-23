@@ -1617,3 +1617,54 @@ fn gloas_parent_bid_uses_parent_state_not_head_balance() {
         }
     }
 }
+
+#[test]
+fn gloas_bid_gossip_clock_disparity_applies_at_both_slot_edges() {
+    let ctx = TestContext::with_spec(ForkName::Gloas.make_genesis_spec(E::default_spec()));
+    let boundary = ctx.spec.get_slot_duration() * 2;
+    let tolerance = ctx.spec.maximum_gossip_clock_disparity();
+    seed_preferences(&ctx, Slot::new(1), Address::ZERO, 30_000_000);
+    seed_preferences(&ctx, Slot::new(3), Address::ZERO, 30_000_000);
+    for (i, (time, slot, allowed)) in [
+        (
+            boundary - tolerance - Duration::from_millis(1),
+            Slot::new(3),
+            false,
+        ),
+        (boundary - tolerance / 2, Slot::new(3), true),
+        (boundary + tolerance / 2, Slot::new(1), true),
+        (
+            boundary + tolerance + Duration::from_millis(1),
+            Slot::new(1),
+            false,
+        ),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        ctx.slot_clock.set_current_time(time);
+        let bid = ctx.sign_bid(ExecutionPayloadBidGloas {
+            slot,
+            builder_index: 0,
+            fee_recipient: Address::ZERO,
+            gas_limit: 30_000_000,
+            value: i as u64 + 1,
+            parent_block_root: ctx.genesis_block_root,
+            parent_block_hash: ctx.execution_parent_hash(),
+            prev_randao: ctx.expected_prev_randao(),
+            ..ExecutionPayloadBidGloas::default()
+        });
+        let result = GossipVerifiedPayloadBid::new(bid, &ctx.gossip_ctx());
+        if allowed {
+            assert!(
+                result.is_ok(),
+                "allowed clock edge {time:?}, {slot}: {result:?}"
+            );
+        } else {
+            assert!(
+                matches!(result, Err(PayloadBidError::InvalidBidSlot { .. })),
+                "outside clock edge {time:?}, {slot}: {result:?}"
+            );
+        }
+    }
+}

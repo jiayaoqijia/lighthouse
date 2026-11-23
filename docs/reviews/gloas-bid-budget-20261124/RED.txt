@@ -7,3 +7,5 @@ After the counter repair, the new signed parent-state regression still failed:
 gloas_parent_bid_uses_parent_state_not_head_balance accepted a third bid from a parent with 2 ETH because the current head had 3 ETH. The earlier AnchorUninitialized fixture failure was corrected using the store's actual state cache before this behavioral failure was recorded.
 
 The first full run after enforcing process_slots exposed an invalid old epoch-crossing fixture (current epoch 0 with finalized epoch 1). Per-epoch arithmetic rejected it. The regression now advances genesis with a valid checkpoint first and places its active-builder anchor at epoch 2; slot processing is retained, not bypassed.
+
+Clock-boundary regression on 0a958ed4: the full signed gossip verifier rejected slot 3 at time 23.75s (within the maximum clock disparity of next-slot eligibility). The old current/next integer-slot check ignored clock tolerance. Actual test result: 0 passed, 1 failed, 35.07s.
