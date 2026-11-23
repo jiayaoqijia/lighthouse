@@ -1,0 +1,13 @@
+   Compiling execution_layer v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/beacon_node/execution_layer)
+    Finished `release` profile [optimized] target(s) in 16.91s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/execution_layer-4f9e72e3a3ac17b5)
+
+running 5 tests
+test test_utils::execution_block_generator::test::payload_lifecycle_keeps_unknown_and_invalid_rejection ... ok
+test test_utils::execution_block_generator::test::valid_parent_supports_child_before_canonical_forkchoice ... ok
+test test_utils::execution_block_generator::test::valid_test_blobs_bundle_v1 ... ok
+test test_utils::execution_block_generator::test::valid_test_blob_cells ... ok
+test test_utils::execution_block_generator::test::valid_test_blobs_bundle_v2 ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 38 filtered out; finished in 5.41s
+

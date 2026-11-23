@@ -158,7 +158,6 @@ pub struct ExecutionBlockGenerator<E: EthSpec> {
     /*
      * PoS block parameters
      */
-    pub pending_payloads: HashMap<ExecutionBlockHash, ExecutionPayload<E>>,
     pub next_payload_id: u64,
     pub payload_ids: HashMap<PayloadId, ExecutionPayload<E>>,
     min_blobs_count: usize,
@@ -221,7 +220,6 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
             terminal_total_difficulty: Default::default(),
             terminal_block_number: 0,
             terminal_block_hash: Default::default(),
-            pending_payloads: <_>::default(),
             next_payload_id: 0,
             payload_ids: <_>::default(),
             min_blobs_count: 0,
@@ -324,6 +322,17 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
     pub fn execution_payload_by_number(&self, number: u64) -> Option<ExecutionPayload<E>> {
         self.block_by_number(number)
             .and_then(|block| block.as_execution_payload())
+    }
+
+    /// Payloads already known to this model, in parent-before-child order.
+    pub fn known_payloads(&self) -> Vec<ExecutionPayload<E>> {
+        let mut payloads: Vec<_> = self
+            .blocks
+            .values()
+            .filter_map(Block::as_execution_payload)
+            .collect();
+        payloads.sort_by_key(|payload| (payload.block_number(), payload.block_hash().0));
+        payloads
     }
 
     pub fn drop_all_blocks(&mut self) {
@@ -595,7 +604,12 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
         }
 
         let valid_hash = payload.block_hash();
-        self.pending_payloads.insert(payload.block_hash(), payload);
+        // VALID payloads are known execution blocks even before FCU selects a
+        // canonical head. Gloas may validate descendants during that interval.
+        if !self.blocks.contains_key(&valid_hash) {
+            self.insert_block(Block::PoS(payload))
+                .expect("new_payload already checked the parent");
+        }
 
         PayloadStatusV1 {
             status: PayloadStatusV1Status::Valid,
@@ -619,10 +633,6 @@ impl<E: EthSpec> ExecutionBlockGenerator<E> {
             && genesis_pow_block.block_hash() == head_block_hash
         {
             self.terminal_block_hash = head_block_hash;
-        }
-
-        if let Some(payload) = self.pending_payloads.remove(&head_block_hash) {
-            self.insert_block(Block::PoS(payload))?;
         }
 
         // If Gloas was enabled from genesis, the justified and finalized block hashes must be
@@ -1197,6 +1207,101 @@ mod test {
     use super::*;
     use kzg::{CellRef, KzgBlobRef, trusted_setup::get_trusted_setup};
     use types::{MainnetEthSpec, MinimalEthSpec};
+
+    fn child_payload(
+        parent: &Block<MinimalEthSpec>,
+        marker: u8,
+    ) -> ExecutionPayload<MinimalEthSpec> {
+        let number = parent.block_number().checked_add(1).unwrap();
+        let payload = ExecutionPayloadBellatrix {
+            parent_hash: parent.block_hash(),
+            block_hash: ExecutionBlockHash::from_root(Hash256::repeat_byte(marker)),
+            block_number: number,
+            timestamp: number,
+            ..Default::default()
+        };
+        ExecutionPayload::Bellatrix(payload)
+    }
+
+    #[test]
+    fn valid_parent_supports_child_before_canonical_forkchoice() {
+        let mut generator = ExecutionBlockGenerator::<MinimalEthSpec>::new(
+            None, None, None, None, None, None, None,
+        );
+        let genesis = generator.genesis_block().unwrap();
+        let first = child_payload(&genesis, 1);
+        let second = child_payload(&Block::PoS(first.clone()), 2);
+        assert_eq!(
+            generator.new_payload(first.clone()).status,
+            PayloadStatusV1Status::Valid
+        );
+        assert_eq!(
+            generator.new_payload(second.clone()).status,
+            PayloadStatusV1Status::Valid,
+            "a VALID parent must not require canonical FCU before child validation"
+        );
+        assert_eq!(
+            generator.latest_block().unwrap().block_hash(),
+            genesis.block_hash(),
+            "newPayload must not choose the canonical head"
+        );
+        assert!(generator.block_by_hash(first.block_hash()).is_some());
+        assert!(generator.block_by_hash(second.block_hash()).is_some());
+        let selected = ForkchoiceState {
+            head_block_hash: second.block_hash(),
+            safe_block_hash: genesis.block_hash(),
+            finalized_block_hash: genesis.block_hash(),
+        };
+        assert!(generator.forkchoice_updated(selected, None).is_ok());
+        assert_eq!(
+            generator.latest_block().unwrap().block_hash(),
+            second.block_hash()
+        );
+        assert_eq!(
+            generator.block_by_number(1).unwrap().block_hash(),
+            first.block_hash()
+        );
+        assert_eq!(
+            generator.new_payload(first.clone()).status,
+            PayloadStatusV1Status::Valid
+        );
+        assert_eq!(
+            generator.latest_block().unwrap().block_hash(),
+            second.block_hash()
+        );
+        assert_eq!(
+            generator.block_hashes.get(&1).unwrap(),
+            &vec![first.block_hash()],
+            "repeated VALID import must not duplicate indexed payloads"
+        );
+    }
+
+    #[test]
+    fn payload_lifecycle_keeps_unknown_and_invalid_rejection() {
+        let mut generator = ExecutionBlockGenerator::<MinimalEthSpec>::new(
+            None, None, None, None, None, None, None,
+        );
+        let genesis = generator.genesis_block().unwrap();
+        let mut unknown = child_payload(&genesis, 7);
+        *unknown.parent_hash_mut() = ExecutionBlockHash::from_root(Hash256::repeat_byte(99));
+        assert_eq!(
+            generator.new_payload(unknown.clone()).status,
+            PayloadStatusV1Status::Syncing
+        );
+        assert!(generator.block_by_hash(unknown.block_hash()).is_none());
+        let mut invalid = child_payload(&genesis, 8);
+        let invalid_number = invalid.block_number().checked_add(1).unwrap();
+        *invalid.block_number_mut() = invalid_number;
+        assert_eq!(
+            generator.new_payload(invalid.clone()).status,
+            PayloadStatusV1Status::Invalid
+        );
+        assert!(generator.block_by_hash(invalid.block_hash()).is_none());
+        assert_eq!(
+            generator.latest_block().unwrap().block_hash(),
+            genesis.block_hash()
+        );
+    }
 
     #[test]
     fn valid_test_blobs_bundle_v1() {

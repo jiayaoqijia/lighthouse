@@ -1,0 +1,121 @@
+   Compiling serde_core v1.0.229
+   Compiling ruint v1.20.1
+   Compiling serde v1.0.229
+   Compiling ekzg-trusted-setup v0.9.1
+   Compiling ekzg-single-open v0.9.1
+   Compiling smallvec v1.16.2
+   Compiling rustix v1.1.5
+   Compiling alloy-primitives v1.7.3
+   Compiling eip4844 v0.9.1
+   Compiling rust_eth_kzg v0.9.1
+   Compiling int_to_bytes v0.2.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/consensus/int_to_bytes)
+   Compiling ethereum_serde_utils v0.8.1
+   Compiling ethereum_ssz v0.10.4 (https://github.com/sigp/ethereum_ssz?rev=974f78f421fbf70cba4e8f84e0fa28c23ad54f34#974f78f4)
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling curve25519-dalek v5.0.0
+   Compiling darling_core v0.23.0
+   Compiling tree_hash v0.12.1 (https://github.com/sigp/tree_hash?rev=e5ea1875edddf12438506c3751cbb313f9c52d08#e5ea1875)
+   Compiling fixed_bytes v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/consensus/fixed_bytes)
+   Compiling bls v0.2.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/crypto/bls)
+   Compiling swap_or_not_shuffle v0.2.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/consensus/swap_or_not_shuffle)
+   Compiling ed25519-dalek v3.0.0
+   Compiling libp2p-identity v0.3.1
+   Compiling eth2_interop_keypairs v0.2.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/eth2_interop_keypairs)
+   Compiling multiaddr v0.19.1
+   Compiling darling_macro v0.23.0
+   Compiling libp2p-core v0.44.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling darling v0.23.0
+   Compiling ethereum_ssz_derive v0.10.4 (https://github.com/sigp/ethereum_ssz?rev=974f78f421fbf70cba4e8f84e0fa28c23ad54f34#974f78f4)
+   Compiling metastruct_macro v0.1.4
+   Compiling metastruct v0.1.4
+   Compiling milhouse v0.9.0 (https://github.com/sigp/milhouse?rev=d67aabd2a7c405b3c16f4aaff159b137dc5b5e38#d67aabd2)
+   Compiling kzg v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/crypto/kzg)
+   Compiling libp2p-swarm v0.49.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling superstruct v0.10.1
+   Compiling tree_hash_derive v0.12.1 (https://github.com/sigp/tree_hash?rev=e5ea1875edddf12438506c3751cbb313f9c52d08#e5ea1875)
+   Compiling merkle_proof v0.2.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/consensus/merkle_proof)
+   Compiling ssz_types v0.14.1 (https://github.com/sigp/ssz_types?rev=8955d22edc7633f26fe3b5ac933facb5121d717a#8955d22e)
+   Compiling tempfile v3.27.0
+   Compiling metrics v0.2.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/metrics)
+   Compiling memchr v2.8.3
+   Compiling types v0.2.1 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/consensus/types)
+   Compiling serde_json v1.0.151
+   Compiling camino v1.2.6
+   Compiling cargo-platform v0.1.9
+   Compiling snow v0.10.0
+   Compiling const-hex v1.19.3
+   Compiling hyper-rustls v0.27.10
+   Compiling cargo_metadata v0.19.2
+   Compiling alloy-eip2124 v0.2.0
+   Compiling alloy-serde v1.8.3
+   Compiling alloy-eip2930 v0.2.4
+   Compiling alloy-eip7928 v0.3.7
+   Compiling alloy-eip7702 v0.6.3
+   Compiling nybbles v0.4.8
+   Compiling hashbrown v0.17.1
+   Compiling libp2p-gossipsub v0.51.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling indexmap v2.14.2
+   Compiling libp2p-tls v0.7.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling alloy-eips v1.8.3
+   Compiling alloy-sol-macro-input v1.7.3
+   Compiling libp2p-identify v0.49.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling alloy-trie v0.9.8
+   Compiling workspace_members v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/workspace_members)
+   Compiling reqwest v0.12.28
+   Compiling alloy-tx-macros v1.8.3
+   Compiling x25519-dalek v3.0.0
+   Compiling lighthouse_version v8.4.0-rc.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/lighthouse_version)
+   Compiling libp2p-noise v0.47.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling alloy-consensus v1.8.3
+   Compiling libp2p-upnp v0.8.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling logging v0.2.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/logging)
+   Compiling libp2p-quic v0.14.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling proto_array v0.2.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/consensus/proto_array)
+   Compiling state_processing v0.2.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/consensus/state_processing)
+   Compiling alloy-sol-macro-expander v1.7.3
+   Compiling libp2p-metrics v0.19.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling eth2_key_derivation v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/crypto/eth2_key_derivation)
+   Compiling libp2p-yamux v0.48.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling libp2p-dns v0.45.1 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling libp2p-tcp v0.45.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling libp2p-allow-block-list v0.8.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling libp2p-connection-limits v0.8.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling eth2_keystore v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/crypto/eth2_keystore)
+   Compiling alloy-sol-macro v1.7.3
+   Compiling reqwest-eventsource v0.6.0
+   Compiling libp2p v0.58.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling fork_choice v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/consensus/fork_choice)
+   Compiling builder_types v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/builder_types)
+   Compiling eip_3076 v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/eip_3076)
+   Compiling pretty_reqwest_error v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/pretty_reqwest_error)
+   Compiling enr v0.14.0
+   Compiling alloy-sol-types v1.7.3
+   Compiling eth2 v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/eth2)
+   Compiling task_executor v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/task_executor)
+   Compiling slot_clock v0.2.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/common/slot_clock)
+   Compiling alloy-network-primitives v1.8.3
+   Compiling alloy-consensus-any v1.8.3
+   Compiling alloy-rpc-types-eth v1.8.3
+   Compiling builder_client v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/beacon_node/builder_client)
+   Compiling execution_layer v0.1.0 (/projects/eth2030/lighthouse-mock-el-payload-lifecycle/beacon_node/execution_layer)
+    Finished `release` profile [optimized] target(s) in 57.50s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/execution_layer-4f9e72e3a3ac17b5)
+
+running 1 test
+
+thread 'test_utils::execution_block_generator::test::valid_parent_supports_child_before_canonical_forkchoice' (1616983) panicked at beacon_node/execution_layer/src/test_utils/execution_block_generator.rs:1227:9:
+assertion `left == right` failed: a VALID parent must not require canonical FCU before child validation
+  left: Syncing
+ right: Valid
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test test_utils::execution_block_generator::test::valid_parent_supports_child_before_canonical_forkchoice ... FAILED
+
+failures:
+
+failures:
+    test_utils::execution_block_generator::test::valid_parent_supports_child_before_canonical_forkchoice
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 42 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p execution_layer --lib`

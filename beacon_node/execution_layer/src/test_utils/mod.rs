@@ -352,6 +352,46 @@ impl<E: EthSpec> MockServer<E> {
         }
     }
 
+    /// Recover the model from peer payloads before removing its global outage responses.
+    /// Import uses the ordinary mock validation path and never selects a canonical head.
+    /// Hash-specific fault-injection responses are deliberately retained.
+    pub fn sync_from_peer_then_resume(&self, peer: &Self) -> Result<usize, String> {
+        // Snapshot the peer before locking the target: never hold two generator locks.
+        let (peer_genesis, payloads) = {
+            let generator = peer.execution_block_generator();
+            (
+                generator.genesis_block().map(|block| block.block_hash()),
+                generator.known_payloads(),
+            )
+        };
+        let mut imported = 0;
+        {
+            let mut generator = self.execution_block_generator();
+            let genesis = generator.genesis_block().map(|block| block.block_hash());
+            if genesis.is_none() || genesis != peer_genesis {
+                return Err(
+                    "cannot recover mock execution from a different or missing genesis".into(),
+                );
+            }
+            for payload in payloads {
+                let hash = payload.block_hash();
+                if generator.block_by_hash(hash).is_some() {
+                    continue;
+                }
+                let status = generator.new_payload(payload);
+                if status.status != PayloadStatusV1Status::Valid {
+                    return Err(format!(
+                        "mock execution recovery rejected peer payload {hash:?}: {status:?}"
+                    ));
+                }
+                imported += 1;
+            }
+        }
+        self.ctx.static_new_payload_response.lock().take();
+        self.ctx.static_forkchoice_updated_response.lock().take();
+        Ok(imported)
+    }
+
     pub fn all_payloads_valid(&self) {
         self.all_payloads_valid_on_new_payload();
         self.all_payloads_valid_on_forkchoice_updated();
