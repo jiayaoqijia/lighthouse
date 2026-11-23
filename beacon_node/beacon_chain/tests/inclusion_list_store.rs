@@ -390,9 +390,13 @@ async fn assert_heze_fcu_resolves_deferred_verdict_from_empty_head(relay_proofs:
 
     harness.advance_slot();
     let child_slot = slot + 1;
+    // Construct the child before resuming the syncing consumer response. A producer
+    // cannot build through a SYNCING FCU; the import below must still stay deferred.
+    mock.all_payloads_valid_on_forkchoice_updated();
     let (contents, _, _) = harness
         .make_block_with_envelope_on(state_after_parent, child_slot, PayloadStatus::Full)
         .await;
+    mock.all_payloads_syncing_on_forkchoice_updated();
     let child = contents.0.canonical_root();
     harness
         .process_block(child_slot, child, contents)
