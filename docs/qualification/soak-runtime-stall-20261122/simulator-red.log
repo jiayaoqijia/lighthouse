@@ -1,0 +1,74 @@
+   Compiling fixed_bytes v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/fixed_bytes)
+   Compiling aws-lc-sys v0.45.0
+   Compiling rustls v0.23.46
+   Compiling kzg v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/crypto/kzg)
+   Compiling int_to_bytes v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/int_to_bytes)
+   Compiling bls v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/crypto/bls)
+   Compiling swap_or_not_shuffle v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/swap_or_not_shuffle)
+   Compiling merkle_proof v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/merkle_proof)
+   Compiling aws-lc-rs v1.18.1
+   Compiling eth2_interop_keypairs v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eth2_interop_keypairs)
+   Compiling metrics v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/metrics)
+   Compiling types v0.2.1 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/types)
+   Compiling rustls-webpki v0.103.16
+   Compiling libz-sys v1.1.31
+   Compiling flate2 v1.1.10
+   Compiling logroller v0.1.12
+   Compiling tokio-rustls v0.26.6
+   Compiling hyper-rustls v0.27.10
+   Compiling reqwest v0.12.28
+   Compiling pretty_reqwest_error v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/pretty_reqwest_error)
+   Compiling quinn-proto v0.11.19
+   Compiling eth2_config v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eth2_config)
+   Compiling eth2_network_config v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eth2_network_config)
+   Compiling futures-rustls v0.26.0
+   Compiling logging v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/logging)
+   Compiling libp2p-tls v0.7.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling quinn v0.11.12
+   Compiling state_processing v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/state_processing)
+   Compiling proto_array v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/proto_array)
+   Compiling libp2p-quic v0.14.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling eth2_key_derivation v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/crypto/eth2_key_derivation)
+   Compiling tungstenite v0.28.0
+   Compiling eth2_keystore v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/crypto/eth2_keystore)
+   Compiling reqwest-eventsource v0.6.0
+   Compiling libp2p v0.58.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling clap_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/clap_utils)
+   Compiling lighthouse_version v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/lighthouse_version)
+   Compiling fork_choice v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/fork_choice)
+   Compiling builder_types v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/builder_types)
+   Compiling eip_3076 v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eip_3076)
+   Compiling eth2 v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/eth2)
+   Compiling directory v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/directory)
+   Compiling tokio-tungstenite v0.28.0
+   Compiling task_executor v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/task_executor)
+   Compiling slot_clock v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/slot_clock)
+   Compiling store v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/store)
+   Compiling filesystem v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/filesystem)
+   Compiling slasher v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/slasher)
+   Compiling fast_confirmation v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/consensus/fast_confirmation)
+   Compiling genesis v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/genesis)
+   Compiling proof_engine v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/proof_engine)
+   Compiling oneshot_broadcast v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/common/oneshot_broadcast)
+   Compiling operation_pool v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/operation_pool)
+   Compiling builder_client v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/builder_client)
+   Compiling execution_layer v0.1.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/execution_layer)
+   Compiling beacon_chain v0.2.0 (/projects/eth2030/lighthouse-gloas-runtime-stall/beacon_node/beacon_chain)
+    Finished `release` profile [optimized] target(s) in 1m 53s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/beacon_chain-509e1ca6e2295ccb)
+
+running 1 test
+
+thread 'attestation_simulator::async_progress_tests::blocked_simulation_preserves_async_progress_and_bounds_pending_work' (1224210) panicked at beacon_node/beacon_chain/src/attestation_simulator.rs:191:9:
+blocking simulation occupied the core executor
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test attestation_simulator::async_progress_tests::blocked_simulation_preserves_async_progress_and_bounds_pending_work ... FAILED
+
+failures:
+
+failures:
+    attestation_simulator::async_progress_tests::blocked_simulation_preserves_async_progress_and_bounds_pending_work
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 375 filtered out; finished in 2.00s
+
+error: test failed, to rerun pass `-p beacon_chain --lib`

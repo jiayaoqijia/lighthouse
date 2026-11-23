@@ -1,0 +1,205 @@
+{
+  "passed": true,
+  "scope": "Fixed binary3158 prequalification smoke, not a48h pass",
+  "duration_seconds": 45,
+  "api_timeout_seconds": 10,
+  "recovery_seconds": 12.006343295972329,
+  "max_api_seconds": 0.009298490011133254,
+  "observations": [
+    {
+      "at": "2026-11-22T05:02:11.372910+00:00",
+      "seconds": 0.009298490011133254,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "1"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:14.374539+00:00",
+      "seconds": 0.001549550041090697,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "2"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:17.375996+00:00",
+      "seconds": 0.0013793190009891987,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "3"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:20.377637+00:00",
+      "seconds": 0.0015612400020472705,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "4"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:23.378916+00:00",
+      "seconds": 0.0012095279525965452,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "5"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:26.380131+00:00",
+      "seconds": 0.0011458670487627387,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "6"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:29.381292+00:00",
+      "seconds": 0.0010923569789156318,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "7"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:32.382715+00:00",
+      "seconds": 0.0013560790102928877,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "8"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:35.384066+00:00",
+      "seconds": 0.0012783880229108036,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "9"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:38.385477+00:00",
+      "seconds": 0.0013427590020000935,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "10"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:41.386873+00:00",
+      "seconds": 0.0013220080290921032,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "11"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:44.388137+00:00",
+      "seconds": 0.0011892380425706506,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "12"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:47.389370+00:00",
+      "seconds": 0.001163857989013195,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "13"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:50.390441+00:00",
+      "seconds": 0.0010008960380218923,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "14"
+        }
+      }
+    },
+    {
+      "at": "2026-11-22T05:02:53.391673+00:00",
+      "seconds": 0.0011679580202326179,
+      "response": {
+        "data": {
+          "is_syncing": false,
+          "is_optimistic": false,
+          "el_offline": false,
+          "head_slot": "73471",
+          "sync_distance": "15"
+        }
+      }
+    }
+  ]
+}

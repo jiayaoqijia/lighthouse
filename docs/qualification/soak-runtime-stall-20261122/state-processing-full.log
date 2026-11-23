@@ -1,0 +1,74 @@
+    Finished `release` profile [optimized] target(s) in 0.40s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/state_processing-a931812e1fe205a3)
+
+running 67 tests
+test builder_deposits_cache::tests::new_returns_none_when_gloas_not_scheduled ... ok
+test builder_deposits_cache::tests::empty_deposits_list_is_noop ... ok
+test epoch_cache::tests::into_epoch_cache_zero_total_active_balance ... ok
+test builder_deposits_cache::tests::new_returns_some_when_gloas_scheduled ... ok
+test builder_deposits_cache::tests::cache_invalid_builder_deposit ... ok
+test builder_deposits_cache::tests::cache_miss_returns_none ... ok
+test builder_deposits_cache::tests::invalid_non_builder_pending_deposits_are_cached ... ok
+test builder_deposits_cache::tests::duplicate_deposits_not_reverified ... ok
+test builder_deposits_cache::tests::non_builder_pending_deposits_are_cached ... ok
+test builder_deposits_cache::tests::cache_valid_builder_deposit ... ok
+test builder_deposits_cache::tests::multiple_valid_and_invalid_deposits ... ok
+test builder_deposits_cache::tests::get_by_deposit_data ... ok
+test builder_deposits_cache::tests::mixed_pending_deposits_are_cached ... ok
+test per_block_processing::signature_sets::inclusion_list_signature_tests::verifies_a_valid_signature ... ok
+test per_block_processing::signature_sets::inclusion_list_signature_tests::rejects_a_signature_from_another_validator ... ok
+test per_block_processing::process_operations::builder_request_wire_tests::native_el_builder_requests_reach_actual_cl_state_processing ... ok
+test per_block_processing::process_operations::builder_registry_tests::exited_topups_sweep_once_and_reused_index_requires_new_registration ... ok
+test per_block_processing::process_operations::builder_registry_tests::registry_reuses_first_eligible_zero_balance_index_after_actual_sweep ... ok
+test builder_deposits_cache::tests::incremental_updates::add_new_pending_deposits_noop_when_no_current_slot_deposits ... ok
+test builder_deposits_cache::tests::incremental_updates::add_new_pending_deposits_caches_all_when_all_current_slot ... ok
+test builder_deposits_cache::tests::incremental_updates::add_new_pending_deposits_only_caches_current_slot_tail ... ok
+test envelope_processing::tests::reject_envelope_with_mismatched_parent_beacon_block_root ... ok
+test envelope_processing::tests::reject_envelope_with_mismatched_beacon_block_root ... ok
+test per_block_processing::tests::invalid_attestation_included_too_early ... ok
+test per_block_processing::tests::invalid_bad_proposal_2_signature ... ok
+test per_block_processing::tests::invalid_attestation_bad_aggregation_bitfield_len ... ok
+test per_block_processing::tests::invalid_attester_slashing_1_invalid ... ok
+test per_block_processing::tests::invalid_attester_slashing_2_invalid ... ok
+test per_block_processing::tests::invalid_attester_slashing_not_slashable ... ok
+test per_block_processing::tests::invalid_bad_proposal_1_signature ... ok
+test per_block_processing::tests::block_replayer_peeking_state_roots ... ok
+test per_block_processing::tests::invalid_attestation_no_committee_for_index ... ok
+test per_block_processing::tests::invalid_attestation_bad_signature ... ok
+test per_block_processing::tests::invalid_attestation_target_epoch_slot_mismatch ... ok
+test per_block_processing::tests::invalid_block_signature ... ok
+test per_block_processing::tests::invalid_attestation_wrong_justified_checkpoint ... ok
+test per_block_processing::tests::invalid_deposit_bad_merkle_proof ... ok
+test per_block_processing::tests::invalid_block_header_state_slot ... ok
+test per_block_processing::tests::invalid_deposit_count_too_small ... ok
+test per_epoch_processing::single_pass::builder_payment_tests::payment_quorum_edges_rotate_and_evict_without_debit ... ok
+test verify_operation::test::attester_slashing_roundtrip ... ok
+test verify_operation::test::bls_to_execution_roundtrip ... ok
+test verify_operation::test::proposer_slashing_roundtrip ... ok
+test verify_operation::test::sig_verified_op_exit_roundtrip ... ok
+test per_epoch_processing::single_pass::builder_payment_tests::slashed_proposer_payment_is_cancelled_before_parent_settlement ... ok
+test per_epoch_processing::tests::release_tests::base_state_on_altair_fork ... ok
+test per_block_processing::tests::invalid_deposit_deposit_count_too_big ... ok
+test upgrade::gloas::tests::onboarding_rejects_non_empty_builder_registry ... ok
+test per_block_processing::tests::invalid_deposit_invalid_pub_key ... ok
+test per_epoch_processing::tests::release_tests::altair_state_on_base_fork ... ok
+test per_block_processing::tests::invalid_deposit_wrong_sig ... ok
+test per_block_processing::tests::invalid_parent_block_root ... ok
+test per_block_processing::tests::invalid_proposer_slashing_proposal_epoch_mismatch ... ok
+test per_block_processing::tests::invalid_proposer_slashing_duplicate_slashing ... ok
+test upgrade::gloas::tests::onboarding_with_seeded_cache_matches_full_verification ... ok
+test upgrade::gloas::tests::onboarding_with_cold_cache_matches_full_verification ... ok
+test per_block_processing::tests::invalid_proposer_slashing_proposals_identical ... ok
+test per_epoch_processing::single_pass::builder_payment_tests::signed_bid_current_previous_and_evicted_parent_settle_once ... ok
+test per_block_processing::tests::invalid_proposer_slashing_proposer_unknown ... ok
+test upgrade::gloas::tests::builder_validator_onboarding_routes_independent_keys ... ok
+test per_epoch_processing::tests::runs_without_error ... ok
+test per_block_processing::tests::invalid_randao_reveal_signature ... ok
+test per_block_processing::tests::valid_block_ok ... ok
+test per_block_processing::tests::valid_insert_attester_slashing ... ok
+test per_block_processing::tests::valid_4_deposits ... ok
+test per_block_processing::tests::valid_insert_proposer_slashing ... ok
+test upgrade::gloas::tests::fork_slot_payload_availability_is_unset ... ok
+
+test result: ok. 67 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.14s
+

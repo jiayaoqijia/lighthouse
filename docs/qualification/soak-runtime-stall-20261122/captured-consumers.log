@@ -1,0 +1,26 @@
+    Blocking waiting for file lock on build directory
+    Finished `release` profile [optimized] target(s) in 28.02s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/beacon_chain-509e1ca6e2295ccb)
+
+running 1 test
+2026-11-22T04:39:10.177154Z DEBUG types::test_utils::generate_deterministic_keypairs: Generating 384 deterministic validator keypairs...
+2026-11-22T04:39:12.867021Z  INFO execution_layer::test_utils: Mock execution client started listen_address="127.0.0.1:38481"
+2026-11-22T04:39:12.867127Z DEBUG execution_layer: Loaded execution endpoint endpoint=http://127.0.0.1:38481/ jwt_path="/tmp/.tmpZznLoa"
+2026-11-22T04:39:12.872921Z DEBUG beacon_chain::builder: Storing split from test initial state slot=5728 state_root=0x8485fd65c33baa0a3d73cfed9702292308b15e64986c55a71f378f8379f3c037 block_root=0xa97d5fe9ce3c27d6f4155ddef08e85c6700b5a55f7522e576938697d23a9bc55
+2026-11-22T04:39:12.872950Z DEBUG beacon_chain::builder: Stored frozen block roots at skipped slots from=5747 to_excl=5747 block_root=0xa97d5fe9ce3c27d6f4155ddef08e85c6700b5a55f7522e576938697d23a9bc55
+2026-11-22T04:39:12.872972Z DEBUG store::hot_cold_store: Cached state state_root=0x8485fd65c33baa0a3d73cfed9702292308b15e64986c55a71f378f8379f3c037 state_slot=5728 deleted_states=[] location="store_hot_state"
+2026-11-22T04:39:12.882521Z DEBUG store::hot_cold_store: Storing hot state summary and diffs state_root=0x8485fd65c33baa0a3d73cfed9702292308b15e64986c55a71f378f8379f3c037 slot=5728 storage_strategy=Snapshot diff_base_state=snapshot previous_state_root=0x418ecf04d7412127a888203e7304e7070f551d734728dce155a3465f00196a0c
+2026-11-22T04:39:12.882578Z DEBUG store::hot_cold_store: Cached state state_root=0xb76e950f428d42d664f9814fca0a01e7aab337452e3569ee6ba916b2b8335be8 state_slot=5747 deleted_states=[] location="store_hot_state"
+2026-11-22T04:39:12.882589Z DEBUG store::hot_cold_store: Storing hot state summary and diffs state_root=0xb76e950f428d42d664f9814fca0a01e7aab337452e3569ee6ba916b2b8335be8 slot=5747 storage_strategy=ReplayFrom(Slot(5728)) diff_base_state=5728/0x25e5033331386546769759f0e20d8c1df49cf23c7ec8274920378f74347f67fc previous_state_root=0xd66abcf29b0101d4ebc8e080389ed8f9f596cf1a5d24888ce14d4b7164da8d0f
+2026-11-22T04:39:12.885351Z DEBUG beacon_chain::validator_monitor: Could not get proposers from cache epoch=Epoch(179) decision_root=0xc3b3048bee1f28e97564e51026c9395e3e251f0b9c357e4426ab4f32c5c83a6c
+2026-11-22T04:39:12.885360Z DEBUG beacon_chain::validator_monitor: Could not get proposers from cache epoch=Epoch(179) decision_root=0xc3b3048bee1f28e97564e51026c9395e3e251f0b9c357e4426ab4f32c5c83a6c
+2026-11-22T04:39:12.885425Z DEBUG beacon_chain::builder: Loaded persisted custody context custody_context=CustodyContext { validator_custody_count: 128, validator_registrations: RwLock { data: ValidatorRegistrations { validators: {}, epoch_validator_custody_requirements: {Epoch(0): 128} } }, ordered_custody_column_indices: [98, 44, 62, 2, 127, 119, 121, 92, 60, 34, 120, 90, 43, 117, 79, 88, 23, 83, 48, 4, 5, 71, 125, 113, 46, 73, 63, 42, 91, 80, 72, 97, 58, 50, 81, 68, 35, 7, 29, 76, 104, 107, 39, 87, 16, 94, 116, 53, 122, 32, 115, 93, 109, 96, 86, 6, 57, 77, 114, 8, 74, 18, 84, 51, 85, 69, 110, 101, 17, 112, 124, 52, 38, 75, 19, 15, 10, 123, 105, 28, 45, 0, 54, 31, 102, 89, 41, 59, 82, 65, 126, 33, 22, 21, 24, 111, 47, 12, 70, 106, 78, 27, 64, 118, 9, 49, 103, 67, 1, 14, 13, 37, 66, 11, 55, 95, 100, 3, 99, 20, 61, 25, 40, 30, 36, 26, 56, 108], complete_blob_backfill: false }
+2026-11-22T04:39:12.885454Z  INFO beacon_chain::builder: Beacon chain initialized head_state=0xb76e950f428d42d664f9814fca0a01e7aab337452e3569ee6ba916b2b8335be8 head_block=0xa97d5fe9ce3c27d6f4155ddef08e85c6700b5a55f7522e576938697d23a9bc55 head_slot=5747
+2026-11-22T04:39:12.885532Z DEBUG store::hot_cold_store: Blobs are pruned oldest_data_slot=5747 data_availability_boundary=0 split.slot=5728 end_epoch=0 start_epoch=179
+2026-11-22T04:39:12.887060Z  INFO store::hot_cold_store: Execution payloads and payload envelope bodies are pruned
+2026-11-22T04:39:12.896733Z DEBUG beacon_chain::beacon_chain: Persisting custody context to store validator_custody_at_head=128 epoch_validator_custody_requirements=[(Epoch(0), 128)]
+2026-11-22T04:39:12.896798Z  INFO beacon_chain::beacon_chain: Saved beacon chain to disk
+test captured_partial_consumers::captured_gloas_rows_reach_real_state_validation_and_pending_availability ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 375 filtered out; finished in 2.76s
+

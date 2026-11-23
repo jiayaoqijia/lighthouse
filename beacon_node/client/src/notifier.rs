@@ -57,6 +57,7 @@ pub fn spawn_notifier<T: BeaconChainTypes>(
     // Use this info during custody backfill sync.
     let mut original_earliest_data_column_slot = None;
 
+    let read_executor = executor.clone();
     let interval_future = async move {
         // Perform pre-genesis logging.
         loop {
@@ -368,12 +369,18 @@ pub fn spawn_notifier<T: BeaconChainTypes>(
                     .cached_head()
                     .head_hash()
                     .unwrap_or_else(ExecutionBlockHash::zero);
-                let block_hash = match beacon_chain.canonical_head.head_execution_status() {
-                    Ok(ExecutionVerdict::Valid) => {
+                let status_chain = beacon_chain.clone();
+                let execution_status = read_head_status(&read_executor, move || {
+                    status_chain.canonical_head.head_execution_status()
+                })
+                .await
+                .and_then(Result::ok);
+                let block_hash = match execution_status {
+                    Some(ExecutionVerdict::Valid) => {
                         metrics::set_gauge(&metrics::IS_OPTIMISTIC_SYNC, 0);
                         format!("{} (verified)", head_hash)
                     }
-                    Ok(ExecutionVerdict::Optimistic) => {
+                    Some(ExecutionVerdict::Optimistic) => {
                         metrics::set_gauge(&metrics::IS_OPTIMISTIC_SYNC, 1);
                         warn!(
                             info = "chain not fully verified, \
@@ -383,7 +390,7 @@ pub fn spawn_notifier<T: BeaconChainTypes>(
                         );
                         format!("{} (unverified)", head_hash)
                     }
-                    Ok(ExecutionVerdict::Invalid) => {
+                    Some(ExecutionVerdict::Invalid) => {
                         crit!(
                             msg = "this scenario may be unrecoverable",
                             execution_block_hash = ?head_hash,
@@ -391,7 +398,7 @@ pub fn spawn_notifier<T: BeaconChainTypes>(
                         );
                         format!("{} (invalid)", head_hash)
                     }
-                    Err(_) => "unknown".to_string(),
+                    None => "unknown".to_string(),
                 };
 
                 info!(
@@ -424,6 +431,23 @@ pub fn spawn_notifier<T: BeaconChainTypes>(
     executor.spawn(interval_future, "notifier");
 
     Ok(())
+}
+
+async fn read_head_status<R: Send + 'static>(
+    executor: &task_executor::TaskExecutor,
+    reader: impl FnOnce() -> R + Send + 'static,
+) -> Option<R> {
+    // This read takes the synchronous fork-choice lock. Let the core executor
+    // continue handling network, timers and shutdown while it is contended.
+    // Use the monitored blocking API so a reader panic keeps its fatal semantics.
+    let (sender, receiver) = tokio::sync::oneshot::channel();
+    executor.spawn_blocking(
+        move || {
+            let _ = sender.send(reader());
+        },
+        "notifier_head_execution_status",
+    );
+    receiver.await.ok()
 }
 
 /// Provides some helpful logging to users to indicate if their node is ready for upcoming forks
@@ -786,5 +810,48 @@ impl Speedo {
     /// Clears all past observations to be used for an alternative sync (i.e backfill sync).
     pub fn clear(&mut self) {
         self.0.clear()
+    }
+}
+
+#[cfg(test)]
+mod execution_read_progress_tests {
+    use super::*;
+    use std::sync::mpsc;
+    use task_executor::test_utils::TestRuntime;
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn contended_head_read_preserves_async_progress_and_actual_result() {
+        let runtime = TestRuntime::default();
+        let executor = runtime.task_executor.clone();
+        let (entered_tx, entered_rx) = tokio::sync::oneshot::channel();
+        let (started_tx, started_rx) = mpsc::channel();
+        let (heartbeat_tx, heartbeat_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let (progress_tx, progress_rx) = tokio::sync::oneshot::channel();
+        let releaser = std::thread::spawn(move || {
+            started_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+            let progressed = heartbeat_rx.recv_timeout(Duration::from_secs(2)).is_ok();
+            let _ = release_tx.send(());
+            let _ = progress_tx.send(progressed);
+        });
+        let read_task = tokio::spawn(async move {
+            read_head_status(&executor, move || {
+                started_tx.send(()).unwrap();
+                entered_tx.send(()).unwrap();
+                release_rx.recv_timeout(Duration::from_secs(3)).unwrap();
+                42_u64
+            })
+            .await
+        });
+        entered_rx.await.unwrap();
+        let _ = heartbeat_tx.send(());
+        let async_progressed_before_read_released = progress_rx.await.unwrap();
+        let value = read_task.await.unwrap();
+        releaser.join().unwrap();
+        assert!(
+            async_progressed_before_read_released,
+            "contended fork-choice read occupied the core executor"
+        );
+        assert_eq!(value, Some(42));
     }
 }

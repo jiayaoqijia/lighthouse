@@ -1,0 +1,24 @@
+{
+  "functional_source": "57ccb4661822406adc490089e8d5ae5bfb36003e",
+  "source_runtime_sha256": "3158ae6dc22db03e406b710bd9188ade72d9aad1c0d8cc4a493e4a0d09d6f142",
+  "component_tests": {
+    "new_regressions": 2,
+    "repeats": 60,
+    "client_library": 2,
+    "state_processing_library": 67,
+    "actual_captured_gloas_consumer": 1
+  },
+  "required_cargo_check_exit": 0,
+  "project_make_lint_exit": 0,
+  "native_observer_source": "2c0df12ff4c89d6407c5f27c8de8ea56517d7a4e",
+  "smoke_read_requests": 4096,
+  "smoke_read_failures": 0,
+  "p2p_outage_seconds": 45,
+  "recovery_seconds": 12.006343295972329,
+  "clean_shutdown": {
+    "cl_exit": 0,
+    "el_exit": 0
+  },
+  "actual48h_complete": false,
+  "original_hang_dependency_cycle_fully_identified": false
+}
