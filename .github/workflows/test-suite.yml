@@ -15,6 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # cargo-binstall uses this standard name for public release API rate limits.
+  GITHUB_TOKEN: ${{ github.token }}
   # Deny warnings in CI
   # Disable debug info (see https://github.com/sigp/lighthouse/issues/4005)
   RUSTFLAGS: "-D warnings -C debuginfo=0"
