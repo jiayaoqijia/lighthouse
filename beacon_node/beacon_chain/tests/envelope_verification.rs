@@ -597,10 +597,18 @@ fn gloas_harness() -> BeaconChainHarness<beacon_chain::test_utils::EphemeralHarn
 async fn import_block_and_envelope(
     harness: &BeaconChainHarness<beacon_chain::test_utils::EphemeralHarnessType<E>>,
     slot: Slot,
+    syncing: bool,
 ) -> Hash256 {
+    let mock = &harness.mock_execution_layer.as_ref().unwrap().server;
+    mock.all_payloads_valid_on_forkchoice_updated();
     let state = harness.get_current_state();
     harness.advance_slot();
     let (block_contents, opt_envelope, _) = harness.make_block_with_envelope(state, slot).await;
+    if syncing {
+        mock.all_payloads_syncing(true);
+    } else {
+        mock.all_payloads_valid();
+    }
     let block_root = block_contents.0.canonical_root();
 
     let block = block_contents.0.clone();
@@ -671,14 +679,7 @@ async fn syncing_execution_layer_imports_payload_optimistically() {
     let harness = gloas_harness();
     harness.extend_to_slot(Slot::new(1)).await;
 
-    harness
-        .mock_execution_layer
-        .as_ref()
-        .expect("mock execution layer")
-        .server
-        .all_payloads_syncing(true);
-
-    let block_root = import_block_and_envelope(&harness, Slot::new(2)).await;
+    let block_root = import_block_and_envelope(&harness, Slot::new(2), true).await;
 
     assert!(
         is_optimistic(execution_status(&harness, block_root)),
@@ -697,22 +698,15 @@ async fn a_later_valid_payload_promotes_its_optimistic_ancestors() {
     let harness = gloas_harness();
     harness.extend_to_slot(Slot::new(1)).await;
 
-    let mock = harness
-        .mock_execution_layer
-        .as_ref()
-        .expect("mock execution layer");
-
     // The node imports two slots while the execution layer answers `SYNCING`.
-    mock.server.all_payloads_syncing(true);
-    let first_root = import_block_and_envelope(&harness, Slot::new(2)).await;
-    let second_root = import_block_and_envelope(&harness, Slot::new(3)).await;
+    let first_root = import_block_and_envelope(&harness, Slot::new(2), true).await;
+    let second_root = import_block_and_envelope(&harness, Slot::new(3), true).await;
 
     assert!(is_optimistic(execution_status(&harness, first_root)));
     assert!(is_optimistic(execution_status(&harness, second_root)));
 
     // The execution layer catches up and validates the next payload.
-    mock.server.all_payloads_valid();
-    let third_root = import_block_and_envelope(&harness, Slot::new(4)).await;
+    let third_root = import_block_and_envelope(&harness, Slot::new(4), false).await;
 
     assert!(
         is_valid_and_post_bellatrix(execution_status(&harness, third_root)),

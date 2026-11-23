@@ -1,0 +1,13 @@
+{
+  "database_revision": "8b75c83c3c9142dd18e93d75b8d895a13d285861",
+  "original_count": 1,
+  "patched_count": 0,
+  "original_advisory": "RUSTSEC-2026-0592",
+  "patched_url": "2.5.9",
+  "patched_form_urlencoded": "1.2.3",
+  "existing_ignore_unchanged": [
+    "RUSTSEC-2026-0387"
+  ],
+  "fresh_database_no_fetch": true,
+  "no_advisories_ignored_by_this_change": true
+}

@@ -218,16 +218,23 @@ async fn node_health_el_online_and_not_synced() {
     let harness = &tester.harness;
     let mock_el = harness.mock_execution_layer.as_ref().unwrap();
 
-    // EL not synced
+    // Prepare with a healthy producer, then make only the importing Engine syncing.
     harness.advance_slot();
+    let slot = harness.get_current_slot();
+    let (contents, state) = harness.make_block(harness.get_current_state(), slot).await;
+    let block = contents.0.clone();
     mock_el.server.all_payloads_syncing(true);
-    harness
-        .extend_chain(
-            1,
-            BlockStrategy::OnCanonicalHead,
-            AttestationStrategy::AllValidators,
-        )
-        .await;
+    let root = harness
+        .process_block(slot, block.canonical_root(), contents)
+        .await
+        .unwrap();
+    harness.attest_block(
+        &state,
+        block.state_root(),
+        root,
+        &block,
+        &harness.get_all_validators(),
+    );
 
     let status = tester.client.get_node_health().await;
     match status {
