@@ -19,5 +19,17 @@
   },
   "locked_workspace_all_targets_check": true,
   "full_profiles_passed": false,
-  "original_fault_resolved": false
+  "original_fault_resolved": false,
+  "full_fulu_api_before_url_merge": {
+    "source": "59778dc9303efeb98ea615e80f4a91755eabeaff",
+    "passed": 216,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 901.269,
+    "scope": "Complete Fulu mainnet API/library invocation; not the whole recent-fork/minimal hosted matrix."
+  },
+  "locked_workspace_all_targets_after_url_merge": {
+    "passed": true,
+    "source": "d4ca54ee6054a77789e6d4f37b6fb38547b1e925"
+  }
 }
