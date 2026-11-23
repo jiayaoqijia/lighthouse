@@ -1,0 +1,9 @@
+# crypto-bigint 0.5 is used by alloy-signer via k256 0.13
+# Remove the ignore when alloy-signer updates to k256 0.14
+cargo audit --ignore RUSTSEC-2026-0387
+    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
+error: couldn't fetch advisory database: git operation failed: An IO error occurred when talking to the server
+Caused by:
+  -> An IO error occurred when talking to the server
+  -> Connection to ssh.github.com 443 port [tcp/https] succeeded!
+make: *** [Makefile:391: audit-CI] Error 1
