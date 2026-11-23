@@ -64,6 +64,13 @@ impl<E: EthSpec> PendingPayloadEnvelopes<E> {
             .is_some_and(|data| data.blobs.is_some())
     }
 
+    /// Share publication data without consuming it before validation/import succeeds.
+    pub fn get_blobs(&self, beacon_block_root: Hash256) -> Option<Arc<BlobsList<E>>> {
+        self.envelopes
+            .get(&beacon_block_root)
+            .and_then(|data| data.blobs.clone())
+    }
+
     /// Remove and return the blobs for a beacon block root, leaving the envelope in place.
     pub fn take_blobs(&mut self, beacon_block_root: Hash256) -> Option<Arc<BlobsList<E>>> {
         self.envelopes

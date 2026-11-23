@@ -1,0 +1,83 @@
+   Compiling lighthouse_version v8.4.0-rc.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/lighthouse_version)
+   Compiling eth2 v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/common/eth2)
+   Compiling beacon_node_fallback v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/beacon_node_fallback)
+   Compiling validator_store v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/validator_store)
+   Compiling doppelganger_service v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/doppelganger_service)
+   Compiling lighthouse_validator_store v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/lighthouse_validator_store)
+   Compiling validator_test_rig v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/testing/validator_test_rig)
+   Compiling validator_services v0.1.0 (/projects/eth2030/lighthouse-envelope-publish-recovery/validator_client/validator_services)
+    Finished `release` profile [optimized] target(s) in 24.29s
+     Running unittests src/lib.rs (/projects/eth2030/lighthouse/target/release/deps/validator_services-988d124d25ac9f39)
+
+running 22 tests
+test block_service::tests::request_auth_sign_deadline_passes_fast_result ... ok
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+test block_service::tests::request_auth_sign_deadline_drops_stalled_signer ... ok
+test block_service::tests::flag_off_ignores_unsolicited_inline_contents ... ok
+test block_service::tests::builder_won_block_publishes_without_envelope ... ok
+test block_service::tests::post_beacon_execution_payload_envelope_ssz_fails ... ok
+test block_service::tests::get_validator_execution_payload_envelope_ssz_fails ... ok
+test block_service::tests::stateful_envelope_uses_configured_proposer_cache ... ok
+test block_service::tests::get_validator_block_ssz_fails_fallback_to_json ... ok
+test block_service::tests::stateless_mismatched_inline_envelope_preserves_block_signing ... ok
+test block_service::tests::stateful_envelope_publishes_to_the_cache_provider ... ok
+test block_service::tests::stateless_self_build_without_inline_contents_fetches_envelope ... ok
+test block_service::tests::stateless_self_build_publishes_inline_envelope_contents_through_proposer_node ... ok
+test block_service::tests::stateless_ssz_produce_fails_and_json_succeeds_with_inline_contents ... ok
+test block_service::tests::stateless_skips_local_envelope_when_block_signer_has_no_pubkey ... ok
+test block_service::tests::stateless_external_builder_bid_publishes_block_only ... ok
+test block_service::tests::get_validator_block_and_publish_block_succeeds ... ok
+test block_service::tests::stateless_envelope_falls_back_from_proposer_node_to_beacon_node ... ok
+test block_service::tests::test_do_update ... ok
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+test block_service::tests::get_validator_block_and_publish_block_fails ... ok
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+WARN: Scrypt parameters are too weak (n: 2, p: 1, r: 8), we recommend (n: 262144, p: 1, r: 8)
+test block_service::tests::stateless_skips_fetched_envelope_when_store_signs_different_block ... ok
+test block_service::tests::stateful_skips_fetched_envelope_when_store_signs_different_block ... ok
+test block_service::tests::stateless_skips_local_envelope_when_store_signs_different_block ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 59 filtered out; finished in 2.38s
+

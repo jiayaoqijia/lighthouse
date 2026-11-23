@@ -5721,10 +5721,26 @@ impl ApiTester {
             return self;
         };
 
-        let (sk, _, mut envelope) = self
+        let (sk, _, envelope) = self
             .build_and_post_block_for_envelope(slot, epoch, &fork, genesis_validators_root)
             .await;
-        envelope.payload.gas_limit = envelope.payload.gas_limit.saturating_add(1);
+        // Keep the envelope valid for the frozen gossip/state contract. The 202
+        // case is an execution rejection after gossip broadcast, not an invalid
+        // header that must now be rejected before publishing.
+        self.harness
+            .mock_execution_layer
+            .as_ref()
+            .unwrap()
+            .server
+            .set_new_payload_status(
+                envelope.payload.block_hash,
+                execution_layer::PayloadStatusV1 {
+                    status: execution_layer::PayloadStatusV1Status::Invalid,
+                    latest_valid_hash: Some(envelope.payload.parent_hash),
+                    validation_error: Some("execution-invalid gossip fixture".into()),
+                    inclusion_list_satisfied: None,
+                },
+            );
         let signed_envelope =
             self.sign_envelope(envelope, &sk, epoch, &fork, genesis_validators_root);
 
@@ -6126,6 +6142,68 @@ impl ApiTester {
         *network_globals.sync_state.write() = SyncState::Synced;
         self.chain.slot_clock.set_slot(original_slot.as_u64() + 1);
 
+        self
+    }
+
+    pub async fn test_envelope_rejection_preserves_cached_blobs(self) -> Self {
+        assert!(self.chain.spec.is_gloas_scheduled());
+        let fork = self.chain.canonical_head.cached_head().head_fork();
+        let genesis_validators_root = self.chain.genesis_validators_root;
+        let (slot, epoch, fork_name) = self.advance_to_gloas_slot().expect("Gloas must execute");
+        let (sk, _, envelope) = self
+            .build_and_post_block_for_envelope(slot, epoch, &fork, genesis_validators_root)
+            .await;
+        let block_root = envelope.beacon_block_root;
+        assert!(
+            self.chain
+                .pending_payload_envelopes
+                .read()
+                .has_blobs(block_root)
+        );
+        let signed =
+            self.sign_envelope(envelope.clone(), &sk, epoch, &fork, genesis_validators_root);
+        let mut bad_signature = signed.clone();
+        bad_signature.signature = Signature::empty();
+        let mut bad_payload = envelope;
+        bad_payload.payload.gas_limit = bad_payload.payload.gas_limit.saturating_add(1);
+        let bad_payload =
+            self.sign_envelope(bad_payload, &sk, epoch, &fork, genesis_validators_root);
+        for invalid in [bad_signature, bad_payload] {
+            let error = self
+                .client
+                .post_beacon_execution_payload_envelopes(
+                    &invalid,
+                    fork_name,
+                    Some(BroadcastValidation::Consensus),
+                )
+                .await
+                .expect_err("invalid envelope must reject");
+            assert_eq!(error.status(), Some(StatusCode::BAD_REQUEST));
+            assert!(
+                self.chain
+                    .pending_payload_envelopes
+                    .read()
+                    .has_blobs(block_root),
+                "rejected submission consumed the producer's blobs"
+            );
+        }
+        self.client
+            .post_beacon_execution_payload_envelopes(
+                &signed,
+                fork_name,
+                Some(BroadcastValidation::Consensus),
+            )
+            .await
+            .expect("valid retry must import with its original cached blobs");
+        assert!(
+            !self
+                .chain
+                .pending_payload_envelopes
+                .read()
+                .has_blobs(block_root),
+            "successful import must release cached publication data"
+        );
+        self.chain.slot_clock.set_slot(slot.as_u64() + 1);
         self
     }
 
@@ -11891,6 +11969,83 @@ async fn payload_attestation_present_after_envelope_publish() {
     ApiTester::new_with_hard_forks()
         .await
         .test_payload_attestation_present_after_envelope_publish()
+        .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn envelope_column_publication_failure_preserves_cache() {
+    if !fork_name_from_env().is_some_and(|fork| fork.gloas_enabled()) {
+        return;
+    }
+    let mut tester = ApiTester::new_with_hard_forks().await;
+    let fork = tester.chain.canonical_head.cached_head().head_fork();
+    let genesis_validators_root = tester.chain.genesis_validators_root;
+    let (slot, epoch, fork_name) = tester.advance_to_gloas_slot().expect("Gloas must execute");
+    let (sk, _, envelope) = tester
+        .build_and_post_block_for_envelope(slot, epoch, &fork, genesis_validators_root)
+        .await;
+    let block_root = envelope.beacon_block_root;
+    assert!(
+        tester
+            .chain
+            .pending_payload_envelopes
+            .read()
+            .get_blobs(block_root)
+            .is_some_and(|blobs| !blobs.is_empty()),
+        "must exercise actual blob column publication"
+    );
+    let signed = tester.sign_envelope(envelope, &sk, epoch, &fork, genesis_validators_root);
+    while tester
+        .network_rx
+        .network_recv
+        .recv()
+        .now_or_never()
+        .is_some()
+    {}
+    let publication = tester.client.post_beacon_execution_payload_envelopes(
+        &signed,
+        fork_name,
+        Some(BroadcastValidation::Consensus),
+    );
+    tokio::pin!(publication);
+    // Fail the publication channel only after the envelope itself was broadcast.
+    // Columns must still report their failure and preserve producer-local retry data.
+    tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            tokio::select! {
+                response = &mut publication => panic!("publication finished before envelope broadcast: {response:?}"),
+                message = tester.network_rx.network_recv.recv() => {
+                    if let Some(network::NetworkMessage::Publish { messages }) = message
+                        && messages.iter().any(|message| matches!(message, lighthouse_network::PubsubMessage::ExecutionPayload(_))) {
+                        tester.network_rx.network_recv.close();
+                        break;
+                    }
+                }
+            }
+        }
+    }).await.expect("envelope broadcast must execute before column failure injection");
+    let error = publication
+        .await
+        .expect_err("column publication failure must not be reported as accepted");
+    assert_eq!(error.status(), Some(StatusCode::INTERNAL_SERVER_ERROR));
+    assert!(
+        tester
+            .chain
+            .pending_payload_envelopes
+            .read()
+            .has_blobs(block_root),
+        "failed column publication consumed retry data"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn envelope_rejection_preserves_cached_blobs() {
+    if !fork_name_from_env().is_some_and(|fork| fork.gloas_enabled()) {
+        return;
+    }
+    ApiTester::new_with_hard_forks()
+        .await
+        .test_envelope_rejection_preserves_cached_blobs()
         .await;
 }
 

@@ -1,0 +1,20 @@
+{
+  "functional_source": "39f84795edbbd151f7341358aefabf577abd515c",
+  "provider_tests_passed": 23,
+  "explicit_gloas_http_tests_passed": [
+    "invalid signature and re-signed inconsistent payload retain data; valid retry imports and releases it",
+    "channel failure after actual envelope broadcast returns500 and retains actual nonempty blob data"
+  ],
+  "binding_mutants_detected": [
+    "root",
+    "slot",
+    "builder"
+  ],
+  "binding_restored_exit": 0,
+  "cumulative_native_build_source": "62a08e34d846781d42fdae7deeacfe2a7ba1c0ce",
+  "required_native_build_exit": 0,
+  "full_workspace_project_lint_exit": 0,
+  "cumulative_default_simulator_exit": 101,
+  "simulator_gate": "Still failed canonical completeness; separate mock Engine VALID-parent lifecycle defect reproduced in the actual generator. Full new-source simulator is required.",
+  "actual48h_complete": false
+}
