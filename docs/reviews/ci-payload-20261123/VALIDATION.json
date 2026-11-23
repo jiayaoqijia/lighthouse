@@ -1,0 +1,23 @@
+{
+  "baseline_beacon_selected": {
+    "passed": 0,
+    "failed": 3
+  },
+  "baseline_api_selected": {
+    "passed": 0,
+    "failed": 2
+  },
+  "repaired_beacon_selected": {
+    "passed": 31,
+    "failed": 0,
+    "selection_excluded": 104
+  },
+  "repaired_api_selected": {
+    "passed": 2,
+    "failed": 0,
+    "selection_excluded": 211
+  },
+  "locked_workspace_all_targets_check": true,
+  "full_profiles_passed": false,
+  "original_fault_resolved": false
+}

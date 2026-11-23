@@ -9026,19 +9026,50 @@ impl ApiTester {
         self
     }
 
-    pub async fn test_builder_chain_health_optimistic_head(self) -> Self {
-        // Make sure the next payload verification will return optimistic before advancing the chain.
-        self.harness.mock_execution_layer.as_ref().inspect(|el| {
-            el.server.all_payloads_syncing(true);
-        });
-        self.harness
-            .extend_chain(
-                1,
-                BlockStrategy::OnCanonicalHead,
-                AttestationStrategy::AllValidators,
-            )
+    async fn import_optimistic_head_for_builder(&self) {
+        // Build with a healthy producer before making the importing Engine optimistic.
+        // A SYNCING FCU must not return the payload ID required for block production.
+        let slot = self.harness.get_current_slot();
+        let (contents, state) = self
+            .harness
+            .make_block(self.harness.get_current_state(), slot)
             .await;
+        let block = contents.0.clone();
+        let mock = &self.harness.mock_execution_layer.as_ref().unwrap().server;
+        mock.all_payloads_syncing(true);
+        let root = self
+            .harness
+            .process_block(slot, block.canonical_root(), contents)
+            .await
+            .unwrap();
+        self.harness.attest_block(
+            &state,
+            block.state_root(),
+            root,
+            &block,
+            &self.harness.get_all_validators(),
+        );
+        assert_eq!(
+            self.chain.canonical_head.cached_head().head_block_root(),
+            block.canonical_root()
+        );
+        assert!(matches!(
+            self.chain
+                .canonical_head
+                .fork_choice_read_lock()
+                .get_block(&block.canonical_root())
+                .unwrap()
+                .execution_status,
+            ExecutionStatus::Optimistic(_)
+        ));
+        // Keep the CL's optimistic head but let the local producer build the fallback
+        // proposal. The builder-health checks must still choose that local payload.
+        mock.all_payloads_valid_on_forkchoice_updated();
         self.harness.advance_slot();
+    }
+
+    pub async fn test_builder_chain_health_optimistic_head(self) -> Self {
+        self.import_optimistic_head_for_builder().await;
 
         let slot = self.chain.slot().unwrap();
         let epoch = self.chain.epoch().unwrap();
@@ -9079,18 +9110,7 @@ impl ApiTester {
         if self.chain.spec.is_gloas_scheduled() {
             return self;
         }
-        // Make sure the next payload verification will return optimistic before advancing the chain.
-        self.harness.mock_execution_layer.as_ref().inspect(|el| {
-            el.server.all_payloads_syncing(true);
-        });
-        self.harness
-            .extend_chain(
-                1,
-                BlockStrategy::OnCanonicalHead,
-                AttestationStrategy::AllValidators,
-            )
-            .await;
-        self.harness.advance_slot();
+        self.import_optimistic_head_for_builder().await;
 
         let slot = self.chain.slot().unwrap();
         let epoch = self.chain.epoch().unwrap();

@@ -226,6 +226,11 @@ impl InvalidPayloadRig {
         let head = self.harness.chain.head_snapshot();
         let state = head.beacon_state.clone();
         let slot = slot_override.unwrap_or(state.slot() + 1);
+        // Prepare the next block with a working producer before injecting this import's
+        // response. A SYNCING/INVALID FCU is not allowed to return a payload build ID.
+        mock_execution_layer
+            .server
+            .all_payloads_valid_on_forkchoice_updated();
         let ((block, blobs), opt_envelope, post_state) =
             self.harness.make_block_with_envelope(state, slot).await;
         let block_root = block.canonical_root();
@@ -1173,7 +1178,10 @@ async fn invalid_parent() {
     // Produce another block atop the parent, but don't import yet.
     let slot = parent_block.slot() + 1;
     rig.harness.set_current_slot(slot);
+    let mock = &rig.harness.mock_execution_layer.as_ref().unwrap().server;
+    mock.all_payloads_valid_on_forkchoice_updated();
     let ((block, _), state) = rig.harness.make_block(parent_state, slot).await;
+    mock.all_payloads_syncing_on_forkchoice_updated();
     let block_root = block.canonical_root();
     assert_eq!(block.parent_root(), parent_root);
 
@@ -1437,7 +1445,10 @@ impl InvalidHeadSetup {
             .chain
             .state_at_slot(parent_slot, StateSkipConfig::WithStateRoots)
             .unwrap();
+        let mock = &rig.harness.mock_execution_layer.as_ref().unwrap().server;
+        mock.all_payloads_valid_on_forkchoice_updated();
         let (fork_block_tuple, _) = rig.harness.make_block(parent_state, fork_block_slot).await;
+        mock.all_payloads_syncing_on_forkchoice_updated();
         let fork_block = fork_block_tuple.0;
 
         let invalid_head = rig.cached_head();
