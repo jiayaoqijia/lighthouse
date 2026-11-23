@@ -15,6 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # cargo-binstall uses this standard name for public release API rate limits.
+  GITHUB_TOKEN: ${{ github.token }}
   # Deny warnings in CI
   # Disable debug info (see https://github.com/sigp/lighthouse/issues/4005)
   RUSTFLAGS: "-D warnings -C debuginfo=0"
@@ -388,7 +390,10 @@ jobs:
     - name: Create log dir
       run: mkdir ${{ runner.temp }}/basic_simulator_logs
     - name: Run a basic beacon chain sim
-      run: cargo run --release --bin simulator basic-sim --disable-stdout-logging --log-dir ${{ runner.temp }}/basic_simulator_logs
+      # The minimal preset has 6s slots; halving them leaves only750ms before the
+      # Gloas sync-message deadline. Keep full-aggregate assertions on full slots;
+      # accelerated runs are a separate latency/stress profile.
+      run: cargo run --release --bin simulator basic-sim --speed-up-factor 1 --disable-stdout-logging --log-dir ${{ runner.temp }}/basic_simulator_logs
     - name: Upload logs
       if: always()
       uses: actions/upload-artifact@v7

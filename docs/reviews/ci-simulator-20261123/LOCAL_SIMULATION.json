@@ -1,0 +1,46 @@
+{
+  "at": "2026-11-23T09:21:35.078410+00:00",
+  "command": "cargo run --release --locked --bin simulator basic-sim --speed-up-factor 1 --disable-stdout-logging --log-dir <owned-output>",
+  "exit": 0,
+  "slot_duration_ms": 6000,
+  "end_slot": 128,
+  "beacon_nodes_at_completion": 4,
+  "validator_clients": 2,
+  "unchanged_checks": [
+    "full_block_production",
+    "first_finalization",
+    "validator_count",
+    "onboarding",
+    "fork_version",
+    "full_sync_aggregates",
+    "transition_finality",
+    "light_client_update",
+    "blobs",
+    "delayed_node_start",
+    "delayed_node_sync"
+  ],
+  "retained_publication_timeout_error_lines": 3,
+  "original_3s_budget_passed": false,
+  "original_fault_resolved": false,
+  "actual48h_passed": false,
+  "logs": [
+    {
+      "name": "basic-sim.log",
+      "bytes": 20276057,
+      "sha256": "0aee4527b4931c07808a843d8625f00e01661dbb61dbf74042950ed9690fce08"
+    },
+    {
+      "name": "discv5.log",
+      "bytes": 6592167,
+      "sha256": "f649335e732ed63b326f32c6d31ddfd33dfa7b82463a91df6866fc22565a2255"
+    },
+    {
+      "name": "libp2p.log",
+      "bytes": 192104247,
+      "sha256": "02892c2880998404469157c52e66bf9208321c60dac99f07b6c9616db529ffb6"
+    }
+  ],
+  "source_content_equivalent_to": "a4db382600aa06bbdd92d59652190e529f429f7d",
+  "build_note": "Build started with the exact edited simulator content later committed as a4db3826; do not relabel generated runtime metadata as a post-commit build.",
+  "binary_sha256": "7f04739f44007158b68394052e0309884633a14cb952c8f08b3f8264d97d929f"
+}
