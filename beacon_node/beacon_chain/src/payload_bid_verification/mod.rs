@@ -44,7 +44,7 @@ pub enum PayloadBidError {
     InvalidParentBlockRoot { bid: Hash256, expected: Hash256 },
     /// The signature is invalid.
     BadSignature,
-    /// A bid for this builder at this slot has already been seen.
+    /// The builder exhausted its balance-backed gossip bid allowance for this slot and parent.
     BuilderAlreadySeen { builder_index: u64, slot: Slot },
     /// Builder is not valid/active for the given epoch
     InvalidBuilder { builder_index: u64 },

@@ -3762,6 +3762,15 @@ impl<E: EthSpec> BeaconState<E> {
             >= max_effective_balance.safe_mul(random_value)?)
     }
 
+    /// Gossip allowance per slot and parent, backed by ETH not already reserved
+    /// for builder withdrawals or payments (Gloas p2p-interface).
+    pub fn builder_bid_limit(&self, builder_index: BuilderIndex) -> Result<u64, BeaconStateError> {
+        const ETH_TO_GWEI: u64 = 1_000_000_000;
+        let balance = self.get_builder(builder_index)?.balance;
+        let pending = self.get_pending_balance_to_withdraw_for_builder(builder_index)?;
+        Ok(balance.saturating_sub(pending) / ETH_TO_GWEI)
+    }
+
     pub fn can_builder_cover_bid(
         &self,
         builder_index: BuilderIndex,
