@@ -1,0 +1,13 @@
+Initial exact-name filter selected zero tests and is not acceptance. Corrected filter executed the signed Gloas regression on fa16f70a with new test only:
+FAILED gloas_builder_balance_backed_bid_updates_are_accepted_until_limit
+balance-backed bid 2 rejected: Err(BuilderAlreadySeen { builder_index: 0, slot: Slot(1) })
+0 passed; 1 failed; 362 filtered out; real BLS enabled; 36.00s.
+
+After the counter repair, the new signed parent-state regression still failed:
+gloas_parent_bid_uses_parent_state_not_head_balance accepted a third bid from a parent with 2 ETH because the current head had 3 ETH. The earlier AnchorUninitialized fixture failure was corrected using the store's actual state cache before this behavioral failure was recorded.
+
+The first full run after enforcing process_slots exposed an invalid old epoch-crossing fixture (current epoch 0 with finalized epoch 1). Per-epoch arithmetic rejected it. The regression now advances genesis with a valid checkpoint first and places its active-builder anchor at epoch 2; slot processing is retained, not bypassed.
+
+Clock-boundary regression on 0a958ed4: the full signed gossip verifier rejected slot 3 at time 23.75s (within the maximum clock disparity of next-slot eligibility). The old current/next integer-slot check ignored clock tolerance. Actual test result: 0 passed, 1 failed, 35.07s.
+
+Timer-integrated clock regression on 87169d6: extracting the existing per-slot cache pruning without changing its behavior made the signed 24.25s / slot-1 case fail with NoProposerPreferences. The timer had pruned eligibility evidence and quota state at the slot boundary. Both caches now share a clock-aware cutoff and retain the preceding slot for in-flight validation; an extra signed bid confirms the previous slot's quota does not reset.

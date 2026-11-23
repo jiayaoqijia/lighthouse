@@ -16,6 +16,26 @@ pub mod direct_verified_bid;
 pub mod gossip_verified_bid;
 pub mod payload_bid_cache;
 
+/// Prune both caches from the same timer observation. Their eligibility windows
+/// must stay aligned because a late bid still needs its proposer preferences.
+pub(crate) fn prune_gossip_caches<E: types::EthSpec, C: slot_clock::SlotClock>(
+    bids: &payload_bid_cache::GossipVerifiedPayloadBidCache<E>,
+    preferences: &crate::proposer_preferences_verification::proposer_preference_cache::GossipVerifiedProposerPreferenceCache,
+    clock: &C,
+    spec: &types::ChainSpec,
+) {
+    if let Some(current) = clock.now() {
+        // Retain the prior slot for its clock allowance and in-flight validation.
+        // A delayed timer must not erase preferences or reset a still-used quota.
+        let cutoff = clock
+            .now_with_past_tolerance(spec.maximum_gossip_clock_disparity())
+            .unwrap_or(current)
+            .min(current.saturating_sub(1u64));
+        bids.prune(cutoff);
+        preferences.prune(cutoff);
+    }
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -44,7 +64,7 @@ pub enum PayloadBidError {
     InvalidParentBlockRoot { bid: Hash256, expected: Hash256 },
     /// The signature is invalid.
     BadSignature,
-    /// A bid for this builder at this slot has already been seen.
+    /// The builder exhausted its balance-backed gossip bid allowance for this slot and parent.
     BuilderAlreadySeen { builder_index: u64, slot: Slot },
     /// Builder is not valid/active for the given epoch
     InvalidBuilder { builder_index: u64 },

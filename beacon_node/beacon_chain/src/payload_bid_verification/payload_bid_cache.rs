@@ -1,9 +1,10 @@
-use crate::payload_bid_verification::gossip_verified_bid::GossipVerifiedPayloadBid;
+use crate::payload_bid_verification::{
+    PayloadBidError, gossip_verified_bid::GossipVerifiedPayloadBid,
+};
 use educe::Educe;
 use parking_lot::RwLock;
 use std::{
-    collections::hash_map,
-    collections::{BTreeMap, HashMap, HashSet},
+    collections::{BTreeMap, HashMap},
     sync::Arc,
 };
 use types::{
@@ -39,18 +40,14 @@ type HighestBidMap<E> = BTreeMap<Slot, HashMap<BidParent, GossipVerifiedPayloadB
 pub struct GossipBidCacheInner<E: EthSpec> {
     /// The current best bid for each `(slot, BidParent)`.
     highest_bid: HighestBidMap<E>,
-    /// The `(BidParent, BuilderIndex)` pairs for which we have already accepted a gossip-verified
-    /// bid, per slot.
-    ///
-    /// Used to enforce one bid per builder per parent per slot: a builder may bid once for each
-    /// parent view compatible with the head.
-    seen_builder_bids: BTreeMap<Slot, HashSet<(BidParent, BuilderIndex)>>,
+    /// Accepted gossip bid counts, separately for each slot, parent and builder.
+    bid_counts: BTreeMap<Slot, HashMap<(BidParent, BuilderIndex), u64>>,
 }
 
 /// A cache of gossip-verified payload bids.
 ///
 /// Tracks, per slot, the highest-value bid observed for each parent a bid may build on and the
-/// set of `(parent, builder)` pairs that have already bid, so that duplicate and lower-value
+/// count of accepted bids per `(parent, builder)`, so that duplicate and lower-value
 /// gossip bids can be rejected. Stale entries are removed via [`prune`](Self::prune) as the chain
 /// advances.
 #[derive(Educe)]
@@ -80,53 +77,76 @@ impl<E: EthSpec> GossipVerifiedPayloadBidCache<E> {
             .and_then(|map| map.get(&bid_parent).map(|b| b.signed_bid.clone()))
     }
 
-    /// Record a gossip-verified `bid` in the cache.
-    ///
-    /// This always marks the bid's `(parent, builder)` pair as seen for the bid's slot (see
-    /// [`seen_builder_bid_for_parent`](Self::seen_builder_bid_for_parent)). Additionally, if the
-    /// bid has a strictly higher value than the currently cached bid for its `(slot, BidParent)`
-    /// (or no bid is cached yet), it replaces the cached bid.
-    ///
-    /// Returns `true` if the bid became the new highest bid for its parent, or `false` if an
-    /// existing cached bid had an equal or greater value and was therefore retained.
-    pub fn observe_bid(&self, bid: GossipVerifiedPayloadBid<E>) -> bool {
+    /// Atomically enforce best-value and balance-backed count limits after signature
+    /// verification. Parallel verifiers cannot oversubscribe the same allowance.
+    pub fn observe_bid_with_limit(
+        &self,
+        bid: GossipVerifiedPayloadBid<E>,
+        bid_limit: u64,
+    ) -> Result<(), PayloadBidError> {
         let slot = bid.signed_bid.message().slot();
         let key = BidParent::from_bid(bid.signed_bid.message());
+        let builder_index = bid.signed_bid.message().builder_index();
+        let value = bid.signed_bid.message().value();
         let mut inner = self.inner.write();
-        inner
-            .seen_builder_bids
-            .entry(slot)
-            .or_default()
-            .insert((key, bid.signed_bid.message().builder_index()));
-
-        match inner.highest_bid.entry(slot).or_default().entry(key) {
-            hash_map::Entry::Vacant(entry) => {
-                entry.insert(bid);
-                true
-            }
-            hash_map::Entry::Occupied(mut entry) => {
-                if entry.get().signed_bid.message().value() >= bid.signed_bid.message().value() {
-                    return false;
-                }
-                entry.insert(bid);
-                true
+        if let Some(cached) = inner.highest_bid.get(&slot).and_then(|map| map.get(&key)) {
+            let cached_value = cached.signed_bid.message().value();
+            if value <= cached_value {
+                return Err(PayloadBidError::BidValueBelowCached {
+                    cached_value,
+                    incoming_value: value,
+                });
             }
         }
+        let count = inner
+            .bid_counts
+            .get(&slot)
+            .and_then(|counts| counts.get(&(key, builder_index)))
+            .copied()
+            .unwrap_or(0);
+        if count >= bid_limit {
+            return Err(PayloadBidError::BuilderAlreadySeen {
+                builder_index,
+                slot,
+            });
+        }
+        inner
+            .bid_counts
+            .entry(slot)
+            .or_default()
+            .insert((key, builder_index), count.saturating_add(1));
+        inner.highest_bid.entry(slot).or_default().insert(key, bid);
+        Ok(())
     }
 
-    /// Returns `true` if a gossip-verified bid from `builder_index` has already been seen for
-    /// `(slot, bid_parent)`.
+    /// Test fixtures can seed already-verified candidates without a state lookup.
+    pub fn observe_bid(&self, bid: GossipVerifiedPayloadBid<E>) -> bool {
+        self.observe_bid_with_limit(bid, u64::MAX).is_ok()
+    }
+
+    pub fn builder_bid_count(
+        &self,
+        slot: &Slot,
+        bid_parent: BidParent,
+        builder_index: BuilderIndex,
+    ) -> u64 {
+        self.inner
+            .read()
+            .bid_counts
+            .get(slot)
+            .and_then(|counts| counts.get(&(bid_parent, builder_index)))
+            .copied()
+            .unwrap_or(0)
+    }
+
+    #[cfg(test)]
     pub fn seen_builder_bid_for_parent(
         &self,
         slot: &Slot,
         bid_parent: BidParent,
         builder_index: BuilderIndex,
     ) -> bool {
-        self.inner
-            .read()
-            .seen_builder_bids
-            .get(slot)
-            .is_some_and(|seen_builders| seen_builders.contains(&(bid_parent, builder_index)))
+        self.builder_bid_count(slot, bid_parent, builder_index) != 0
     }
 
     /// Removes all cached bids and seen-builder records for slots older than `current_slot`.
@@ -135,7 +155,7 @@ impl<E: EthSpec> GossipVerifiedPayloadBidCache<E> {
     pub fn prune(&self, current_slot: Slot) {
         let mut inner = self.inner.write();
         inner.highest_bid = inner.highest_bid.split_off(&current_slot);
-        inner.seen_builder_bids = inner.seen_builder_bids.split_off(&current_slot);
+        inner.bid_counts = inner.bid_counts.split_off(&current_slot);
     }
 }
 
@@ -299,5 +319,50 @@ mod tests {
             assert!(cache.get_highest_bid(Slot::new(slot), bid_parent).is_some());
             assert!(cache.seen_builder_bid_for_parent(&Slot::new(slot), bid_parent, slot));
         }
+    }
+    #[test]
+    fn concurrent_admission_respects_budget_and_rejections_do_not_count() {
+        let cache = Arc::new(GossipVerifiedPayloadBidCache::<E>::default());
+        let slot = Slot::new(1);
+        let hash = ExecutionBlockHash::zero();
+        let root = Hash256::ZERO;
+        let parent = BidParent {
+            parent_block_hash: hash,
+            parent_block_root: root,
+        };
+        assert!(
+            cache
+                .observe_bid_with_limit(make_gossip_verified(slot, 0, hash, root, 0), 2)
+                .is_ok()
+        );
+        let barrier = Arc::new(std::sync::Barrier::new(8));
+        let threads: Vec<_> = (1..=8)
+            .map(|value| {
+                let cache = cache.clone();
+                let barrier = barrier.clone();
+                std::thread::spawn(move || {
+                    barrier.wait();
+                    cache
+                        .observe_bid_with_limit(make_gossip_verified(slot, 0, hash, root, value), 2)
+                        .is_ok()
+                })
+            })
+            .collect();
+        let accepted = threads
+            .into_iter()
+            .map(|thread| usize::from(thread.join().unwrap()))
+            .sum::<usize>();
+        assert_eq!(accepted, 1);
+        assert_eq!(cache.builder_bid_count(&slot, parent, 0), 2);
+        assert_eq!(cache.builder_bid_count(&slot, parent, 1), 0);
+        assert_eq!(cache.builder_bid_count(&Slot::new(2), parent, 0), 0);
+        let fresh = GossipVerifiedPayloadBidCache::<E>::default();
+        assert!(
+            fresh
+                .observe_bid_with_limit(make_gossip_verified(slot, 0, hash, root, 10), 0)
+                .is_err()
+        );
+        assert_eq!(fresh.builder_bid_count(&slot, parent, 0), 0);
+        assert!(fresh.get_highest_bid(slot, parent).is_none());
     }
 }

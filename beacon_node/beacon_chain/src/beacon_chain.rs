@@ -7481,8 +7481,12 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             self.naive_aggregation_pool.write().prune(slot);
             self.block_times_cache.write().prune(slot);
             self.envelope_times_cache.write().prune(slot);
-            self.gossip_verified_payload_bid_cache.prune(slot);
-            self.gossip_verified_proposer_preferences_cache.prune(slot);
+            crate::payload_bid_verification::prune_gossip_caches(
+                &self.gossip_verified_payload_bid_cache,
+                &self.gossip_verified_proposer_preferences_cache,
+                &self.slot_clock,
+                &self.spec,
+            );
             self.pending_payload_envelopes.write().prune(slot);
             self.inclusion_list_store.write().prune(slot);
             self.circuit_breaker.prune(slot);
