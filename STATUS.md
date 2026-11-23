@@ -91,3 +91,7 @@ This closes integration/build qualification of the three existing fixes (R05). I
 ## Gloas reference-vector source alignment (2026-11-22)
 
 The inherited v1.7.0-beta.4 fork vectors conflict with selected consensus reference2ea9d96a on the fork-slot availability and credential-first independent builder/validator onboarding updates. Production behavior matches the selected source. A separate review is generating source-pinned reference vectors and retaining actual BLS/full-state comparisons rather than reverting or skipping the normative behavior. [Checklist](docs/qualification/gloas-vector-source-alignment-20261122.md). Two independent reference runs produce344 byte-identical files, all152 actual Rust fork/transition cases pass with real BLS (149 positive post-states and3 invalid expected outcomes), and six admission/rollback controls pass. The fixed complete simulator run and hosted full-suite CI remain pending. Independent review: https://github.com/jiayaoqijia/lighthouse/pull/5 .
+
+## 2026-11-23 eth2030 PR integration
+
+User-authorized Lighthouse-only integration is recorded in docs/qualification/eth2030-merge-20261123. PR4–12 are merged sequentially;1–3 were already contained and their duplicate reviews are closed. Final code head572fe1ff matches the qualified production source, format/all-target checks and500 scoped tests pass. Hosted integrated CI is a distinct pending gate, not a retrospective correction of old failed standalone CI or an original-incident/48h pass.

@@ -1,0 +1,148 @@
+{
+  "source": "572fe1ffb1df2e24de3989ea774ad07cd2179a31",
+  "steps": [
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--",
+        "--check"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--locked"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "-p",
+        "proto_array",
+        "-p",
+        "fork_choice",
+        "-p",
+        "state_processing",
+        "-p",
+        "beacon_chain",
+        "--lib",
+        "--",
+        "--test-threads=2"
+      ],
+      "exit": 0
+    }
+  ],
+  "library_results": [
+    "test result: ok. 379 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.79s",
+    "test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+    "test result: ok. 41 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s",
+    "test result: ok. 67 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 71.25s"
+  ],
+  "log_sha256": "276e2543a146134ba4a19c9843808a3a49828a623468f609249aa70d9329ffe4",
+  "regressions": [
+    {
+      "case": "gloas-envelope",
+      "environment": {
+        "FORK_NAME": "gloas"
+      },
+      "command": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--features",
+        "beacon_chain/fork_from_env",
+        "-p",
+        "http_api",
+        "--test",
+        "bn_http_api_tests",
+        "envelope_api",
+        "--",
+        "--test-threads=2"
+      ],
+      "exit": 0
+    },
+    {
+      "case": "fulu-snapshot",
+      "environment": {
+        "FORK_NAME": "fulu"
+      },
+      "command": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--features",
+        "fork_from_env,spec-minimal",
+        "-p",
+        "beacon_chain",
+        "--test",
+        "beacon_chain_spec_minimal_tests",
+        "schema_downgrade_to_min_version",
+        "--",
+        "--test-threads=2"
+      ],
+      "exit": 0
+    },
+    {
+      "case": "gloas-snapshot",
+      "environment": {
+        "FORK_NAME": "gloas"
+      },
+      "command": [
+        "cargo",
+        "test",
+        "--release",
+        "--locked",
+        "--features",
+        "fork_from_env,spec-minimal",
+        "-p",
+        "beacon_chain",
+        "--test",
+        "beacon_chain_spec_minimal_tests",
+        "schema_downgrade_to_min_version",
+        "--",
+        "--test-threads=2"
+      ],
+      "exit": 0
+    }
+  ],
+  "scoped_tests_passed": 500,
+  "production_source_matches_qualified3782": true,
+  "EL_modified": false,
+  "unstable_merged": false,
+  "original_fault_resolved": false,
+  "actual48h_passed": false,
+  "receipts": [
+    {
+      "artifact": "/projects/eth2030/qualification/lighthouse-merge-20261123/merged-local-checks.log",
+      "bytes": 53589,
+      "sha256": "276e2543a146134ba4a19c9843808a3a49828a623468f609249aa70d9329ffe4"
+    },
+    {
+      "artifact": "/projects/eth2030/qualification/lighthouse-merge-20261123/gloas-envelope.log",
+      "bytes": 1489,
+      "sha256": "da3296fe5c862500f5c7aa7d2bc3b2de96fc85e5d7e27ba35d14693fbcaa41aa"
+    },
+    {
+      "artifact": "/projects/eth2030/qualification/lighthouse-merge-20261123/fulu-snapshot.log",
+      "bytes": 1064,
+      "sha256": "4616f193cb470dc71a43f5e2f302efc483718826d31749c156a90fd2ef991116"
+    },
+    {
+      "artifact": "/projects/eth2030/qualification/lighthouse-merge-20261123/gloas-snapshot.log",
+      "bytes": 642,
+      "sha256": "811361604c8d125330e178ea477d81eb656d7105711f9343a8905d68e8caee42"
+    }
+  ]
+}

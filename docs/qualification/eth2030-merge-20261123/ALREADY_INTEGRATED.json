@@ -1,0 +1,41 @@
+[
+  {
+    "at": "2026-11-23T07:40:47.367291+00:00",
+    "pr": 1,
+    "head": "9b27d866c2c747abb28b760a8c52c0602c8d0d1f",
+    "contained_in_target": "572fe1ffb1df2e24de3989ea774ad07cd2179a31",
+    "retarget": {
+      "changed": false,
+      "reason": "GitHub rejects empty comparison: no new commits; head already in eth2030"
+    },
+    "final_state": "closed",
+    "merged_flag": false,
+    "disposition": "already integrated; closed redundant review, not a new merge"
+  },
+  {
+    "at": "2026-11-23T07:40:52.202594+00:00",
+    "pr": 2,
+    "head": "b57d54d45ec45b47d940a6689a2f2f8fb39b8f8a",
+    "contained_in_target": "572fe1ffb1df2e24de3989ea774ad07cd2179a31",
+    "retarget": {
+      "changed": false,
+      "reason": "GitHub rejects empty comparison: no new commits; head already in eth2030"
+    },
+    "final_state": "closed",
+    "merged_flag": false,
+    "disposition": "already integrated; closed redundant review, not a new merge"
+  },
+  {
+    "at": "2026-11-23T07:40:56.503909+00:00",
+    "pr": 3,
+    "head": "cb72ff1530715c2323aae17b03ceca2710a4cf66",
+    "contained_in_target": "572fe1ffb1df2e24de3989ea774ad07cd2179a31",
+    "retarget": {
+      "changed": false,
+      "reason": "GitHub rejects empty comparison: no new commits; head already in eth2030"
+    },
+    "final_state": "closed",
+    "merged_flag": false,
+    "disposition": "already integrated; closed redundant review, not a new merge"
+  }
+]
