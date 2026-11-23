@@ -182,13 +182,20 @@ impl InvalidPayloadRig {
 
     /// Import a block on the head's `FULL` payload and leave the head where it is. This is the
     /// window in which the early attester cache answers attestation requests on its own.
-    async fn import_block_without_recomputing_head(&self) -> Hash256 {
+    async fn import_block_without_recomputing_head(&self, forkchoice_response: Payload) -> Hash256 {
+        let mock = &self.harness.mock_execution_layer.as_ref().unwrap().server;
+        mock.all_payloads_valid_on_forkchoice_updated();
         let state = self.harness.chain.head_beacon_state_cloned();
         let slot = state.slot() + 1;
         let (contents, _, _) = self
             .harness
             .make_block_with_envelope_on(state, slot, PayloadStatus::Full)
             .await;
+        match forkchoice_response {
+            Payload::Valid => mock.all_payloads_valid_on_forkchoice_updated(),
+            Payload::Syncing => mock.all_payloads_syncing_on_forkchoice_updated(),
+            _ => panic!("this fixture imports only valid or optimistic ancestry"),
+        }
         let block_root = contents.0.canonical_root();
         self.harness
             .process_block_without_recomputing_head(slot, block_root, contents)
@@ -1352,7 +1359,9 @@ async fn gloas_optimistic_head_not_in_early_attester_cache() {
     let mut rig = InvalidPayloadRig::new();
     rig.import_block(Payload::Valid).await;
     rig.import_block(Payload::Syncing).await;
-    let head_root = rig.import_block_without_recomputing_head().await;
+    let head_root = rig
+        .import_block_without_recomputing_head(Payload::Syncing)
+        .await;
 
     let chain = &rig.harness.chain;
     assert!(!chain.early_attester_cache.contains_block(head_root));
@@ -1377,7 +1386,9 @@ async fn gloas_verified_head_in_early_attester_cache() {
     let mut rig = InvalidPayloadRig::new();
     rig.import_block(Payload::Valid).await;
     rig.import_block(Payload::Valid).await;
-    let head_root = rig.import_block_without_recomputing_head().await;
+    let head_root = rig
+        .import_block_without_recomputing_head(Payload::Valid)
+        .await;
 
     let chain = &rig.harness.chain;
     assert!(chain.early_attester_cache.contains_block(head_root));
@@ -1759,12 +1770,15 @@ async fn gloas_fcu_invalid_on_empty_head_condemns_the_parent_payload() {
     let parent_root = rig.import_block(Payload::Syncing).await;
     assert!(is_optimistic(rig.execution_status(parent_root)));
 
+    let mock = rig.harness.mock_execution_layer.as_ref().unwrap();
+    mock.server.all_payloads_valid_on_forkchoice_updated();
     let head = rig.harness.chain.head_snapshot();
     let slot = head.beacon_state.slot() + 1;
     let ((block, blobs), _envelope, _) = rig
         .harness
         .make_block_with_envelope(head.beacon_state.clone(), slot)
         .await;
+    mock.server.all_payloads_syncing_on_forkchoice_updated();
     let block_root = block.canonical_root();
     rig.harness
         .process_block(slot, block_root, (block, blobs))
@@ -1820,6 +1834,8 @@ async fn gloas_invalid_payload_rejects_only_full_children() {
         .unwrap();
     let child_slot = block.slot() + 1;
 
+    let mock = &rig.harness.mock_execution_layer.as_ref().unwrap().server;
+    mock.all_payloads_valid_on_forkchoice_updated();
     let ((full_child, full_child_blobs), _, full_child_state) = rig
         .harness
         .make_block_with_envelope_on(
@@ -1828,6 +1844,7 @@ async fn gloas_invalid_payload_rejects_only_full_children() {
             proto_array::PayloadStatus::Full,
         )
         .await;
+    mock.all_payloads_syncing_on_forkchoice_updated();
     let full_child_root = full_child.canonical_root();
     let result = rig
         .harness
@@ -1868,6 +1885,7 @@ async fn gloas_invalid_payload_rejects_only_full_children() {
         }
     )));
 
+    mock.all_payloads_valid_on_forkchoice_updated();
     let ((empty_child, empty_child_blobs), _, _) = rig
         .harness
         .make_block_with_envelope_on(
@@ -1876,6 +1894,7 @@ async fn gloas_invalid_payload_rejects_only_full_children() {
             proto_array::PayloadStatus::Empty,
         )
         .await;
+    mock.all_payloads_syncing_on_forkchoice_updated();
     rig.harness
         .process_block(
             child_slot,
@@ -1912,6 +1931,8 @@ async fn gloas_invalid_payload_keeps_its_block_viable_on_empty() {
         .get_hot_state(block.state_root().into())
         .unwrap();
     let child_slot = block.slot() + 1;
+    let mock = &rig.harness.mock_execution_layer.as_ref().unwrap().server;
+    mock.all_payloads_valid_on_forkchoice_updated();
     let ((child, child_blobs), _, _) = rig
         .harness
         .make_block_with_envelope_on(
@@ -1920,6 +1941,7 @@ async fn gloas_invalid_payload_keeps_its_block_viable_on_empty() {
             proto_array::PayloadStatus::Empty,
         )
         .await;
+    mock.all_payloads_syncing_on_forkchoice_updated();
     let child_root = child.canonical_root();
     rig.harness
         .process_block(child_slot, child_root, (child, child_blobs))
