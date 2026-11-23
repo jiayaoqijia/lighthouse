@@ -1625,6 +1625,20 @@ fn gloas_bid_gossip_clock_disparity_applies_at_both_slot_edges() {
     let tolerance = ctx.spec.maximum_gossip_clock_disparity();
     seed_preferences(&ctx, Slot::new(1), Address::ZERO, 30_000_000);
     seed_preferences(&ctx, Slot::new(3), Address::ZERO, 30_000_000);
+    // A prior valid bid consumes one of the two balance-backed credits.
+    ctx.slot_clock
+        .set_current_time(ctx.spec.get_slot_duration() + tolerance);
+    let initial = ctx.sign_bid(ExecutionPayloadBidGloas {
+        slot: Slot::new(1),
+        builder_index: 0,
+        fee_recipient: Address::ZERO,
+        gas_limit: 30_000_000,
+        parent_block_root: ctx.genesis_block_root,
+        parent_block_hash: ctx.execution_parent_hash(),
+        prev_randao: ctx.expected_prev_randao(),
+        ..ExecutionPayloadBidGloas::default()
+    });
+    assert!(GossipVerifiedPayloadBid::new(initial, &ctx.gossip_ctx()).is_ok());
     for (i, (time, slot, allowed)) in [
         (
             boundary - tolerance - Duration::from_millis(1),
@@ -1643,6 +1657,12 @@ fn gloas_bid_gossip_clock_disparity_applies_at_both_slot_edges() {
     .enumerate()
     {
         ctx.slot_clock.set_current_time(time);
+        crate::payload_bid_verification::prune_gossip_caches(
+            &ctx.bid_cache,
+            &ctx.preferences_cache,
+            &ctx.slot_clock,
+            &ctx.spec,
+        );
         let bid = ctx.sign_bid(ExecutionPayloadBidGloas {
             slot,
             builder_index: 0,
@@ -1655,6 +1675,32 @@ fn gloas_bid_gossip_clock_disparity_applies_at_both_slot_edges() {
             ..ExecutionPayloadBidGloas::default()
         });
         let result = GossipVerifiedPayloadBid::new(bid, &ctx.gossip_ctx());
+        if allowed && slot == Slot::new(1) {
+            let parent = BidParent {
+                parent_block_hash: ctx.execution_parent_hash(),
+                parent_block_root: ctx.genesis_block_root,
+            };
+            assert_eq!(
+                ctx.bid_cache.builder_bid_count(&slot, parent, 0),
+                2,
+                "timer reset prior-slot quota"
+            );
+            let excess = ctx.sign_bid(ExecutionPayloadBidGloas {
+                slot,
+                builder_index: 0,
+                fee_recipient: Address::ZERO,
+                gas_limit: 30_000_000,
+                value: 100,
+                parent_block_root: ctx.genesis_block_root,
+                parent_block_hash: ctx.execution_parent_hash(),
+                prev_randao: ctx.expected_prev_randao(),
+                ..ExecutionPayloadBidGloas::default()
+            });
+            assert!(matches!(
+                GossipVerifiedPayloadBid::new(excess, &ctx.gossip_ctx()),
+                Err(PayloadBidError::BuilderAlreadySeen { .. })
+            ));
+        }
         if allowed {
             assert!(
                 result.is_ok(),

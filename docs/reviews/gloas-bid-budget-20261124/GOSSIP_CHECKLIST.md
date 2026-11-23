@@ -18,6 +18,7 @@ Authority: current specs/gloas/p2p-interface.md at d2021d27. This groups the nor
 | Bid budget | Whole ETH of balance minus both pending withdrawal/payment collections; saturation at zero. |
 | Collateral and exit | Bid coverage and matching parent execution-address/pubkey exit requests remain enforced. |
 | Signature | Correct state/fork/domain/registered key; failure creates no cache credit. |
+| Timer lifecycle | Both quota/highest-bid and preference caches share the clock-aware retention cutoff; a valid prior credit survives and an excess signed update stays ignored. |
 | Atomic publication | Post-signature count/highest-value admission is atomic; independent parent/slot/builder keys and pruning. |
 | Proposer/direct route | Directly requested proposer bids retain independent verification and candidate selection; gossip excess is not forwarded. |
 
