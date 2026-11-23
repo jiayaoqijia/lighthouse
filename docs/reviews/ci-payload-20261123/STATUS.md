@@ -5,3 +5,5 @@ Original selected failures reproduced. After repair31 beacon invalidation/deferr
 The complete local Fulu mainnet API/library invocation now passes216/216,0 skipped, including the105 cases previously left unrun by fail-fast. This used source59778dc9 before merging the separately verified url correction; generated binary identity is not relabelled to the new merge. Locked workspace/all-target recheck and Gloas controls on the combined source are being verified.
 
 Merged target URL correction without conflicts; the combined locked workspace/all-target check also passes. The next PR head starts a fresh hosted matrix on that composition. Earlier source-specific216-pass/API and31-pass/beacon receipts are retained without substituting for the new hosted result.
+
+The expanded Gloas and minimal regressions are now reproduced and repaired as recorded in VALIDATION.json. Remaining full hosted profiles are still required on the final PR composition; earlier failures remain retained.

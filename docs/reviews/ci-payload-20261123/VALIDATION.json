@@ -31,5 +31,21 @@
   "locked_workspace_all_targets_after_url_merge": {
     "passed": true,
     "source": "d4ca54ee6054a77789e6d4f37b6fb38547b1e925"
+  },
+  "expanded_gloas_regressions": {
+    "baseline_failed": 4,
+    "repaired_framework_passes": 31,
+    "repaired_failures": 0,
+    "source_content": "91d709b6279822d032e011aef79c3480d4ace539",
+    "scope": "Selected mainnet invalidation/deferred controls; source guards mean not every test body runs on each fork."
+  },
+  "minimal_regressions": {
+    "gloas_baseline_failed": 2,
+    "fulu_baseline_failed": 1,
+    "repaired_failures": 0,
+    "gloas_active_cases_passed": 2,
+    "fulu_active_cases_passed": 1,
+    "other_fork_cases": "Existing guard returns retained, not counted as additional executed-path coverage.",
+    "repaired_source": "78d99d3eba7513e0957af16950653b1509b4887d"
   }
 }
