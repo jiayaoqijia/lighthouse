@@ -1,0 +1,27 @@
+   Compiling eth2_network_config v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2_network_config)
+   Compiling fork_choice v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/fork_choice)
+   Compiling slasher v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/slasher)
+   Compiling proof_engine v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/proof_engine)
+   Compiling clap_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/clap_utils)
+   Compiling directory v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/directory)
+   Compiling eth2 v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2)
+   Compiling store v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/store)
+   Compiling operation_pool v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/operation_pool)
+   Compiling builder_client v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/builder_client)
+   Compiling lighthouse_network v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/lighthouse_network)
+   Compiling execution_layer v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/execution_layer)
+   Compiling beacon_processor v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/beacon_processor)
+   Compiling beacon_chain v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/beacon_chain)
+   Compiling network v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/network)
+   Compiling ef_tests v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/testing/ef_tests)
+    Finished `release` profile [optimized] target(s) in 1m 14s
+     Running tests/tests.rs (/projects/eth2030/lighthouse/target/release/deps/tests-4457ac14db6975cf)
+
+running 2 tests
+Passed 42 tests in /projects/eth2030/lighthouse-gloas-vector-alignment/testing/ef_tests/consensus-spec-tests/tests/mainnet/gloas/fork/fork
+test gloas_source_pinned_fork_upgrade ... ok
+Passed 29 tests in /projects/eth2030/lighthouse-gloas-vector-alignment/testing/ef_tests/consensus-spec-tests/tests/mainnet/gloas/transition/core
+test gloas_source_pinned_transition ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 80 filtered out; finished in 9.03s
+

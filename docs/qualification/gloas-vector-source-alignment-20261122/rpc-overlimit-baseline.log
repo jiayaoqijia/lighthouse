@@ -1,0 +1,206 @@
+   Compiling fixed_bytes v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/fixed_bytes)
+   Compiling kzg v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/crypto/kzg)
+   Compiling hyper-rustls v0.27.10
+   Compiling bls v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/crypto/bls)
+   Compiling eth2_interop_keypairs v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2_interop_keypairs)
+   Compiling merkle_proof v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/merkle_proof)
+   Compiling swap_or_not_shuffle v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/swap_or_not_shuffle)
+   Compiling types v0.2.1 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/types)
+   Compiling metrics v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/metrics)
+   Compiling reqwest v0.12.28
+   Compiling libp2p-tls v0.7.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling pretty_reqwest_error v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/pretty_reqwest_error)
+   Compiling logging v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/logging)
+   Compiling libp2p-quic v0.14.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling eth2_key_derivation v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/crypto/eth2_key_derivation)
+   Compiling eth2_keystore v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/crypto/eth2_keystore)
+   Compiling libp2p v0.58.0 (https://github.com/fyInALT/rust-libp2p?rev=12b1ee829d7a109d85ed8d543265c2a36b33bbc3#12b1ee82)
+   Compiling network_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/network_utils)
+   Compiling task_executor v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/task_executor)
+   Compiling eth2_config v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2_config)
+   Compiling eth2_network_config v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2_network_config)
+   Compiling proto_array v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/proto_array)
+   Compiling state_processing v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/state_processing)
+   Compiling fork_choice v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/fork_choice)
+   Compiling clap_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/clap_utils)
+   Compiling builder_types v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/builder_types)
+   Compiling eip_3076 v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eip_3076)
+   Compiling eth2 v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2)
+   Compiling directory v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/directory)
+   Compiling lighthouse_network v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/lighthouse_network)
+    Finished `release` profile [optimized] target(s) in 53.53s
+     Running tests/main.rs (/projects/eth2030/lighthouse/target/release/deps/lighthouse_network_tests-d656a43d1f4ede02)
+
+running 1 test
+2026-11-22T06:08:43.395896Z DEBUG lighthouse_network::discovery::enr: ENR written to disk
+2026-11-22T06:08:43.395921Z DEBUG lighthouse_network::service::utils: Metadata sequence number seq_num=0
+2026-11-22T06:08:43.395943Z DEBUG lighthouse_network::service::utils: Metadata written to disk
+2026-11-22T06:08:43.395962Z DEBUG lighthouse_network::types::globals: Starting node with custody params cgc=4 sampling_subnets={64, 85, 59, 123, 58, 54, 42, 13}
+2026-11-22T06:08:43.397143Z DEBUG lighthouse_network::rpc::self_limiter: Using self rate limiting params config=None
+2026-11-22T06:08:43.397157Z  INFO lighthouse_network::discovery: ENR Initialised enr="enr:-Ly4QCQzJ-5pSdlI5tLXiTP63-gXb1c14Fnq0q23KkvMwl5-MMJDYCmutm1ND71riFXSr-iDGxP42OnWyPFPa5Jpf30Bh2F0dG5ldHOIAAAAAAAAAACDY2djBIRldGgykAAAAAAAAAAAAAAAAAAAAACCaWSCdjSCaXCEfwAAAYNuZmSEY_F0HIlzZWNwMjU2azGhA-XqkEbtvMprHH-qD2qD5pm-oEUCj3gZJE-EyHrf6cWsiHN5bmNuZXRzAA" seq=1 id=0xbf53..7725 ip4=Some(127.0.0.1) udp4=None tcp4=None tcp6=None udp6=None quic4=None quic6=None
+2026-11-22T06:08:43.397604Z DEBUG lighthouse_network::discovery: Discovery service started
+2026-11-22T06:08:43.397617Z DEBUG lighthouse_network::discovery: Starting a peer discovery request target_peers=16
+2026-11-22T06:08:43.398268Z  INFO libp2p_swarm: local_peer_id=16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19
+2026-11-22T06:08:43.398292Z  INFO lighthouse_network::service: Libp2p Starting peer_id=16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19 bandwidth_config="3-Average"
+2026-11-22T06:08:43.398297Z DEBUG lighthouse_network::service: Attempting to open listening ports listen_addrs=V4(ListenAddr { addr: 0.0.0.0, disc_port: 0, quic_port: 0, tcp_port: 0 }) discovery_enabled=true quic_enabled=true
+2026-11-22T06:08:43.398307Z DEBUG libp2p_core::transport::choice: Failed to listen on address using libp2p_core::transport::dummy::DummyTransport<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)> address=/ip4/0.0.0.0/tcp/0
+2026-11-22T06:08:43.398321Z DEBUG libp2p_tcp: listening on 0.0.0.0:0
+2026-11-22T06:08:43.398408Z  INFO lighthouse_network::service: Listening established address=/ip4/0.0.0.0/tcp/0/p2p/16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19
+2026-11-22T06:08:43.398415Z DEBUG libp2p_core::transport::choice: Failed to listen on address using libp2p_core::transport::dummy::DummyTransport<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)> address=/ip4/0.0.0.0/udp/0/quic-v1
+2026-11-22T06:08:43.398419Z DEBUG libp2p_core::transport::choice: Failed to listen on address using libp2p_core::transport::boxed::Boxed<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)> address=/ip4/0.0.0.0/udp/0/quic-v1
+2026-11-22T06:08:43.398588Z  INFO lighthouse_network::service: Listening established address=/ip4/0.0.0.0/udp/0/quic-v1/p2p/16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19
+2026-11-22T06:08:43.399582Z DEBUG lighthouse_network::discovery::enr: ENR written to disk
+2026-11-22T06:08:43.399593Z DEBUG lighthouse_network::service::utils: Metadata sequence number seq_num=0
+2026-11-22T06:08:43.399612Z DEBUG lighthouse_network::service::utils: Metadata written to disk
+2026-11-22T06:08:43.399619Z DEBUG lighthouse_network::types::globals: Starting node with custody params cgc=4 sampling_subnets={11, 89, 99, 22, 100, 40, 5, 110}
+2026-11-22T06:08:43.400637Z DEBUG lighthouse_network::rpc::self_limiter: Using self rate limiting params config=None
+2026-11-22T06:08:43.400647Z  INFO lighthouse_network::discovery: ENR Initialised enr="enr:-Ly4QG_bc1YwWNxWZ8IV25mIPTmaidwz7kS07BPJx8er-Mj9BbG5lC1CmJsnJL1Vny1psVTinX7d2kMHHbZzVO9plgUBh2F0dG5ldHOIAAAAAAAAAACDY2djBIRldGgykAAAAAAAAAAAAAAAAAAAAACCaWSCdjSCaXCEfwAAAYNuZmSEY_F0HIlzZWNwMjU2azGhAm2h5lsCrdYHcAI23kFadwkGr_pNLDko_J9ke--HALYGiHN5bmNuZXRzAA" seq=1 id=0x3713..9b58 ip4=Some(127.0.0.1) udp4=None tcp4=None tcp6=None udp6=None quic4=None quic6=None
+2026-11-22T06:08:43.401048Z DEBUG lighthouse_network::discovery: Discovery service started
+2026-11-22T06:08:43.401057Z DEBUG lighthouse_network::discovery: Starting a peer discovery request target_peers=16
+2026-11-22T06:08:43.401482Z  INFO libp2p_swarm: local_peer_id=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM
+2026-11-22T06:08:43.401505Z  INFO lighthouse_network::service: Libp2p Starting peer_id=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM bandwidth_config="3-Average"
+2026-11-22T06:08:43.401510Z DEBUG lighthouse_network::service: Attempting to open listening ports listen_addrs=V4(ListenAddr { addr: 0.0.0.0, disc_port: 0, quic_port: 0, tcp_port: 0 }) discovery_enabled=true quic_enabled=true
+2026-11-22T06:08:43.401514Z DEBUG libp2p_core::transport::choice: Failed to listen on address using libp2p_core::transport::dummy::DummyTransport<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)> address=/ip4/0.0.0.0/tcp/0
+2026-11-22T06:08:43.401523Z DEBUG libp2p_tcp: listening on 0.0.0.0:0
+2026-11-22T06:08:43.401586Z  INFO lighthouse_network::service: Listening established address=/ip4/0.0.0.0/tcp/0/p2p/16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM
+2026-11-22T06:08:43.401594Z DEBUG libp2p_core::transport::choice: Failed to listen on address using libp2p_core::transport::dummy::DummyTransport<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)> address=/ip4/0.0.0.0/udp/0/quic-v1
+2026-11-22T06:08:43.401597Z DEBUG libp2p_core::transport::choice: Failed to listen on address using libp2p_core::transport::boxed::Boxed<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)> address=/ip4/0.0.0.0/udp/0/quic-v1
+2026-11-22T06:08:43.401731Z  INFO lighthouse_network::service: Listening established address=/ip4/0.0.0.0/udp/0/quic-v1/p2p/16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM
+2026-11-22T06:08:43.401760Z DEBUG Sender{who="sender"}:Swarm::poll: lighthouse_network::peer_manager: Starting a new peer discovery query connected=0 target=200 outbound=0 wanted=220
+2026-11-22T06:08:43.402088Z DEBUG Sender{who="sender"}:Swarm::poll: lighthouse_network::discovery: Discovery query yielded no results.
+2026-11-22T06:08:43.402096Z DEBUG Sender{who="sender"}:Swarm::poll: lighthouse_network::discovery: Discv5 event stream ready
+2026-11-22T06:08:43.402163Z DEBUG Sender{who="sender"}:Swarm::poll: libp2p_tcp: New listen address address=/ip4/127.0.0.1/tcp/41551
+2026-11-22T06:08:43.402179Z DEBUG Sender{who="sender"}:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/127.0.0.1/tcp/41551
+2026-11-22T06:08:43.402248Z DEBUG Sender{who="sender"}:Swarm::poll: lighthouse_network::discovery::enr: ENR written to disk
+2026-11-22T06:08:43.402253Z  INFO Sender{who="sender"}:Swarm::poll: lighthouse_network::discovery: Updated local ENR enr="enr:-MO4QGrkemaqEQSb9zUaI9B-dG-t5flfpBID6HcKlXhmnoxmAoHbENubEoX6V9w0hyj_dh04ziJ4Gwj9t85iRpG3rzQCh2F0dG5ldHOIAAAAAAAAAACDY2djBIRldGgykAAAAAAAAAAAAAAAAAAAAACCaWSCdjSCaXCEfwAAAYNuZmSEY_F0HIlzZWNwMjU2azGhA-XqkEbtvMprHH-qD2qD5pm-oEUCj3gZJE-EyHrf6cWsiHN5bmNuZXRzAIN0Y3CCok8" seq=2 id=0xbf53..7725 ip4=Some(127.0.0.1) udp4=None tcp4=Some(41551) tcp6=None udp6=None
+2026-11-22T06:08:43.402261Z DEBUG Sender{who="sender"}:Swarm::poll: libp2p_upnp::behaviour: multiaddress not supported for UPnP /ip4/127.0.0.1/tcp/41551
+2026-11-22T06:08:43.402276Z DEBUG Receiver{who="receiver"}:Swarm::poll: lighthouse_network::peer_manager: Starting a new peer discovery query connected=0 target=200 outbound=0 wanted=220
+2026-11-22T06:08:43.402372Z DEBUG Receiver{who="receiver"}:Swarm::poll: lighthouse_network::discovery: Discovery query yielded no results.
+2026-11-22T06:08:43.402377Z DEBUG Receiver{who="receiver"}:Swarm::poll: lighthouse_network::discovery: Discv5 event stream ready
+2026-11-22T06:08:43.402443Z DEBUG Receiver{who="receiver"}:Swarm::poll: libp2p_tcp: New listen address address=/ip4/127.0.0.1/tcp/44241
+2026-11-22T06:08:43.402448Z DEBUG Receiver{who="receiver"}:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/127.0.0.1/tcp/44241
+2026-11-22T06:08:43.402514Z DEBUG Receiver{who="receiver"}:Swarm::poll: lighthouse_network::discovery::enr: ENR written to disk
+2026-11-22T06:08:43.402519Z  INFO Receiver{who="receiver"}:Swarm::poll: lighthouse_network::discovery: Updated local ENR enr="enr:-MO4QJsGDO5CZvkW7GXqQW5oDbuOGA5fccEdKGmwY4-pbCyUVN9Q6SBKIzR1ZoluoAQHskH6NdlgMq1S3EkRqnGSdq0Ch2F0dG5ldHOIAAAAAAAAAACDY2djBIRldGgykAAAAAAAAAAAAAAAAAAAAACCaWSCdjSCaXCEfwAAAYNuZmSEY_F0HIlzZWNwMjU2azGhAm2h5lsCrdYHcAI23kFadwkGr_pNLDko_J9ke--HALYGiHN5bmNuZXRzAIN0Y3CCrNE" seq=2 id=0x3713..9b58 ip4=Some(127.0.0.1) udp4=None tcp4=Some(44241) tcp6=None udp6=None
+2026-11-22T06:08:43.402524Z DEBUG Receiver{who="receiver"}:Swarm::poll: libp2p_upnp::behaviour: multiaddress not supported for UPnP /ip4/127.0.0.1/tcp/44241
+2026-11-22T06:08:43.402535Z DEBUG libp2p_core::transport::choice: Failed to dial using libp2p_core::transport::map::Map<libp2p_core::transport::boxed::Boxed<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)>, libp2p::builder::phase::other_transport::<impl libp2p::builder::SwarmBuilder<libp2p::builder::phase::provider::Tokio, libp2p::builder::phase::other_transport::OtherTransportPhase<libp2p_core::transport::dummy::DummyTransport<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)>>>>::with_other_transport<libp2p_core::muxing::boxed::StreamMuxerBox, libp2p_core::transport::boxed::Boxed<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)>, libp2p_core::transport::boxed::Boxed<(libp2p_identity::peer_id::PeerId, libp2p_core::muxing::boxed::StreamMuxerBox)>, lighthouse_network::service::Network<types::core::eth_spec::MinimalEthSpec>::new::{{closure}}::{{closure}}>::{{closure}}> address=/ip4/127.0.0.1/tcp/44241
+2026-11-22T06:08:43.402570Z DEBUG lighthouse_network_tests::common: Sender dialed receiver address=/ip4/127.0.0.1/tcp/44241
+2026-11-22T06:08:43.412191Z DEBUG Receiver:Swarm::poll: libp2p_tcp: New listen address address=/ip4/10.1.1.49/tcp/44241
+2026-11-22T06:08:43.412214Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/10.1.1.49/tcp/44241
+2026-11-22T06:08:43.412240Z DEBUG Receiver:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.22.0.1/tcp/44241
+2026-11-22T06:08:43.412244Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/172.22.0.1/tcp/44241
+2026-11-22T06:08:43.412252Z DEBUG Receiver:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.19.0.1/tcp/44241
+2026-11-22T06:08:43.412256Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/172.19.0.1/tcp/44241
+2026-11-22T06:08:43.412262Z DEBUG Receiver:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.25.0.1/tcp/44241
+2026-11-22T06:08:43.412265Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/172.25.0.1/tcp/44241
+2026-11-22T06:08:43.412271Z DEBUG Receiver:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.24.0.1/tcp/44241
+2026-11-22T06:08:43.412274Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/172.24.0.1/tcp/44241
+2026-11-22T06:08:43.412278Z DEBUG Receiver:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.17.0.1/tcp/44241
+2026-11-22T06:08:43.412281Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/172.17.0.1/tcp/44241
+2026-11-22T06:08:43.412287Z DEBUG Receiver:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.21.0.1/tcp/44241
+2026-11-22T06:08:43.412290Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/172.21.0.1/tcp/44241
+2026-11-22T06:08:43.412295Z DEBUG Receiver:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.20.0.1/tcp/44241
+2026-11-22T06:08:43.412298Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/172.20.0.1/tcp/44241
+2026-11-22T06:08:43.412308Z DEBUG Receiver:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.23.0.1/tcp/44241
+2026-11-22T06:08:43.412311Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/172.23.0.1/tcp/44241
+2026-11-22T06:08:43.412316Z DEBUG Receiver:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.16.0.3/tcp/44241
+2026-11-22T06:08:43.412319Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(3) address=/ip4/172.16.0.3/tcp/44241
+2026-11-22T06:08:43.412354Z DEBUG Receiver:Swarm::poll: libp2p_tcp: Incoming connection from remote at local remote_address=/ip4/127.0.0.1/tcp/41551 local_address=/ip4/127.0.0.1/tcp/44241
+2026-11-22T06:08:43.412477Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/127.0.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412485Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/127.0.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412602Z DEBUG Receiver:Swarm::poll: lighthouse_network::discovery::enr: ENR written to disk
+2026-11-22T06:08:43.412612Z  INFO Receiver:Swarm::poll: lighthouse_network::discovery: Updated local ENR enr="enr:-Mu4QLbOAJO4n04mdfC2jZwbM-efl72Jj82uJKbDg_Zmv4LTT3EUY2bLBCZ5YwYN0_34dvq4UpvSoehlys7MCqo0IKgDh2F0dG5ldHOIAAAAAAAAAACDY2djBIRldGgykAAAAAAAAAAAAAAAAAAAAACCaWSCdjSCaXCEfwAAAYNuZmSEY_F0HIRxdWljgreXiXNlY3AyNTZrMaECbaHmWwKt1gdwAjbeQVp3CQav-k0sOSj8n2R774cAtgaIc3luY25ldHMAg3RjcIKs0Q" seq=3 id=0x3713..9b58 ip4=Some(127.0.0.1) udp4=None tcp4=Some(44241) tcp6=None udp6=None
+2026-11-22T06:08:43.412620Z DEBUG Receiver:Swarm::poll: libp2p_upnp::behaviour: multiaddress not supported for UPnP /ip4/127.0.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412632Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/10.1.1.49/udp/46999/quic-v1
+2026-11-22T06:08:43.412636Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/10.1.1.49/udp/46999/quic-v1
+2026-11-22T06:08:43.412644Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.22.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412647Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/172.22.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412653Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.19.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412656Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/172.19.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412663Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.25.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412665Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/172.25.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412672Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.24.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412674Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/172.24.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412687Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.17.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412690Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/172.17.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412696Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.21.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412699Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/172.21.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412705Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.20.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412707Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/172.20.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412713Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.23.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412715Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/172.23.0.1/udp/46999/quic-v1
+2026-11-22T06:08:43.412721Z DEBUG Receiver:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.16.0.3/udp/46999/quic-v1
+2026-11-22T06:08:43.412723Z DEBUG Receiver:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(4) address=/ip4/172.16.0.3/udp/46999/quic-v1
+2026-11-22T06:08:43.412747Z DEBUG Sender:Swarm::poll: libp2p_tcp: New listen address address=/ip4/10.1.1.49/tcp/41551
+2026-11-22T06:08:43.412751Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/10.1.1.49/tcp/41551
+2026-11-22T06:08:43.412759Z DEBUG Sender:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.22.0.1/tcp/41551
+2026-11-22T06:08:43.412767Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/172.22.0.1/tcp/41551
+2026-11-22T06:08:43.412773Z DEBUG Sender:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.19.0.1/tcp/41551
+2026-11-22T06:08:43.412776Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/172.19.0.1/tcp/41551
+2026-11-22T06:08:43.412782Z DEBUG Sender:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.25.0.1/tcp/41551
+2026-11-22T06:08:43.412784Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/172.25.0.1/tcp/41551
+2026-11-22T06:08:43.412790Z DEBUG Sender:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.24.0.1/tcp/41551
+2026-11-22T06:08:43.412792Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/172.24.0.1/tcp/41551
+2026-11-22T06:08:43.412797Z DEBUG Sender:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.17.0.1/tcp/41551
+2026-11-22T06:08:43.412800Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/172.17.0.1/tcp/41551
+2026-11-22T06:08:43.412804Z DEBUG Sender:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.21.0.1/tcp/41551
+2026-11-22T06:08:43.412807Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/172.21.0.1/tcp/41551
+2026-11-22T06:08:43.412812Z DEBUG Sender:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.20.0.1/tcp/41551
+2026-11-22T06:08:43.412815Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/172.20.0.1/tcp/41551
+2026-11-22T06:08:43.412821Z DEBUG Sender:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.23.0.1/tcp/41551
+2026-11-22T06:08:43.412823Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/172.23.0.1/tcp/41551
+2026-11-22T06:08:43.412828Z DEBUG Sender:Swarm::poll: libp2p_tcp: New listen address address=/ip4/172.16.0.3/tcp/41551
+2026-11-22T06:08:43.412831Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(1) address=/ip4/172.16.0.3/tcp/41551
+2026-11-22T06:08:43.412911Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/127.0.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.412916Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/127.0.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.412982Z DEBUG Sender:Swarm::poll: lighthouse_network::discovery::enr: ENR written to disk
+2026-11-22T06:08:43.412987Z  INFO Sender:Swarm::poll: lighthouse_network::discovery: Updated local ENR enr="enr:-Mu4QFQc6THqXKfwq2qL7G7hPQpdYO0qm7wdxMPLnDt1MVp5LY2xr8kB2YdxEVydzIMn8Anc9LlfqRSmqjBAYbUsLEQDh2F0dG5ldHOIAAAAAAAAAACDY2djBIRldGgykAAAAAAAAAAAAAAAAAAAAACCaWSCdjSCaXCEfwAAAYNuZmSEY_F0HIRxdWljgtQwiXNlY3AyNTZrMaED5eqQRu28ymscf6oPaoPmmb6gRQKPeBkkT4TIet_pxayIc3luY25ldHMAg3RjcIKiTw" seq=3 id=0xbf53..7725 ip4=Some(127.0.0.1) udp4=None tcp4=Some(41551) tcp6=None udp6=None
+2026-11-22T06:08:43.412993Z DEBUG Sender:Swarm::poll: libp2p_upnp::behaviour: multiaddress not supported for UPnP /ip4/127.0.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413003Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/10.1.1.49/udp/54320/quic-v1
+2026-11-22T06:08:43.413006Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/10.1.1.49/udp/54320/quic-v1
+2026-11-22T06:08:43.413013Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.22.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413016Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/172.22.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413022Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.19.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413029Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/172.19.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413036Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.25.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413038Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/172.25.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413044Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.24.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413047Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/172.24.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413059Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.17.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413062Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/172.17.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413068Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.21.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413071Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/172.21.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413077Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.20.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413080Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/172.20.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413086Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.23.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413088Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/172.23.0.1/udp/54320/quic-v1
+2026-11-22T06:08:43.413094Z DEBUG Sender:Swarm::poll: libp2p_quic::transport: New listen address address=/ip4/172.16.0.3/udp/54320/quic-v1
+2026-11-22T06:08:43.413096Z DEBUG Sender:Swarm::poll: libp2p_swarm: New listener address listener=ListenerId(2) address=/ip4/172.16.0.3/udp/54320/quic-v1
+2026-11-22T06:08:43.413161Z DEBUG Receiver:Swarm::poll: libp2p_gossipsub::behaviour: Sending Rpc peer_id=16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19 rpc=Extensions(Extensions { partial_messages: Some(true) })
+2026-11-22T06:08:43.413238Z DEBUG Receiver:Swarm::poll: libp2p_swarm: Connection established peer=16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19 endpoint=Listener { local_addr: /ip4/127.0.0.1/tcp/44241, send_back_addr: /ip4/127.0.0.1/tcp/41551 } total_peers=1
+2026-11-22T06:08:43.413246Z DEBUG Receiver:Swarm::poll: lighthouse_network::peer_manager::network_behaviour: Connection established multiaddr=/ip4/127.0.0.1/tcp/41551 connection=Listener peer_id=16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19
+2026-11-22T06:08:43.413269Z DEBUG Receiver:Swarm::poll: libp2p_gossipsub::behaviour: New peer connected peer=16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19
+2026-11-22T06:08:43.413303Z DEBUG Sender:Swarm::poll: libp2p_gossipsub::behaviour: Sending Rpc peer_id=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM rpc=Extensions(Extensions { partial_messages: Some(true) })
+2026-11-22T06:08:43.413374Z DEBUG Sender:Swarm::poll: libp2p_swarm: Connection established peer=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM endpoint=Dialer { address: /ip4/127.0.0.1/tcp/44241, role_override: Dialer, port_use: Reuse } total_peers=1
+2026-11-22T06:08:43.413381Z DEBUG Sender:Swarm::poll: lighthouse_network::peer_manager::network_behaviour: Connection established multiaddr=/ip4/127.0.0.1/tcp/44241 connection=Dialer peer_id=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM
+2026-11-22T06:08:43.413396Z DEBUG Sender:Swarm::poll: libp2p_gossipsub::behaviour: New peer connected peer=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM
+2026-11-22T06:08:43.413404Z DEBUG Sender: lighthouse_network_tests::rpc_tests: Sending RPC
+2026-11-22T06:08:43.413521Z DEBUG Sender:Swarm::poll: libp2p_gossipsub::behaviour: New peer type found for peer peer=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM peer_type=Gossipsub v1.3
+2026-11-22T06:08:43.413536Z DEBUG Receiver:Swarm::poll: libp2p_gossipsub::behaviour: New peer type found for peer peer=16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19 peer_type=Gossipsub v1.3
+2026-11-22T06:08:43.413747Z DEBUG Sender: lighthouse_network::service: More than 10 addresses have been identified, truncating
+2026-11-22T06:08:43.413756Z DEBUG Sender: lighthouse_network::peer_manager: Identified Peer peer_id=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM protocol_version="eth2/1.0.0" agent_version="Lighthouse/v8.4.0-rc.0-b9aff51/x86_64-linux" listening_addresses=[/ip4/172.23.0.1/udp/46999/quic-v1, /ip4/172.21.0.1/udp/46999/quic-v1, /ip4/172.22.0.1/tcp/44241, /ip4/172.25.0.1/udp/46999/quic-v1, /ip4/172.20.0.1/tcp/44241, /ip4/172.19.0.1/tcp/44241, /ip4/127.0.0.1/udp/46999/quic-v1, /ip4/127.0.0.1/tcp/44241, /ip4/172.16.0.3/udp/46999/quic-v1, /ip4/172.21.0.1/tcp/44241] observed_address=/ip4/127.0.0.1/tcp/41551 protocols=["/eth2/beacon_chain/req/data_column_sidecars_by_range/1/ssz_snappy", "/eth2/beacon_chain/req/light_client_finality_update/1/ssz_snappy", "/meshsub/1.0.0", "/eth2/beacon_chain/req/inclusion_lists_by_indices/1/ssz_snappy", "/eth2/beacon_chain/req/execution_payload_envelopes_by_range/1/ssz_snappy", "/eth2/beacon_chain/req/goodbye/1/ssz_snappy", "/eth2/beacon_chain/req/metadata/1/ssz_snappy", "/eth2/beacon_chain/req/data_column_sidecars_by_root/1/ssz_snappy", "/eth2/beacon_chain/req/beacon_blocks_by_root/2/ssz_snappy", "/eth2/beacon_chain/req/beacon_blocks_by_root/1/ssz_snappy", "/meshsub/1.1.0", "/eth2/beacon_chain/req/metadata/3/ssz_snappy", "/eth2/beacon_chain/req/beacon_blocks_by_range/2/ssz_snappy", "/meshsub/1.3.0", "/eth2/beacon_chain/req/status/1/ssz_snappy", "/eth2/beacon_chain/req/beacon_blocks_by_range/1/ssz_snappy", "/eth2/beacon_chain/req/metadata/2/ssz_snappy", "/meshsub/1.2.0", "/ipfs/id/push/1.0.0", "/eth2/beacon_chain/req/blob_sidecars_by_root/1/ssz_snappy", "/ipfs/id/1.0.0", "/eth2/beacon_chain/req/beacon_blocks_by_head/1/ssz_snappy", "/eth2/beacon_chain/req/light_client_bootstrap/1/ssz_snappy", "/eth2/beacon_chain/req/ping/1/ssz_snappy", "/eth2/beacon_chain/req/light_client_optimistic_update/1/ssz_snappy", "/eth2/beacon_chain/req/status/2/ssz_snappy", "/eth2/beacon_chain/req/light_client_updates_by_range/1/ssz_snappy", "/eth2/beacon_chain/req/execution_payload_envelopes_by_root/1/ssz_snappy", "/eth2/beacon_chain/req/blob_sidecars_by_range/1/ssz_snappy"]
+2026-11-22T06:08:43.413799Z DEBUG Receiver: lighthouse_network::service: More than 10 addresses have been identified, truncating
+2026-11-22T06:08:43.413803Z DEBUG Receiver: lighthouse_network::peer_manager: Identified Peer peer_id=16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19 protocol_version="eth2/1.0.0" agent_version="Lighthouse/v8.4.0-rc.0-b9aff51/x86_64-linux" listening_addresses=[/ip4/172.23.0.1/tcp/41551, /ip4/172.24.0.1/udp/54320/quic-v1, /ip4/172.22.0.1/tcp/41551, /ip4/10.1.1.49/udp/54320/quic-v1, /ip4/172.21.0.1/udp/54320/quic-v1, /ip4/127.0.0.1/tcp/41551, /ip4/172.19.0.1/tcp/41551, /ip4/172.25.0.1/tcp/41551, /ip4/172.16.0.3/tcp/41551, /ip4/172.19.0.1/udp/54320/quic-v1] observed_address=/ip4/127.0.0.1/tcp/44241 protocols=["/eth2/beacon_chain/req/status/2/ssz_snappy", "/eth2/beacon_chain/req/blob_sidecars_by_range/1/ssz_snappy", "/eth2/beacon_chain/req/light_client_optimistic_update/1/ssz_snappy", "/eth2/beacon_chain/req/blob_sidecars_by_root/1/ssz_snappy", "/eth2/beacon_chain/req/goodbye/1/ssz_snappy", "/meshsub/1.0.0", "/eth2/beacon_chain/req/light_client_finality_update/1/ssz_snappy", "/meshsub/1.2.0", "/eth2/beacon_chain/req/light_client_bootstrap/1/ssz_snappy", "/eth2/beacon_chain/req/ping/1/ssz_snappy", "/eth2/beacon_chain/req/beacon_blocks_by_root/1/ssz_snappy", "/eth2/beacon_chain/req/beacon_blocks_by_range/2/ssz_snappy", "/eth2/beacon_chain/req/metadata/1/ssz_snappy", "/eth2/beacon_chain/req/execution_payload_envelopes_by_root/1/ssz_snappy", "/eth2/beacon_chain/req/status/1/ssz_snappy", "/eth2/beacon_chain/req/data_column_sidecars_by_range/1/ssz_snappy", "/ipfs/id/push/1.0.0", "/eth2/beacon_chain/req/data_column_sidecars_by_root/1/ssz_snappy", "/eth2/beacon_chain/req/beacon_blocks_by_head/1/ssz_snappy", "/eth2/beacon_chain/req/inclusion_lists_by_indices/1/ssz_snappy", "/eth2/beacon_chain/req/metadata/2/ssz_snappy", "/meshsub/1.3.0", "/eth2/beacon_chain/req/beacon_blocks_by_range/1/ssz_snappy", "/eth2/beacon_chain/req/light_client_updates_by_range/1/ssz_snappy", "/eth2/beacon_chain/req/execution_payload_envelopes_by_range/1/ssz_snappy", "/eth2/beacon_chain/req/beacon_blocks_by_root/2/ssz_snappy", "/meshsub/1.1.0", "/ipfs/id/1.0.0", "/eth2/beacon_chain/req/metadata/3/ssz_snappy"]
+2026-11-22T06:08:43.413822Z DEBUG Sender:Swarm::poll: libp2p_gossipsub::behaviour: Received gossipsub message peer=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM GossipsubRpc { control_msgs: [Extensions(Some(Extensions { partial_messages: Some(true) }))], partial_messages: None }
+2026-11-22T06:08:43.413830Z DEBUG Sender:Swarm::poll: libp2p_gossipsub::behaviour: Received RPC rpc=GossipsubRpc { control_msgs: [Extensions(Some(Extensions { partial_messages: Some(true) }))], partial_messages: None }
+2026-11-22T06:08:43.413839Z DEBUG Receiver:Swarm::poll: libp2p_gossipsub::behaviour: Received gossipsub message peer=16Uiu2HAmU8VAPN1ygKwzccP1tBYyHMoVgNXCehzw8V6v6JhjEQ19 GossipsubRpc { control_msgs: [Extensions(Some(Extensions { partial_messages: Some(true) }))], partial_messages: None }
+2026-11-22T06:08:43.413844Z DEBUG Receiver:Swarm::poll: libp2p_gossipsub::behaviour: Received RPC rpc=GossipsubRpc { control_msgs: [Extensions(Some(Extensions { partial_messages: Some(true) }))], partial_messages: None }
+2026-11-22T06:08:53.398695Z DEBUG Sender:Swarm::poll: libp2p_upnp::behaviour: could not find gateway: No response within timeout
+2026-11-22T06:08:53.398719Z  INFO Sender: lighthouse_network::service: UPnP not available
+2026-11-22T06:08:53.401776Z DEBUG Receiver:Swarm::poll: libp2p_upnp::behaviour: could not find gateway: No response within timeout
+2026-11-22T06:08:53.401790Z  INFO Receiver: lighthouse_network::service: UPnP not available
+2026-11-22T06:08:53.414873Z DEBUG Sender: lighthouse_network::peer_manager: RPC Error protocol=beacon_blocks_by_range err=Stream Timeout client=Lighthouse: version: v8.4.0-rc.0-b9aff51, os_version: x86_64-linux peer_id=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM score=0.00 direction=Outgoing
+2026-11-22T06:08:53.414925Z DEBUG Sender: lighthouse_network::peer_manager::peerdb: Peer score adjusted msg=handle_rpc_error peer_id=16Uiu2HAm2odbzPjGDX54Cj2XJEAJhGo1vMx9PdMTGJqM3miTnxcM score=-5.00
+test rpc_tests::test_tcp_blocks_by_range_over_limit ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 10.02s
+

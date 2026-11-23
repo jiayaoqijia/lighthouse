@@ -1,0 +1,35 @@
+   Compiling types v0.2.1 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/types)
+   Compiling lighthouse_version v8.4.0-rc.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/lighthouse_version)
+   Compiling state_processing v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/state_processing)
+   Compiling eth2_config v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2_config)
+   Compiling proto_array v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/proto_array)
+   Compiling eth2_network_config v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2_network_config)
+   Compiling fork_choice v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/fork_choice)
+   Compiling clap_utils v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/clap_utils)
+   Compiling builder_types v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/builder_types)
+   Compiling eip_3076 v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eip_3076)
+   Compiling eth2 v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/eth2)
+   Compiling directory v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/directory)
+   Compiling slot_clock v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/common/slot_clock)
+   Compiling store v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/store)
+   Compiling genesis v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/genesis)
+   Compiling fast_confirmation v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/consensus/fast_confirmation)
+   Compiling slasher v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/slasher)
+   Compiling proof_engine v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/proof_engine)
+   Compiling operation_pool v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/operation_pool)
+   Compiling builder_client v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/builder_client)
+   Compiling lighthouse_network v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/lighthouse_network)
+   Compiling execution_layer v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/execution_layer)
+   Compiling beacon_processor v0.1.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/beacon_processor)
+   Compiling beacon_chain v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/beacon_chain)
+   Compiling network v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/beacon_node/network)
+   Compiling ef_tests v0.2.0 (/projects/eth2030/lighthouse-gloas-vector-alignment/testing/ef_tests)
+    Finished `release` profile [optimized] target(s) in 1m 31s
+     Running tests/tests.rs (/projects/eth2030/lighthouse/target/release/deps/tests-4457ac14db6975cf)
+
+running 1 test
+Passed 42 tests in /projects/eth2030/lighthouse-gloas-vector-alignment/testing/ef_tests/consensus-spec-tests/tests/mainnet/gloas/fork/fork
+test gloas_source_pinned_fork_upgrade ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 80 filtered out; finished in 4.12s
+

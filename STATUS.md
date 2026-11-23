@@ -81,3 +81,7 @@ This closes integration/build qualification of the three existing fixes (R05). I
 - The checkpoint and Git-version regressions, cargo fmt/sort, scoped cargo check,
   full lint-fix and release build passed. Code is published on `eth2030`.
 - [Paired evidence](https://github.com/fyInALT/eth2030/blob/feat/frame-8141-execution/docs/verification/frame-8141-20261118-paymaster-history-final.json)
+
+## Gloas reference-vector source alignment (2026-11-22)
+
+The inherited v1.7.0-beta.4 fork vectors conflict with selected consensus reference2ea9d96a on the fork-slot availability and credential-first independent builder/validator onboarding updates. Production behavior matches the selected source. A separate review is generating source-pinned reference vectors and retaining actual BLS/full-state comparisons rather than reverting or skipping the normative behavior. [Checklist](docs/qualification/gloas-vector-source-alignment-20261122.md). Two independent reference runs produce344 byte-identical files, all152 actual Rust fork/transition cases pass with real BLS (149 positive post-states and3 invalid expected outcomes), and six admission/rollback controls pass. The fixed complete simulator run and hosted full-suite CI remain pending. Independent review: https://github.com/jiayaoqijia/lighthouse/pull/5 .

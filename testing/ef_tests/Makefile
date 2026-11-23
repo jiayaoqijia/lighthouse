@@ -35,6 +35,8 @@ $(OUTPUT_DIR):
 	tar -xzf $(COMPLIANCE_TEST).tar.gz -C $(OUTPUT_DIR) \
 		$(foreach fork,$(COMPLIANCE_FORKS),tests/minimal/$(fork)/fork_choice_compliance)
 	rm -f $(COMPLIANCE_TEST).tar.gz
+	PYTHONDONTWRITEBYTECODE=1 python3 ./test_source_pinned_gloas.py
+	python3 ./install_source_pinned_gloas.py --output $(OUTPUT_DIR)
 
 $(BLS_OUTPUT_DIR):
 	mkdir -p $(BLS_OUTPUT_DIR)

@@ -1,0 +1,24 @@
+bringing up nodes...
+bringing up nodes...
+
+...ss..........s..s.s..s.......s...s.................................... [ 92%]
+......                                                                   [100%]
+=============================== warnings summary ===============================
+tests/core/pyspec/eth_consensus_specs/test/altair/transition/test_operations.py::test_transition_with_deposit_right_after_fork[minimal]
+  tests/core/pyspec/eth_consensus_specs/test/context.py:943: PytestWarning: manifest but vector not created for test_transition_with_deposit_right_after_fork[minimal]
+    def wrapper(*args, **kwargs):
+
+tests/core/pyspec/eth_consensus_specs/test/altair/transition/test_operations.py::test_transition_with_deposit_right_after_fork[mainnet]
+  tests/core/pyspec/eth_consensus_specs/test/context.py:943: PytestWarning: manifest but vector not created for test_transition_with_deposit_right_after_fork[mainnet]
+    def wrapper(*args, **kwargs):
+
+tests/core/pyspec/eth_consensus_specs/test/altair/transition/test_operations.py::test_transition_with_deposit_right_before_fork[minimal]
+  tests/core/pyspec/eth_consensus_specs/test/context.py:943: PytestWarning: manifest but vector not created for test_transition_with_deposit_right_before_fork[minimal]
+    def wrapper(*args, **kwargs):
+
+tests/core/pyspec/eth_consensus_specs/test/altair/transition/test_operations.py::test_transition_with_deposit_right_before_fork[mainnet]
+  tests/core/pyspec/eth_consensus_specs/test/context.py:943: PytestWarning: manifest but vector not created for test_transition_with_deposit_right_before_fork[mainnet]
+    def wrapper(*args, **kwargs):
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+70 passed, 8 skipped, 4 warnings in 274.56s (0:04:34)
