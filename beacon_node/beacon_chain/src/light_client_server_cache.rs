@@ -122,6 +122,14 @@ impl<T: BeaconChainTypes> LightClientServerCache<T> {
 
         self.store_current_sync_committee(&store, &cached_parts, sync_period, finalized_period)?;
 
+        // Bootstrap committee data above remains useful even if no eligible
+        // update can be formed from this block's aggregate.
+        if (sync_aggregate.sync_committee_bits.num_set_bits() as u64)
+            < chain_spec.min_sync_committee_participants
+        {
+            return Ok(());
+        }
+
         let attested_slot = attested_block.slot();
 
         let maybe_finalized_block = store.get_blinded_block(&cached_parts.finalized_block_root)?;
@@ -157,25 +165,6 @@ impl<T: BeaconChainTypes> LightClientServerCache<T> {
             None => true,
         };
 
-        if is_latest_finality & !cached_parts.finalized_block_root.is_zero() {
-            // Immediately after checkpoint sync the finalized block may not be available yet.
-            if let Some(finalized_block) = maybe_finalized_block.as_ref() {
-                *self.latest_finality_update.write() = Some(LightClientFinalityUpdate::new(
-                    &attested_block,
-                    finalized_block,
-                    cached_parts.finality_branch.clone(),
-                    sync_aggregate.clone(),
-                    signature_slot,
-                    chain_spec,
-                )?);
-            } else {
-                debug!(
-                    finalized_block_root = %cached_parts.finalized_block_root,
-                    "Finalized block not available in store for light_client server"
-                );
-            }
-        }
-
         let new_light_client_update = LightClientUpdate::new(
             sync_aggregate,
             block_slot,
@@ -186,6 +175,17 @@ impl<T: BeaconChainTypes> LightClientServerCache<T> {
             maybe_finalized_block.as_ref(),
             chain_spec,
         )?;
+
+        if is_latest_finality {
+            // The zero root is a known genesis-finality case. Its default
+            // header plus the real branch is valid; an unknown nonzero
+            // finalized block must still wait until it is available.
+            if cached_parts.finalized_block_root.is_zero() || maybe_finalized_block.is_some() {
+                *self.latest_finality_update.write() = Some(new_light_client_update.clone().into());
+            } else {
+                debug!(finalized_block_root = %cached_parts.finalized_block_root, "Finalized block not available in store for light_client server");
+            }
+        }
 
         // Spec: Full nodes SHOULD provide the best derivable LightClientUpdate (according to is_better_update)
         // for each sync committee period
@@ -493,3 +493,7 @@ impl<E: EthSpec> LightClientCachedData<E> {
         })
     }
 }
+
+#[cfg(test)]
+#[path = "light_client_collection_tests.rs"]
+mod current_reference_tests;
