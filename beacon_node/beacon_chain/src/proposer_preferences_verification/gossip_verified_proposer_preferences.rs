@@ -97,37 +97,46 @@ impl GossipVerifiedProposerPreferences {
         let proposal_epoch = proposal_slot.epoch(T::EthSpec::slots_per_epoch());
 
         let lookahead_epoch = proposal_epoch.saturating_sub(ctx.spec.min_seed_lookahead);
-        let head_block_root = ctx.canonical_head.cached_head().head_block_root();
+        let head = ctx.canonical_head.cached_head();
+        let head_block_root = head.head_block_root();
+        let lookahead_start_slot = lookahead_epoch.start_slot(T::EthSpec::slots_per_epoch());
+        let dependent_slot = lookahead_start_slot.saturating_sub(1_u64);
         let fork_choice_read = ctx.canonical_head.fork_choice_read_lock();
-
-        let dependent_block = fork_choice_read
-            .get_block(&dependent_root)
-            .ok_or(ProposerPreferencesError::DependentRootUnknown { dependent_root })?;
-
-        // Ensure the dependent root block is before the start of the lookahead epoch.
-        // Skip this check for gloas at genesis/epoch 1.
-        if dependent_block.slot >= lookahead_epoch.start_slot(T::EthSpec::slots_per_epoch())
-            && dependent_block.slot != 0
-        {
-            return Err(ProposerPreferencesError::DependentRootTooRecent {
-                dependent_root,
-                block_slot: dependent_block.slot,
-                epoch_start_slot: lookahead_epoch.start_slot(T::EthSpec::slots_per_epoch()),
-            });
-        }
-
-        // Look for at least one child that crosses the epoch boundary directly after `dependent_block`.
+        let live_block = fork_choice_read.get_block(&dependent_root);
         let has_qualifying_child = fork_choice_read
             .get_children(&dependent_root)
             .iter()
-            .any(|child| child.slot >= lookahead_epoch.start_slot(T::EthSpec::slots_per_epoch()));
+            .any(|child| child.slot > dependent_slot);
+        drop(fork_choice_read);
 
-        // Head is exempt from this check, it may eventually have a child that crosses the epoch boundary.
-        if !has_qualifying_child && dependent_root != head_block_root {
+        // Fork choice intentionally hides blocks before finality. An upcoming
+        // lookahead can still depend on such a canonical block, whose validated
+        // block/state remain in hot or cold storage.
+        let (dependent_block_slot, dependent_state_root) = if let Some(block) = live_block {
+            (block.slot, block.state_root)
+        } else {
+            let block = ctx
+                .store
+                .get_blinded_block(&dependent_root)
+                .map_err(BeaconChainError::DBError)?
+                .ok_or(ProposerPreferencesError::DependentRootUnknown { dependent_root })?;
+            (block.slot(), block.state_root())
+        };
+        if dependent_block_slot > dependent_slot {
+            return Err(ProposerPreferencesError::DependentRootTooRecent {
+                dependent_root,
+                block_slot: dependent_block_slot,
+                epoch_start_slot: lookahead_start_slot,
+            });
+        }
+        let canonical_dependent = head
+            .snapshot
+            .beacon_state
+            .get_block_root(dependent_slot)
+            .is_ok_and(|root| *root == dependent_root);
+        if !has_qualifying_child && dependent_root != head_block_root && !canonical_dependent {
             return Err(ProposerPreferencesError::InvalidDependentRoot { dependent_root });
         }
-
-        drop(fork_choice_read);
 
         // Resolve the proposer for `proposal_slot` via the proposer shuffling cache.
         let proposer = with_proposer_cache(
@@ -142,26 +151,28 @@ impl GossipVerifiedProposerPreferences {
                     "Proposer shuffling cache miss for proposer preferences verification"
                 );
 
-                // Fetch the dependent block's state root from fork choice. The block need not be
-                // canonical: preferences for a non-canonical branch are still verifiable, and the
-                // dependent state lives in the hot DB.
-                let dependent_state_root = ctx
-                    .canonical_head
-                    .fork_choice_read_lock()
-                    .get_block(&dependent_root)
-                    .ok_or(ProposerPreferencesError::DependentRootUnknown { dependent_root })?
-                    .state_root;
-
                 // Load a state at `target_slot` so it has the correct proposer lookahead.
                 let target_slot = proposal_epoch
                     .saturating_sub(ctx.spec.min_seed_lookahead)
                     .start_slot(T::EthSpec::slots_per_epoch());
 
-                let (state_root, state) = ctx
+                let (state_root, state) = match ctx
                     .store
                     .get_advanced_hot_state(dependent_root, target_slot, dependent_state_root)
                     .map_err(BeaconChainError::DBError)?
-                    .ok_or(ProposerPreferencesError::DependentRootUnknown { dependent_root })?;
+                {
+                    Some(state) => state,
+                    None => {
+                        let state = ctx
+                            .store
+                            .get_state(&dependent_state_root, Some(dependent_block_slot), true)
+                            .map_err(BeaconChainError::DBError)?
+                            .ok_or(ProposerPreferencesError::DependentRootUnknown {
+                                dependent_root,
+                            })?;
+                        (dependent_state_root, state)
+                    }
+                };
 
                 Ok::<_, ProposerPreferencesError>((state_root, state))
             },

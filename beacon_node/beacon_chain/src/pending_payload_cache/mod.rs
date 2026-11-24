@@ -307,6 +307,11 @@ impl<T: BeaconChainTypes> PendingPayloadCache<T> {
         }
     }
 
+    /// Discard all unauthoritative components for a consensus-failed block.
+    pub(crate) fn remove_invalid_block(&self, block_root: &Hash256) {
+        self.availability_cache.write().remove(block_root);
+    }
+
     /// Perform KZG verification on RPC custody columns and insert them into the cache.
     /// After insertion check if the envelope becomes available.
     #[instrument(skip_all, level = "trace")]

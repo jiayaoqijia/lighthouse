@@ -8,13 +8,15 @@
 //!
 //! ## Deadlock safety
 //!
-//! This module contains four locks:
+//! This module contains five locks:
 //!
 //! 1. `RwLock<BeaconForkChoice>`: Contains `proto_array` fork choice.
 //! 2. `RwLock<CachedHead>`: Contains a cached block/state from the last run of `proto_array`.
 //! 3. `Mutex<()>`: Is used to prevent concurrent execution of `BeaconChain::recompute_head`.
 //! 4. `Option<Mutex<BeaconFastConfirmationRule>>`: FCR state and the roots it has sent the EL
 //!    (None when disabled).
+//! 5. A bounded consensus-failed-root cache. Its guard never escapes this module and
+//!    is released before any other operation; it never acquires the other locks.
 //!
 //! This module has to take great efforts to avoid causing a deadlock with these three methods. Any
 //! developers working in this module should tread carefully and seek a detailed review.
@@ -473,6 +475,7 @@ pub struct CanonicalHead<T: BeaconChainTypes> {
     pub fast_confirmation: Option<Mutex<BeaconFastConfirmationRule>>,
     /// Set when fork choice has diverged from the store. Poisoned fork choice is never persisted.
     fork_choice_poisoned: AtomicBool,
+    consensus_failed_roots: RwLock<hashlink::lru_cache::LruCache<Hash256, ()>>,
 }
 
 pub struct BeaconFastConfirmationRule {
@@ -556,7 +559,19 @@ impl<T: BeaconChainTypes> CanonicalHead<T> {
             recompute_head_lock: Mutex::new(()),
             fast_confirmation: fcr,
             fork_choice_poisoned: AtomicBool::new(false),
+            consensus_failed_roots: RwLock::new(hashlink::lru_cache::LruCache::new(1024)),
         })
+    }
+
+    /// Record a definitive failure after the block's signatures were verified.
+    /// Unknown parents, bad outer signatures and transient errors are not evidence.
+    pub(crate) fn mark_consensus_failed(&self, root: Hash256) {
+        self.consensus_failed_roots.write().insert(root, ());
+    }
+
+    /// Whether a recent authenticated block failed its consensus transition.
+    pub fn block_failed_consensus(&self, root: &Hash256) -> bool {
+        self.consensus_failed_roots.read().contains_key(root)
     }
 
     /// Mark fork choice as poisoned so it is never persisted.
