@@ -1785,8 +1785,10 @@ mod attestation_epoch_boundary_tests {
         );
         let end = clock.start_of(Slot::new(3 * E::slots_per_epoch())).unwrap();
         for slot in [E::slots_per_epoch(), 2 * E::slots_per_epoch() - 1] {
-            let mut data = AttestationData::default();
-            data.slot = Slot::new(slot);
+            let data = AttestationData {
+                slot: Slot::new(slot),
+                ..Default::default()
+            };
             clock.set_current_time(end + spec.maximum_gossip_clock_disparity());
             assert!(verify_propagation_slot_range::<_, E>(&clock, &data, &spec).is_ok());
             clock.set_current_time(
