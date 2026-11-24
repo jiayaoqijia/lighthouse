@@ -1,9 +1,10 @@
 use super::*;
 use crate::bls_setting::BlsSetting;
-use crate::decode::{ssz_decode_file, ssz_decode_file_with, ssz_decode_state, yaml_decode_file};
+use crate::decode::{ssz_decode_file, ssz_decode_file_with, yaml_decode_file};
 use crate::type_name::TypeName;
 use ::fork_choice::InvalidationOperation;
 use beacon_chain::block_verification_types::LookupBlock;
+use beacon_chain::payload_envelope_verification::EnvelopeSource;
 use beacon_chain::slot_clock::{SlotClock, TestingSlotClock};
 use beacon_chain::test_utils::{BeaconChainHarness, EphemeralHarnessType};
 use beacon_chain::{BlockError, NotifyExecutionLayer};
@@ -19,7 +20,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use types::{
     AttesterSlashing, BeaconBlock, BeaconState, BlockImportSource, ChainSpec, Checkpoint, EthSpec,
-    ExecPayload, ForkName, Hash256, ProposerSlashing, SignedAggregateAndProof,
+    ExecPayload, ForkName, ForkVersionDecode, Hash256, ProposerSlashing, SignedAggregateAndProof,
     SignedAggregateAndProofElectra, SignedBeaconBlock, SignedBlsToExecutionChange,
     SignedContributionAndProof, SignedVoluntaryExit, SingleAttestation, Slot, SubnetId,
     SyncCommitteeMessage, SyncSubnetId,
@@ -129,8 +130,11 @@ pub struct GossipValidation<E: EthSpec> {
 impl<E: EthSpec> LoadCase for GossipValidation<E> {
     fn load_from_dir(path: &Path, fork_name: ForkName) -> Result<Self, Error> {
         let meta: Meta = yaml_decode_file(&path.join("meta.yaml"))?;
-        let spec = &Self::testing_spec(path, fork_name)?;
-        let state = ssz_decode_state(&path.join("state.ssz_snappy"), spec)?;
+        // The vector's fork selects the pre-state schema, independently of a
+        // deliberately future activation epoch in its rule configuration.
+        let state = ssz_decode_file_with(&path.join("state.ssz_snappy"), |bytes| {
+            BeaconState::from_ssz_bytes_by_fork(bytes, fork_name)
+        })?;
 
         Ok(Self {
             path: path.to_path_buf(),
@@ -376,7 +380,7 @@ impl<E: EthSpec> GossipTester<E> {
             }
             if initial_block_index == Some(index) {
                 if let Some(payload) = &setup_block.payload {
-                    self.import_setup_payload(&case.path, payload)?;
+                    self.import_setup_payload(&case.path, payload, setup_block.payload_status)?;
                 }
                 continue;
             }
@@ -386,7 +390,7 @@ impl<E: EthSpec> GossipTester<E> {
             self.import_setup_block(block.clone(), setup_block.payload_status)?;
             self.block_on_dangerous(self.harness.chain.recompute_head_at_current_slot())?;
             if let Some(payload) = &setup_block.payload {
-                self.import_setup_payload(&case.path, payload)?;
+                self.import_setup_payload(&case.path, payload, setup_block.payload_status)?;
             }
         }
 
@@ -550,31 +554,61 @@ impl<E: EthSpec> GossipTester<E> {
         self.validation_result(&message_id, &peer_id)
     }
 
-    fn import_setup_payload(&self, path: &Path, name: &str) -> Result<(), Error> {
+    fn import_setup_payload(
+        &self,
+        path: &Path,
+        name: &str,
+        status: Option<PayloadStatus>,
+    ) -> Result<(), Error> {
         let envelope: types::SignedExecutionPayloadEnvelope<E> =
             ssz_decode_file(&path.join(format!("{name}.ssz_snappy")))?;
-        let message_id = MessageId::new(name.as_bytes());
-        let peer_id = PeerId::random();
-        let seen = self.set_time_ms(self.current_time_ms)?;
-        self.block_on_dangerous(
-            self.network_beacon_processor
-                .clone()
-                .process_gossip_execution_payload_envelope(
-                    message_id.clone(),
-                    peer_id,
-                    Arc::new(envelope),
-                    seen,
-                ),
-        )?;
-        let actual = self.validation_result(&message_id, &peer_id)?;
-        if !matches!(
-            actual,
-            MessageAcceptance::Accept | MessageAcceptance::Ignore
-        ) {
-            return Err(Error::InternalError(format!(
-                "setup payload {name} rejected"
-            )));
+        let block_root = envelope.message.beacon_block_root;
+        let head_hash = envelope.message.payload.block_hash;
+        self.set_time_ms(self.current_time_ms)?;
+        // Setup payloads arrive via a non-gossip source in the independent
+        // reference. Use the same verification/import calls as lookup sync so
+        // the fixture does not accidentally prepopulate the gossip seen cache.
+        if let Some(mock) = self.harness.mock_execution_layer.as_ref() {
+            if status == Some(PayloadStatus::NotValidated)
+                || status == Some(PayloadStatus::Invalidated)
+            {
+                mock.server.all_payloads_syncing(true);
+            } else {
+                mock.server.all_payloads_valid();
+            }
         }
+        let result = self.block_on_dangerous(async {
+            let verified = self
+                .harness
+                .chain
+                .verify_envelope_for_gossip(Arc::new(envelope), EnvelopeSource::Rpc)
+                .await
+                .map_err(|e| {
+                    Error::InternalError(format!("setup payload {name} verification: {e:?}"))
+                })?;
+            self.harness
+                .chain
+                .process_execution_payload_envelope(
+                    block_root,
+                    verified,
+                    NotifyExecutionLayer::Yes,
+                    BlockImportSource::Lookup,
+                    || Ok(()),
+                )
+                .await
+                .map_err(|e| Error::InternalError(format!("setup payload {name} import: {e:?}")))
+        })?;
+        self.configure_payload_status_for_default();
+        result?;
+        if status == Some(PayloadStatus::Invalidated) {
+            self.block_on_dangerous(self.harness.chain.process_invalid_execution_payload(
+                &InvalidationOperation::InvalidateOne { head_hash },
+            ))?
+            .map_err(|e| {
+                Error::InternalError(format!("setup payload {name} invalidation: {e:?}"))
+            })?;
+        }
+        self.block_on_dangerous(self.harness.chain.recompute_head_at_current_slot())?;
         Ok(())
     }
 
@@ -834,7 +868,9 @@ impl<E: EthSpec> GossipTester<E> {
 
         match result {
             Ok(_) => {
-                if payload_status == Some(PayloadStatus::Invalidated) {
+                if payload_status == Some(PayloadStatus::Invalidated)
+                    && !block.fork_name_unchecked().gloas_enabled()
+                {
                     // The block has been imported optimistically. Mark its payload invalid in fork
                     // choice so descendants observe an invalid execution parent.
                     let head_hash = block
@@ -1083,13 +1119,9 @@ impl<E: EthSpec> GossipValidation<E> {
     ) -> Result<HashMap<String, SignedBeaconBlock<E>>, Error> {
         let mut block_names = HashSet::new();
         block_names.extend(self.meta.blocks.iter().map(|block| block.block.clone()));
-        block_names.extend(
-            self.meta
-                .messages
-                .iter()
-                .filter(|_| self.meta.topic == Topic::BeaconBlock)
-                .map(|message| message.message.clone()),
-        );
+        // Message blocks must be decoded at admission, where an over-limit
+        // SSZ message is rejected. Preloading them turns that correct rejection
+        // into a fixture setup error before the production decoder is called.
         if let Some(FinalizedCheckpoint::Block { block, .. }) = &self.meta.finalized_checkpoint {
             block_names.insert(block.clone());
         }
