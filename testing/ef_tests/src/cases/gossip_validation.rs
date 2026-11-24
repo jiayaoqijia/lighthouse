@@ -66,6 +66,8 @@ struct SetupBlock {
     #[serde(default)]
     payload: Option<String>,
     #[serde(default)]
+    pending: bool,
+    #[serde(default)]
     payload_status: Option<PayloadStatus>,
 }
 
@@ -159,10 +161,40 @@ impl<E: EthSpec + TypeName> Case for GossipValidation<E> {
         let tester = GossipTester::new(self, spec)?;
 
         for message_meta in &self.meta.messages {
-            let actual =
-                tester.validate_message(&self.path, &self.meta.topic, message_meta, fork_name)?;
+            let actual = match tester.validate_message(
+                &self.path,
+                &self.meta.topic,
+                message_meta,
+                fork_name,
+            ) {
+                Ok(actual) => actual,
+                Err(Error::FailedToParseTest(error))
+                    if error.contains("Unable to parse SSZ")
+                        && error.contains("exceeds maximum") =>
+                {
+                    MessageAcceptance::Reject
+                }
+                Err(error) => return Err(error),
+            };
 
             if message_meta.expected != actual {
+                if message_meta.message.starts_with("proposer_preferences_") {
+                    let preferences: types::SignedProposerPreferences = ssz_decode_file(
+                        &self
+                            .path
+                            .join(format!("{}.ssz_snappy", message_meta.message)),
+                    )?;
+                    return Err(Error::NotEqual(format!(
+                        "{}: expected {:?}, got {:?}; native preference detail {:?}",
+                        self.path.display(),
+                        message_meta.expected,
+                        actual,
+                        tester
+                            .harness
+                            .chain
+                            .verify_proposer_preferences_for_gossip(Arc::new(preferences))
+                    )));
+                }
                 return Err(Error::NotEqual(format!(
                     "{}: expected {:?}, got {:?}{}",
                     self.path.display(),
@@ -308,6 +340,28 @@ impl<E: EthSpec> GossipTester<E> {
     ) -> Result<(), Error> {
         for (index, setup_block) in case.meta.blocks.iter().enumerate() {
             if setup_block.failed {
+                let block = blocks
+                    .get(&setup_block.block)
+                    .ok_or_else(|| Error::FailedToParseTest("missing failed block".into()))?;
+                if self
+                    .import_setup_block(block.clone(), setup_block.payload_status)
+                    .is_ok()
+                {
+                    return Err(Error::DidntFail(
+                        "reference consensus-failed setup block imported".into(),
+                    ));
+                }
+                continue;
+            }
+            if setup_block.pending {
+                let block = blocks
+                    .get(&setup_block.block)
+                    .ok_or_else(|| Error::FailedToParseTest("missing pending block".into()))?;
+                self.harness.chain.pending_payload_cache.insert_block(
+                    block.canonical_root(),
+                    Arc::new(block.clone()),
+                    BlockImportSource::Lookup,
+                );
                 continue;
             }
             if initial_block_index == Some(index) {
@@ -320,6 +374,7 @@ impl<E: EthSpec> GossipTester<E> {
                 Error::FailedToParseTest(format!("unknown block file {}", setup_block.block))
             })?;
             self.import_setup_block(block.clone(), setup_block.payload_status)?;
+            self.block_on_dangerous(self.harness.chain.recompute_head_at_current_slot())?;
             if let Some(payload) = &setup_block.payload {
                 self.import_setup_payload(&case.path, payload)?;
             }

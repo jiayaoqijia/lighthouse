@@ -206,3 +206,5 @@ type_name!(Withdrawal);
 type_name!(BlsToExecutionChange, "BLSToExecutionChange");
 type_name!(SignedBlsToExecutionChange, "SignedBLSToExecutionChange");
 type_name!(HistoricalSummary);
+
+type_name_generic!(NewPayloadRequest);

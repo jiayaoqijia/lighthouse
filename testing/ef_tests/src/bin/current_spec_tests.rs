@@ -1,4 +1,6 @@
-//! Consume every case in an independently generated Gloas snapshot.
+#[path = "current_spec_tests/ssz.rs"]
+mod snapshot_ssz;
+// Consume every case in an independently generated Gloas snapshot.
 use ef_tests::*;
 use std::path::Path;
 use types::*;
@@ -24,6 +26,7 @@ fn consume<E: EthSpec + TypeName>(
         };
     }
     match (runner, handler) {
+        ("ssz_static", _) => snapshot_ssz::consume::<E>(handler, path),
         ("operations", "attestation") => operation!(Attestation<E>),
         ("operations", "attester_slashing") => operation!(AttesterSlashing<E>),
         ("operations", "block_header") => operation!(BeaconBlock<E>),
@@ -113,7 +116,8 @@ fn main() {
         "usage: current_spec_tests mainnet|minimal RUNNER HANDLER_DIRECTORY"
     );
     assert!(
-        !cfg!(feature = "fake_crypto"),
+        !cfg!(feature = "fake_crypto")
+            || matches!(args[1].as_str(), "ssz_static" | "fast_confirmation"),
         "state/gossip acceptance requires real BLS"
     );
     let path = Path::new(&args[2]);
@@ -135,7 +139,7 @@ fn main() {
         }
         println!(
             "{}",
-            serde_json::json!({"path":case.path,"passed":case.result.is_ok(),"error":case.result.err().map(|error|format!("{}: {}",error.name(),error.message())),"crypto":"real"})
+            serde_json::json!({"path":case.path,"passed":case.result.is_ok(),"error":case.result.err().map(|error|format!("{}: {}",error.name(),error.message())),"crypto":if cfg!(feature="fake_crypto") {"fixture_fake"} else {"real"}})
         );
     }
     assert_eq!(failed, 0, "snapshot cases failed or were skipped");
