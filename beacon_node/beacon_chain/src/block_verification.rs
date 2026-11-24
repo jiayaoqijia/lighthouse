@@ -284,6 +284,8 @@ pub enum BlockError {
     /// This is a known invalid block that was listed in Lighthouses configuration.
     /// At the moment this error is only relevant as part of the Holesky network recovery efforts.
     KnownInvalidExecutionPayload(Hash256),
+    /// This authenticated block, or its parent, definitively failed consensus validation.
+    KnownInvalidBlockRoot(Hash256),
     /// The block is a slashable equivocation from the proposer.
     ///
     /// ## Peer scoring
@@ -975,6 +977,7 @@ impl<T: BeaconChainTypes> GossipVerifiedBlock<T> {
 
         // Do not process a block that is known to be invalid.
         chain.check_invalid_block_roots(block_root)?;
+        chain.check_invalid_block_roots(block.message().parent_root())?;
 
         // Do not process a block that doesn't descend from the finalized root.
         //
@@ -1209,6 +1212,7 @@ impl<T: BeaconChainTypes> SignatureVerifiedBlock<T> {
 
         // Check whether the block is a banned block prior to loading the parent.
         chain.check_invalid_block_roots(block_root)?;
+        chain.check_invalid_block_roots(block.message().parent_root())?;
 
         let (mut parent, block) = load_parent(block, chain)?;
 
@@ -1248,7 +1252,12 @@ impl<T: BeaconChainTypes> SignatureVerifiedBlock<T> {
                 chain.genesis_validators_root,
                 &chain.spec,
             ) {
-                // Proposer signature is valid, the invalid signature must be in the body
+                // The signed body commits to its own invalid signature bytes.
+                if block.as_block().fork_name_unchecked().gloas_enabled() {
+                    let root = block.as_block().canonical_root();
+                    chain.canonical_head.mark_consensus_failed(root);
+                    chain.pending_payload_cache.remove_invalid_block(&root);
+                }
                 Err(BlockError::InvalidSignature(
                     InvalidSignature::BlockBodySignatures,
                 ))
@@ -1333,9 +1342,16 @@ impl<T: BeaconChainTypes> SignatureVerifiedBlock<T> {
                     consensus_context,
                 })
             }
-            Err(_) => Err(BlockError::InvalidSignature(
-                InvalidSignature::BlockBodySignatures,
-            )),
+            Err(_) => {
+                if block.fork_name_unchecked().gloas_enabled() {
+                    let root = block.canonical_root();
+                    chain.canonical_head.mark_consensus_failed(root);
+                    chain.pending_payload_cache.remove_invalid_block(&root);
+                }
+                Err(BlockError::InvalidSignature(
+                    InvalidSignature::BlockBodySignatures,
+                ))
+            }
         }
     }
 
@@ -1391,6 +1407,20 @@ impl<T: BeaconChainTypes> IntoExecutionPendingBlock<T> for SignatureVerifiedBloc
             chain,
             notify_execution_layer,
         )
+        .inspect_err(|error| {
+            // At this stage all block signatures have passed. Only definitive
+            // transition failures authenticate invalidity of the unsigned root.
+            if arc_block.fork_name_unchecked().gloas_enabled()
+                && matches!(
+                    error,
+                    BlockError::StateRootMismatch { .. } | BlockError::PerBlockProcessingError(_)
+                )
+            {
+                let root = arc_block.canonical_root();
+                chain.canonical_head.mark_consensus_failed(root);
+                chain.pending_payload_cache.remove_invalid_block(&root);
+            }
+        })
         .map_err(|e| BlockSlashInfo::SignatureValid(arc_block.signed_block_header(), e))
     }
 

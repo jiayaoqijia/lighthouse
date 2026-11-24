@@ -1,0 +1,31 @@
+{
+  "reference": "d2021d2719235f0df4726a1d330502cb15aa8ea3",
+  "preset": "minimal",
+  "case": "gossip_execution_payload_envelope__reject_block_failed_validation",
+  "files": {
+    "config.yaml": {
+      "source": "config.yaml",
+      "sha256": "cbaa7e47436e738c6eb4dd659d4068dea5d2824aa1d0a365cf76775a925eef79"
+    },
+    "state.ssz": {
+      "source": "state.ssz_snappy",
+      "compressed_sha256": "43148e6f997e9ac01831fe39bf47b01720a8f7012040afeb9fcc212ebd8c02ab",
+      "sha256": "ce16c52df30ed7bae21b4c6decee4e1848806197cad08f2c269e8967bcf3745f"
+    },
+    "anchor.ssz": {
+      "source": "block_0xe00cef4c763b426d33483b77e65af3d6e01b55c8c8dd3d193d1cbb383409d1be.ssz_snappy",
+      "compressed_sha256": "d7b64fb3068b77ec933d1b6cf5e1ffefb7609444448ca8af1cf317147528db80",
+      "sha256": "d0d9e54a45a76000f80ec1b3d32abc88997e84b6eaa50d41bfa5665ed1d9397f"
+    },
+    "failed.ssz": {
+      "source": "block_0x23889db9f29396f1d9dd95470224b75067bdb8763efcb54c2a8728545e87960e.ssz_snappy",
+      "compressed_sha256": "07bdc5416f9938613e36c1e7b01b11284e437eb4687cef8d765d95459a89143e",
+      "sha256": "c7a4ac46d8de375996284dc920ffdde110fd9fa79c108380a3442994339d0785"
+    },
+    "envelope.ssz": {
+      "source": "execution_payload_envelope_0xe30c8cd637f68cbf81f154cc3f82624c70cd077038f2d35ab0161f2f89b12bb9.ssz_snappy",
+      "compressed_sha256": "f356801f0663b4e050fbb9266e595e4926ac7161c984b8b9b07cc6c2aa866001",
+      "sha256": "d0bda01664b8e4e95f82617cfc8dd04303b895fd15ae076f2a971fa618e9614b"
+    }
+  }
+}

@@ -72,15 +72,13 @@ impl<T: BeaconChainTypes> VerifiedPayloadAttestationMessage<T> {
             });
         }
 
-        // [IGNORE] `data.beacon_block_root` has been seen
-        // [REJECT] `data.beacon_block_root` passes validation.
-        //
-        // TODO(gloas): These two conditions are conflated. We need a status table to
-        // differentiate between:
-        // 1. Blocks we haven't seen (IGNORE), and
-        // 2. Blocks we've seen that are invalid (REJECT).
-        // Presently both cases return IGNORE.
         let beacon_block_root = payload_attestation_message.data.beacon_block_root;
+        if ctx
+            .canonical_head
+            .block_failed_consensus(&beacon_block_root)
+        {
+            return Err(Error::BlockFailedConsensus { beacon_block_root });
+        }
         let block = ctx
             .canonical_head
             .fork_choice_read_lock()
@@ -245,10 +243,20 @@ fn verify_propagation_slot_range<S: SlotClock>(
         });
     }
 
-    let earliest_permissible_slot = slot_clock
-        .now_with_past_tolerance(spec.maximum_gossip_clock_disparity())
-        .ok_or(BeaconChainError::UnableToReadSlot)?;
-    if message_slot < earliest_permissible_slot {
+    let now_ms = slot_clock
+        .now_duration()
+        .ok_or(BeaconChainError::UnableToReadSlot)?
+        .as_millis();
+    let end_ms = slot_clock
+        .start_of(message_slot.saturating_add(1_u64))
+        .ok_or(BeaconChainError::UnableToReadSlot)?
+        .as_millis();
+    // is_within_slot_range includes end + MAXIMUM_GOSSIP_CLOCK_DISPARITY.
+    // slot_of(now - disparity) rounds that exact endpoint into the next slot.
+    if now_ms > end_ms + spec.maximum_gossip_clock_disparity().as_millis() {
+        let earliest_permissible_slot = slot_clock
+            .now_with_past_tolerance(spec.maximum_gossip_clock_disparity())
+            .ok_or(BeaconChainError::UnableToReadSlot)?;
         return Err(Error::PastSlot {
             message_slot,
             earliest_permissible_slot,
@@ -256,4 +264,38 @@ fn verify_propagation_slot_range<S: SlotClock>(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod clock_boundary_tests {
+    use super::*;
+    use slot_clock::TestingSlotClock;
+    use std::time::Duration;
+    #[test]
+    fn inclusive_slot_window_milliseconds() {
+        let spec = ChainSpec::mainnet();
+        let clock = TestingSlotClock::new(
+            Slot::new(0),
+            Duration::from_secs(100),
+            spec.get_slot_duration(),
+        );
+        let slot = Slot::new(10);
+        let disparity = spec.maximum_gossip_clock_disparity();
+        let start = clock.start_of(slot).unwrap();
+        let end = clock.start_of(slot + 1).unwrap();
+        for time in [start - disparity, end + disparity] {
+            clock.set_current_time(time);
+            assert!(verify_propagation_slot_range(&clock, slot, &spec).is_ok());
+        }
+        clock.set_current_time(start - disparity - Duration::from_millis(1));
+        assert!(matches!(
+            verify_propagation_slot_range(&clock, slot, &spec),
+            Err(Error::FutureSlot { .. })
+        ));
+        clock.set_current_time(end + disparity + Duration::from_millis(1));
+        assert!(matches!(
+            verify_propagation_slot_range(&clock, slot, &spec),
+            Err(Error::PastSlot { .. })
+        ));
+    }
 }

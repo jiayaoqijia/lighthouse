@@ -444,7 +444,20 @@ async fn http_envelope_bypasses_deduplication_but_marks_seen() {
         .await
         .expect("re-published envelope should verify");
 
-    // If the envelope is later published on gossip, then the call should return an error
+    // Non-gossip verification does not consume the first gossip observation.
+    assert_eq!(
+        harness
+            .chain
+            .observed_execution_payloads
+            .get_gas_limit(envelope.message.payload.block_hash),
+        None
+    );
+    harness
+        .chain
+        .verify_envelope_for_gossip(envelope.clone(), EnvelopeSource::Gossip)
+        .await
+        .expect("first actual gossip observation must remain admissible");
+    // Its second gossip observation must be ignored.
     let gossip_result = harness
         .chain
         .verify_envelope_for_gossip(envelope, EnvelopeSource::Gossip)
@@ -457,7 +470,7 @@ async fn http_envelope_bypasses_deduplication_but_marks_seen() {
 }
 
 #[tokio::test]
-async fn rpc_envelope_bypasses_deduplication_but_marks_seen() {
+async fn rpc_envelope_preserves_first_gossip_observation() {
     if !fork_name_from_env().is_some_and(|f| f.gloas_enabled()) {
         return;
     }
@@ -499,7 +512,20 @@ async fn rpc_envelope_bypasses_deduplication_but_marks_seen() {
         .await
         .expect("re-fetched envelope should verify");
 
-    // If the envelope is later published on gossip, then the call should return an error
+    // Non-gossip verification does not consume the first gossip observation.
+    assert_eq!(
+        harness
+            .chain
+            .observed_execution_payloads
+            .get_gas_limit(envelope.message.payload.block_hash),
+        None
+    );
+    harness
+        .chain
+        .verify_envelope_for_gossip(envelope.clone(), EnvelopeSource::Gossip)
+        .await
+        .expect("first actual gossip observation must remain admissible");
+    // Its second gossip observation must be ignored.
     let gossip_result = harness
         .chain
         .verify_envelope_for_gossip(envelope, EnvelopeSource::Gossip)

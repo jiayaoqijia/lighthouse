@@ -3880,6 +3880,8 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
     pub fn check_invalid_block_roots(&self, block_root: Hash256) -> Result<(), BlockError> {
         if self.config.invalid_block_roots.contains(&block_root) {
             Err(BlockError::KnownInvalidExecutionPayload(block_root))
+        } else if self.canonical_head.block_failed_consensus(&block_root) {
+            Err(BlockError::KnownInvalidBlockRoot(block_root))
         } else {
             Ok(())
         }

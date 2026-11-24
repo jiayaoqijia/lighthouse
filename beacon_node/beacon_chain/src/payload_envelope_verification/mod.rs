@@ -209,6 +209,8 @@ impl<E: EthSpec> AvailableExecutedEnvelope<E> {
 pub enum EnvelopeError {
     /// The envelope's block root is unknown.
     BlockRootUnknown { block_root: Hash256 },
+    /// The referenced authenticated block failed its consensus transition.
+    BlockFailedConsensus { block_root: Hash256 },
     /// A validated envelope for this `block_root` has already been seen from the
     /// builder with `builder_index`, so this one is a duplicate.
     EnvelopeAlreadySeen {
@@ -286,6 +288,7 @@ impl EnvelopeError {
     pub fn penalize_peer(&self) -> bool {
         match self {
             EnvelopeError::BadSignature
+            | EnvelopeError::BlockFailedConsensus { .. }
             | EnvelopeError::BuilderIndexMismatch { .. }
             | EnvelopeError::SlotMismatch { .. }
             | EnvelopeError::BlockHashMismatch { .. }

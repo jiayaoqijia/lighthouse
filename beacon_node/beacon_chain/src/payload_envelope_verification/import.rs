@@ -329,10 +329,8 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         // This prevents inconsistency between the two at the expense of concurrency.
         drop(fork_choice);
 
-        self.observed_execution_payloads.insert(
-            signed_envelope.message.payload.block_hash,
-            signed_envelope.message.payload.gas_limit,
-        );
+        // Imported payload availability is persisted above. It does not add a
+        // gossip observation to Seen; that belongs to gossip verification.
 
         // We're declaring the envelope "imported" at this point, since fork choice and the DB know
         // about it.

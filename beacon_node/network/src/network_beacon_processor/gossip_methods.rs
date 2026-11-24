@@ -839,7 +839,8 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                             "Internal error when verifying column sidecar"
                         );
                     }
-                    GossipDataColumnError::ProposalSignatureInvalid
+                    GossipDataColumnError::BlockFailedConsensus { .. }
+                    | GossipDataColumnError::ProposalSignatureInvalid
                     | GossipDataColumnError::UnknownValidator(_)
                     | GossipDataColumnError::ProposerIndexMismatch { .. }
                     | GossipDataColumnError::IsNotLaterThanParent { .. }
@@ -1192,7 +1193,8 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                         "Internal error when verifying partial column sidecar"
                     );
                 }
-                GossipDataColumnError::InvalidVariant
+                GossipDataColumnError::BlockFailedConsensus { .. }
+                | GossipDataColumnError::InvalidVariant
                 | GossipDataColumnError::ProposalSignatureInvalid
                 | GossipDataColumnError::UnknownValidator(_)
                 | GossipDataColumnError::ProposerIndexMismatch { .. }
@@ -1280,6 +1282,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                     PeerAction::LowToleranceError,
                     "gossip_partial_data_column_low",
                 );
+                self.propagate_partial_validation_failure(peer_id, topic);
             }
             GossipPartialDataColumnError::EmptyMessage
             | GossipPartialDataColumnError::InconsistentPresentCount { .. }
@@ -1296,6 +1299,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                     PeerAction::LowToleranceError,
                     "gossip_partial_data_column_low",
                 );
+                self.propagate_partial_validation_failure(peer_id, topic);
             }
             GossipPartialDataColumnError::PartialColumnsDisabled => {
                 error!(
@@ -1789,6 +1793,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
             | Err(e @ BlockError::InconsistentFork(_))
             | Err(e @ BlockError::ExecutionPayloadError(_))
             | Err(e @ BlockError::KnownInvalidExecutionPayload(_))
+            | Err(e @ BlockError::KnownInvalidBlockRoot(_))
             | Err(e @ BlockError::GenesisBlock)
             | Err(e @ BlockError::InvalidBlobCount { .. })
             | Err(e @ BlockError::BidParentRootMismatch { .. })
@@ -2088,7 +2093,9 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                 );
                 let validation_result = match e {
                     BeaconChainError::ExitValidationError(ExitValidationError::Invalid(
-                        ExitInvalid::FutureEpoch { .. } | ExitInvalid::AlreadyExited(_),
+                        ExitInvalid::FutureEpoch { .. }
+                        | ExitInvalid::AlreadyExited(_)
+                        | ExitInvalid::PendingWithdrawalInQueue(_),
                     )) => MessageAcceptance::Ignore,
                     BeaconChainError::ExitValidationError(ExitValidationError::Invalid(_)) => {
                         self.gossip_penalize_peer(
@@ -2975,6 +2982,17 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                 }
 
                 return;
+            }
+            AttnError::OptimisticPayload { .. } => {
+                self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
+            }
+            AttnError::InvalidPayload { .. } | AttnError::BlockFailedConsensus { .. } => {
+                self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Reject);
+                self.gossip_penalize_peer(
+                    peer_id,
+                    PeerAction::LowToleranceError,
+                    "attn_invalid_payload",
+                );
             }
             AttnError::UnknownPayloadEnvelope { beacon_block_root } => {
                 trace!(
@@ -3887,6 +3905,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                     }
 
                     EnvelopeError::BadSignature
+                    | EnvelopeError::BlockFailedConsensus { .. }
                     | EnvelopeError::BuilderIndexMismatch { .. }
                     | EnvelopeError::SlotMismatch { .. }
                     | EnvelopeError::BlockHashMismatch { .. }
@@ -4655,7 +4674,8 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                 );
                 self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
             }
-            PayloadAttestationError::PreGloasSlot { .. }
+            PayloadAttestationError::BlockFailedConsensus { .. }
+            | PayloadAttestationError::PreGloasSlot { .. }
             | PayloadAttestationError::NotInPTC { .. } => {
                 self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Reject);
                 self.gossip_penalize_peer(
