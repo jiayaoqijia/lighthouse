@@ -5,6 +5,9 @@ use ef_tests::*;
 use std::path::Path;
 use types::*;
 
+const COMPILED_REVISION: Option<&str> = option_env!("ETH2030_SOURCE_REVISION");
+const COMPILED_DIRTY: Option<&str> = option_env!("ETH2030_SOURCE_DIRTY");
+
 fn consume<E: EthSpec + TypeName>(
     runner: &str,
     handler: &str,
@@ -120,6 +123,11 @@ fn main() {
             || matches!(args[1].as_str(), "ssz_static" | "fast_confirmation"),
         "state/gossip acceptance requires real BLS"
     );
+    assert!(
+        COMPILED_REVISION.is_some_and(|revision| revision.len() == 40)
+            && COMPILED_DIRTY == Some("false"),
+        "build the snapshot executable with the verified clean source revision and dirty=false stamps"
+    );
     let path = Path::new(&args[2]);
     let handler = path
         .file_name()
@@ -139,7 +147,7 @@ fn main() {
         }
         println!(
             "{}",
-            serde_json::json!({"path":case.path,"passed":case.result.is_ok(),"error":case.result.err().map(|error|format!("{}: {}",error.name(),error.message())),"crypto":if cfg!(feature="fake_crypto") {"fixture_fake"} else {"real"}})
+            serde_json::json!({"path":case.path,"source_revision":COMPILED_REVISION,"source_dirty":false,"passed":case.result.is_ok(),"error":case.result.err().map(|error|format!("{}: {}",error.name(),error.message())),"crypto":if cfg!(feature="fake_crypto") {"fixture_fake"} else {"real"}})
         );
     }
     assert_eq!(failed, 0, "snapshot cases failed or were skipped");
