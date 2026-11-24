@@ -831,8 +831,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                             }
                         }
                     }
-                    GossipDataColumnError::BlockFailedConsensus { .. }
-                    | GossipDataColumnError::InvalidVariant
+                    GossipDataColumnError::InvalidVariant
                     | GossipDataColumnError::PubkeyCacheTimeout
                     | GossipDataColumnError::BeaconChainError(_) => {
                         crit!(
@@ -840,7 +839,8 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                             "Internal error when verifying column sidecar"
                         );
                     }
-                    GossipDataColumnError::ProposalSignatureInvalid
+                    GossipDataColumnError::BlockFailedConsensus { .. }
+                    | GossipDataColumnError::ProposalSignatureInvalid
                     | GossipDataColumnError::UnknownValidator(_)
                     | GossipDataColumnError::ProposerIndexMismatch { .. }
                     | GossipDataColumnError::IsNotLaterThanParent { .. }
