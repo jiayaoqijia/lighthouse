@@ -448,7 +448,7 @@ impl<E: EthSpec> Case for ForkChoiceTest<E> {
         // See: https://github.com/ethereum/consensus-specs/pull/5547
         const IGNORED_PRE_FULU_CASES: &[&str] = &["epoch_boundary"];
 
-        if IGNORED_FAST_CONFIRMATION_CASES.contains(&self.description.as_str())
+        if (!cfg!(feature = "fake_crypto_real_pubkeys") && IGNORED_FAST_CONFIRMATION_CASES.contains(&self.description.as_str()))
             || (!fork_name.fulu_enabled()
                 && IGNORED_PRE_FULU_CASES.contains(&self.description.as_str()))
         {
