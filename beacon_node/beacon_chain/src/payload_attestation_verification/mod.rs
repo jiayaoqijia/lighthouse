@@ -62,6 +62,8 @@ pub enum Error {
     /// The attestation points to a block we have not yet imported. It's unclear if the
     /// attestation is valid or not.
     UnknownHeadBlock { beacon_block_root: Hash256 },
+    /// The referenced authenticated block failed consensus validation.
+    BlockFailedConsensus { beacon_block_root: Hash256 },
     /// The block referenced by `data.beacon_block_root` is not at slot `data.slot`, i.e. the
     /// PTC member's assigned slot was likely empty.
     ///

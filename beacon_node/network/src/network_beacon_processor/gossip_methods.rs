@@ -831,7 +831,8 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                             }
                         }
                     }
-                    GossipDataColumnError::InvalidVariant
+                    GossipDataColumnError::BlockFailedConsensus { .. }
+                    | GossipDataColumnError::InvalidVariant
                     | GossipDataColumnError::PubkeyCacheTimeout
                     | GossipDataColumnError::BeaconChainError(_) => {
                         crit!(
@@ -1192,7 +1193,8 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                         "Internal error when verifying partial column sidecar"
                     );
                 }
-                GossipDataColumnError::InvalidVariant
+                GossipDataColumnError::BlockFailedConsensus { .. }
+                | GossipDataColumnError::InvalidVariant
                 | GossipDataColumnError::ProposalSignatureInvalid
                 | GossipDataColumnError::UnknownValidator(_)
                 | GossipDataColumnError::ProposerIndexMismatch { .. }
@@ -1789,6 +1791,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
             | Err(e @ BlockError::InconsistentFork(_))
             | Err(e @ BlockError::ExecutionPayloadError(_))
             | Err(e @ BlockError::KnownInvalidExecutionPayload(_))
+            | Err(e @ BlockError::KnownInvalidBlockRoot(_))
             | Err(e @ BlockError::GenesisBlock)
             | Err(e @ BlockError::InvalidBlobCount { .. })
             | Err(e @ BlockError::BidParentRootMismatch { .. })
@@ -3887,6 +3890,7 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                     }
 
                     EnvelopeError::BadSignature
+                    | EnvelopeError::BlockFailedConsensus { .. }
                     | EnvelopeError::BuilderIndexMismatch { .. }
                     | EnvelopeError::SlotMismatch { .. }
                     | EnvelopeError::BlockHashMismatch { .. }
@@ -4655,7 +4659,8 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
                 );
                 self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
             }
-            PayloadAttestationError::PreGloasSlot { .. }
+            PayloadAttestationError::BlockFailedConsensus { .. }
+            | PayloadAttestationError::PreGloasSlot { .. }
             | PayloadAttestationError::NotInPTC { .. } => {
                 self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Reject);
                 self.gossip_penalize_peer(

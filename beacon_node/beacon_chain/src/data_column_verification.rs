@@ -135,6 +135,8 @@ pub enum GossipDataColumnError {
     ///
     /// We cannot process the column without the referenced block, the peer isn't necessarily faulty.
     BlockRootUnknown { block_root: Hash256, slot: Slot },
+    /// The referenced authenticated block failed consensus validation.
+    BlockFailedConsensus { block_root: Hash256 },
     /// The data column slot does not match its referenced block slot.
     ///
     /// ## Peer scoring
@@ -1266,6 +1268,14 @@ pub fn validate_data_column_sidecar_for_gossip_gloas<
     verify_slot_greater_than_latest_finalized_slot(chain, column_slot)?;
     verify_is_unknown_sidecar(chain, &data_column)?;
 
+    if chain
+        .canonical_head
+        .block_failed_consensus(&data_column.block_root())
+    {
+        return Err(GossipDataColumnError::BlockFailedConsensus {
+            block_root: data_column.block_root(),
+        });
+    }
     let bid = load_gloas_payload_bid(data_column.block_root(), chain)?.ok_or(
         GossipDataColumnError::BlockRootUnknown {
             block_root: data_column.block_root(),
@@ -1411,6 +1421,11 @@ fn validate_partial_data_column_sidecar_for_gossip_gloas<T: BeaconChainTypes>(
 
     // The bid carries the commitments. Return the same bid after verification so partial-column
     // processing does not need to look it up again.
+    if chain.canonical_head.block_failed_consensus(&block_root) {
+        return PartialColumnVerificationResult::Err(
+            GossipDataColumnError::BlockFailedConsensus { block_root }.into(),
+        );
+    }
     let bid = match load_gloas_payload_bid(block_root, chain) {
         Ok(Some(bid)) => bid,
         Ok(None) => {

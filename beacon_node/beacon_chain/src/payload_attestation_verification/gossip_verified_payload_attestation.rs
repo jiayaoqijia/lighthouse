@@ -72,15 +72,13 @@ impl<T: BeaconChainTypes> VerifiedPayloadAttestationMessage<T> {
             });
         }
 
-        // [IGNORE] `data.beacon_block_root` has been seen
-        // [REJECT] `data.beacon_block_root` passes validation.
-        //
-        // TODO(gloas): These two conditions are conflated. We need a status table to
-        // differentiate between:
-        // 1. Blocks we haven't seen (IGNORE), and
-        // 2. Blocks we've seen that are invalid (REJECT).
-        // Presently both cases return IGNORE.
         let beacon_block_root = payload_attestation_message.data.beacon_block_root;
+        if ctx
+            .canonical_head
+            .block_failed_consensus(&beacon_block_root)
+        {
+            return Err(Error::BlockFailedConsensus { beacon_block_root });
+        }
         let block = ctx
             .canonical_head
             .fork_choice_read_lock()

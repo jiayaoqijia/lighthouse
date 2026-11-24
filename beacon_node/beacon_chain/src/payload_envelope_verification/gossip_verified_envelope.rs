@@ -161,16 +161,15 @@ impl<T: BeaconChainTypes> GossipVerifiedEnvelope<T> {
         let beacon_block_root = envelope.beacon_block_root;
         let builder_index = envelope.builder_index;
 
-        // Check that we've seen the beacon block for this envelope and that it passes validation.
-        // TODO(EIP-7732): We might need some type of status table in order to differentiate between:
-        // If we have a block_processing_table, we could have a Processed(Bid, bool) state that is only
-        // entered post adding to fork choice. That way, we could potentially need only a single call to make
-        // sure the block is valid and to do all consequent checks with the bid
-        //
-        // 1. Blocks we haven't seen (IGNORE), and
-        // 2. Blocks we've seen that are invalid (REJECT).
-        //
-        // Presently these two cases are conflated.
+        if ctx
+            .canonical_head
+            .block_failed_consensus(&beacon_block_root)
+        {
+            return Err(EnvelopeError::BlockFailedConsensus {
+                block_root: beacon_block_root,
+            });
+        }
+
         let fork_choice_read_lock = ctx.canonical_head.fork_choice_read_lock();
         let Some(proto_block) = fork_choice_read_lock.get_block(&beacon_block_root) else {
             return Err(EnvelopeError::BlockRootUnknown {
@@ -198,7 +197,7 @@ impl<T: BeaconChainTypes> GossipVerifiedEnvelope<T> {
 
         let latest_finalized_slot = ctx
             .canonical_head
-            .cached_head()
+            .fork_choice_read_lock()
             .finalized_checkpoint()
             .epoch
             .start_slot(T::EthSpec::slots_per_epoch());
