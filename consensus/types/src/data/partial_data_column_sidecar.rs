@@ -18,12 +18,120 @@ use superstruct::superstruct;
 use tree_hash::TreeHash;
 use tree_hash_derive::TreeHash;
 
-pub type CellBitmap<E> = BitList<<E as EthSpec>::MaxBlobCommitmentsPerBlock>;
+// Shared wire/API adapter. Gloas hashes its native progressive bits; Fulu's
+// containing sidecar retains the legacy bounded decoder and tree root below.
+#[derive(Debug, Clone, Educe, serde::Serialize, serde::Deserialize)]
+#[educe(PartialEq, Eq, Hash(bound = "E:EthSpec"))]
+#[serde(transparent)]
+pub struct CellBitmap<E: EthSpec> {
+    bits: ssz::ProgressiveBitList,
+    #[serde(skip)]
+    marker: std::marker::PhantomData<E>,
+}
+#[cfg(feature = "arbitrary")]
+impl<'a, E: EthSpec> arbitrary::Arbitrary<'a> for CellBitmap<E> {
+    fn arbitrary(input: &mut arbitrary::Unstructured<'a>) -> arbitrary::Result<Self> {
+        use ssz::{Decode, Encode};
+        let bounded =
+            <BitList<E::MaxBlobCommitmentsPerBlock> as arbitrary::Arbitrary>::arbitrary(input)?;
+        Self::from_ssz_bytes(&bounded.as_ssz_bytes()).map_err(|_| arbitrary::Error::IncorrectFormat)
+    }
+}
+impl<E: EthSpec> CellBitmap<E> {
+    pub fn with_capacity(len: usize) -> Result<Self, ssz::BitfieldError> {
+        if len > E::MaxBlobCommitmentsPerBlock::to_usize() {
+            return Err(ssz::BitfieldError::OutOfBounds {
+                i: len,
+                len: E::MaxBlobCommitmentsPerBlock::to_usize(),
+            });
+        }
+        Ok(Self {
+            bits: ssz::ProgressiveBitList::with_capacity(len),
+            marker: Default::default(),
+        })
+    }
+    pub fn clone_zeroed(&self) -> Self {
+        Self {
+            bits: ssz::ProgressiveBitList::with_capacity(self.bits.len()),
+            marker: Default::default(),
+        }
+    }
+    pub fn union(&self, other: &Self) -> Self {
+        Self {
+            bits: self.bits.union(&other.bits),
+            marker: Default::default(),
+        }
+    }
+    pub fn intersection(&self, other: &Self) -> Self {
+        Self {
+            bits: self.bits.intersection(&other.bits),
+            marker: Default::default(),
+        }
+    }
+    pub fn not(&self) -> Self {
+        Self {
+            bits: self.bits.not(),
+            marker: Default::default(),
+        }
+    }
+}
+impl<E: EthSpec> std::ops::Deref for CellBitmap<E> {
+    type Target = ssz::ProgressiveBitList;
+    fn deref(&self) -> &Self::Target {
+        &self.bits
+    }
+}
+impl<E: EthSpec> std::ops::DerefMut for CellBitmap<E> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.bits
+    }
+}
+impl<E: EthSpec> Display for CellBitmap<E> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&self.bits, f)
+    }
+}
+impl<E: EthSpec> ssz::Encode for CellBitmap<E> {
+    fn is_ssz_fixed_len() -> bool {
+        false
+    }
+    fn ssz_bytes_len(&self) -> usize {
+        self.bits.ssz_bytes_len()
+    }
+    fn ssz_append(&self, buf: &mut Vec<u8>) {
+        self.bits.ssz_append(buf)
+    }
+}
+impl<E: EthSpec> ssz::Decode for CellBitmap<E> {
+    fn is_ssz_fixed_len() -> bool {
+        false
+    }
+    fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
+        Ok(Self {
+            bits: ssz::ProgressiveBitList::from_ssz_bytes(bytes)?,
+            marker: Default::default(),
+        })
+    }
+}
+impl<E: EthSpec> TreeHash for CellBitmap<E> {
+    fn tree_hash_type() -> tree_hash::TreeHashType {
+        <ssz::ProgressiveBitList as TreeHash>::tree_hash_type()
+    }
+    fn tree_hash_packed_encoding(&self) -> tree_hash::PackedEncoding {
+        self.bits.tree_hash_packed_encoding()
+    }
+    fn tree_hash_packing_factor() -> usize {
+        <ssz::ProgressiveBitList as TreeHash>::tree_hash_packing_factor()
+    }
+    fn tree_hash_root(&self) -> Hash256 {
+        self.bits.tree_hash_root()
+    }
+}
 
 #[superstruct(
     variants(Fulu, Gloas),
     variant_attributes(
-        derive(Debug, Clone, Encode, Decode, TreeHash, Educe),
+        derive(Debug, Clone, Encode, Educe),
         educe(PartialEq, Eq, Hash(bound = "E: EthSpec")),
         cfg_attr(
             feature = "arbitrary",
@@ -60,6 +168,111 @@ pub struct PartialDataColumnSidecar<E: EthSpec> {
     #[superstruct(only(Fulu))]
     pub header: ListEncodedOption<PartialDataColumnHeader<E>>,
 }
+
+#[derive(Decode)]
+struct FuluSidecarWire<E: EthSpec> {
+    cells_present_bitmap: BitList<E::MaxBlobCommitmentsPerBlock>,
+    column: VariableList<Cell<E>, E::MaxBlobCommitmentsPerBlock>,
+    kzg_proofs: VariableList<KzgProof, E::MaxBlobCommitmentsPerBlock>,
+    header: ListEncodedOption<PartialDataColumnHeader<E>>,
+}
+#[derive(Decode)]
+struct GloasSidecarWire<E: EthSpec> {
+    cells_present_bitmap: CellBitmap<E>,
+    column: ProgressiveVariableList<Cell<E>, E::MaxBlobCommitmentsPerBlock>,
+    kzg_proofs: ProgressiveVariableList<KzgProof, E::MaxBlobCommitmentsPerBlock>,
+}
+impl<E: EthSpec> ssz::Decode for PartialDataColumnSidecarFulu<E> {
+    fn is_ssz_fixed_len() -> bool {
+        false
+    }
+    fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
+        use ssz::Encode;
+        let wire = FuluSidecarWire::<E>::from_ssz_bytes(bytes)?;
+        Ok(Self {
+            cells_present_bitmap: CellBitmap::from_ssz_bytes(
+                &wire.cells_present_bitmap.as_ssz_bytes(),
+            )?,
+            column: wire.column,
+            kzg_proofs: wire.kzg_proofs,
+            header: wire.header,
+        })
+    }
+}
+impl<E: EthSpec> ssz::Decode for PartialDataColumnSidecarGloas<E> {
+    fn is_ssz_fixed_len() -> bool {
+        false
+    }
+    fn from_ssz_bytes(bytes: &[u8]) -> Result<Self, ssz::DecodeError> {
+        let wire = GloasSidecarWire::<E>::from_ssz_bytes(bytes)?;
+        Ok(Self {
+            cells_present_bitmap: wire.cells_present_bitmap,
+            column: wire.column,
+            kzg_proofs: wire.kzg_proofs,
+        })
+    }
+}
+#[derive(TreeHash)]
+struct FuluSidecarRoots {
+    bitmap: Hash256,
+    column: Hash256,
+    proofs: Hash256,
+    header: Hash256,
+}
+#[derive(TreeHash)]
+struct GloasSidecarRoots {
+    bitmap: Hash256,
+    column: Hash256,
+    proofs: Hash256,
+}
+macro_rules! sidecar_tree_hash {
+    ($sidecar:ident,$roots:ident,$root:ident) => {
+        impl<E: EthSpec> TreeHash for $sidecar<E> {
+            fn tree_hash_type() -> tree_hash::TreeHashType {
+                <$roots as TreeHash>::tree_hash_type()
+            }
+            fn tree_hash_packed_encoding(&self) -> tree_hash::PackedEncoding {
+                $root(self).tree_hash_packed_encoding()
+            }
+            fn tree_hash_packing_factor() -> usize {
+                <$roots as TreeHash>::tree_hash_packing_factor()
+            }
+            fn tree_hash_root(&self) -> Hash256 {
+                $root(self).tree_hash_root()
+            }
+        }
+    };
+}
+fn fulu_sidecar_roots<E: EthSpec>(sidecar: &PartialDataColumnSidecarFulu<E>) -> FuluSidecarRoots {
+    let bitmap = &sidecar.cells_present_bitmap;
+    let chunks = E::MaxBlobCommitmentsPerBlock::to_usize().div_ceil(256);
+    let root = tree_hash::merkle_root(bitmap.as_slice(), chunks);
+    FuluSidecarRoots {
+        bitmap: tree_hash::mix_in_length(&root, bitmap.len()),
+        column: sidecar.column.tree_hash_root(),
+        proofs: sidecar.kzg_proofs.tree_hash_root(),
+        header: sidecar.header.tree_hash_root(),
+    }
+}
+fn gloas_sidecar_roots<E: EthSpec>(
+    sidecar: &PartialDataColumnSidecarGloas<E>,
+) -> GloasSidecarRoots {
+    GloasSidecarRoots {
+        bitmap: sidecar.cells_present_bitmap.tree_hash_root(),
+        column: sidecar.column.tree_hash_root(),
+        proofs: sidecar.kzg_proofs.tree_hash_root(),
+    }
+}
+sidecar_tree_hash!(
+    PartialDataColumnSidecarFulu,
+    FuluSidecarRoots,
+    fulu_sidecar_roots
+);
+sidecar_tree_hash!(
+    PartialDataColumnSidecarGloas,
+    GloasSidecarRoots,
+    gloas_sidecar_roots
+);
 
 impl<E: EthSpec> PartialDataColumnSidecarGloas<E> {
     pub fn max_size(max_blobs_per_block: usize) -> usize {
@@ -107,8 +320,8 @@ pub enum PartialDataColumnSidecarError {
 /// Cells are stored densely, so the nth set bit owns the nth cell and the nth proof. `zip` stops
 /// at the shortest side, so storage that breaks that length invariant yields fewer items instead
 /// of panicking.
-fn zip_present_cells<'a, N: Unsigned, C: 'a, P: 'a>(
-    bitmap: &'a BitList<N>,
+fn zip_present_cells<'a, C: 'a, P: 'a>(
+    bitmap: &'a ssz::ProgressiveBitList,
     cells: impl Iterator<Item = C> + 'a,
     proofs: impl Iterator<Item = P> + 'a,
 ) -> impl Iterator<Item = (usize, C, P)> + 'a {
@@ -433,9 +646,107 @@ mod tests {
     use bls::Signature;
     use fixed_bytes::FixedBytesExtended;
     use kzg::KzgCommitment;
-    use ssz::Encode;
+    use ssz::{Decode, Encode};
 
     type E = Spec;
+
+    #[test]
+    fn current_independent_partial_bitmap_fork_roots() {
+        #[derive(serde::Deserialize)]
+        struct Vector {
+            fork: String,
+            bits: usize,
+            bitmap_ssz: String,
+            bitmap_root: Hash256,
+            sidecar_ssz: String,
+            sidecar_root: Hash256,
+            metadata_ssz: String,
+            metadata_root: Hash256,
+        }
+        #[derive(serde::Deserialize)]
+        struct Vectors {
+            vectors: Vec<Vector>,
+        }
+        let vectors: Vectors = serde_json::from_slice(include_bytes!(
+            "../../test_vectors/current-cell-bitmaps.json"
+        ))
+        .unwrap();
+        let decode = |value: &str| hex::decode(value.strip_prefix("0x").unwrap()).unwrap();
+        for vector in vectors.vectors {
+            let raw = decode(&vector.bitmap_ssz);
+            let bitmap = CellBitmap::<E>::from_ssz_bytes(&raw).unwrap();
+            assert_eq!(bitmap.len(), vector.bits);
+            assert_eq!(bitmap.as_ssz_bytes(), raw);
+            let bitmap_root = if vector.fork == "fulu" {
+                BitList::<<E as EthSpec>::MaxBlobCommitmentsPerBlock>::from_ssz_bytes(&raw)
+                    .unwrap()
+                    .tree_hash_root()
+            } else {
+                bitmap.tree_hash_root()
+            };
+            assert_eq!(
+                bitmap_root, vector.bitmap_root,
+                "{} bits {}",
+                vector.fork, vector.bits
+            );
+            let bytes = decode(&vector.sidecar_ssz);
+            let sidecar = if vector.fork == "fulu" {
+                PartialDataColumnSidecar::Fulu(
+                    PartialDataColumnSidecarFulu::<E>::from_ssz_bytes(&bytes).unwrap(),
+                )
+            } else {
+                PartialDataColumnSidecar::Gloas(
+                    PartialDataColumnSidecarGloas::<E>::from_ssz_bytes(&bytes).unwrap(),
+                )
+            };
+            assert_eq!(sidecar.as_ssz_bytes(), bytes);
+            assert_eq!(
+                sidecar.tree_hash_root(),
+                vector.sidecar_root,
+                "{} sidecar bits {}",
+                vector.fork,
+                vector.bits
+            );
+            let metadata =
+                PartialDataColumnPartsMetadata::<E>::from_ssz_bytes(&decode(&vector.metadata_ssz))
+                    .unwrap();
+            assert_eq!(metadata.available, bitmap);
+            assert_eq!(metadata.requests, bitmap);
+            assert_eq!(metadata.as_ssz_bytes(), decode(&vector.metadata_ssz));
+            let root = tree_hash::merkle_root(
+                &[bitmap_root.as_slice(), bitmap_root.as_slice()].concat(),
+                2,
+            );
+            assert_eq!(root, vector.metadata_root);
+        }
+    }
+
+    #[test]
+    fn fulu_decode_retains_bound_while_gloas_bitmap_is_progressive() {
+        let len = <E as EthSpec>::MaxBlobCommitmentsPerBlock::to_usize() + 1;
+        let mut raw = vec![0; len / 8 + 1];
+        raw[len / 8] = 1 << (len % 8);
+        let bitmap = CellBitmap::<E>::from_ssz_bytes(&raw).unwrap();
+        let gloas = PartialDataColumnSidecarGloas::<E> {
+            cells_present_bitmap: bitmap.clone(),
+            column: Default::default(),
+            kzg_proofs: Default::default(),
+        };
+        assert_eq!(
+            PartialDataColumnSidecarGloas::<E>::from_ssz_bytes(&gloas.as_ssz_bytes())
+                .unwrap()
+                .cells_present_bitmap
+                .len(),
+            len
+        );
+        let fulu = PartialDataColumnSidecarFulu::<E> {
+            cells_present_bitmap: bitmap,
+            column: Default::default(),
+            kzg_proofs: Default::default(),
+            header: None.into(),
+        };
+        assert!(PartialDataColumnSidecarFulu::<E>::from_ssz_bytes(&fulu.as_ssz_bytes()).is_err());
+    }
 
     fn make_cell(marker: u8) -> Cell<E> {
         let mut cell = Cell::<E>::default();

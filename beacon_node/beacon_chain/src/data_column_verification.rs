@@ -1930,7 +1930,6 @@ mod test {
     use eth2::types::BlobsBundle;
     use execution_layer::test_utils::generate_blobs;
     use kzg::KzgProof;
-    use ssz::BitList;
     use ssz_types::{ProgressiveVariableList, VariableList};
     use std::sync::Arc;
     use std::time::UNIX_EPOCH;
@@ -2211,9 +2210,7 @@ mod test {
 
         // Create a headerless partial with no cells — should trigger EmptyMessage.
         let num_commitments = header.kzg_commitments.len();
-        let empty_bitmap =
-            BitList::<<E as EthSpec>::MaxBlobCommitmentsPerBlock>::with_capacity(num_commitments)
-                .unwrap();
+        let empty_bitmap = types::CellBitmap::<E>::with_capacity(num_commitments).unwrap();
 
         let column: PartialDataColumn<E> = PartialDataColumnFulu {
             block_root,
@@ -2251,9 +2248,7 @@ mod test {
 
         // Create a bitmap that says 2 bits are set, but only provide 1 cell/proof.
         let num_commitments = header.kzg_commitments.len();
-        let mut bitmap =
-            BitList::<<E as EthSpec>::MaxBlobCommitmentsPerBlock>::with_capacity(num_commitments)
-                .unwrap();
+        let mut bitmap = types::CellBitmap::<E>::with_capacity(num_commitments).unwrap();
         bitmap.set(0, true).unwrap();
 
         let column: PartialDataColumn<E> = PartialDataColumnFulu {
@@ -2295,8 +2290,7 @@ mod test {
 
         // Create a bitmap with length different from the number of commitments in the header.
         // Header has 1 commitment, but we use a bitmap with capacity 3.
-        let mut bitmap =
-            BitList::<<E as EthSpec>::MaxBlobCommitmentsPerBlock>::with_capacity(3).unwrap();
+        let mut bitmap = types::CellBitmap::<E>::with_capacity(3).unwrap();
         bitmap.set(0, true).unwrap();
 
         let column: PartialDataColumn<E> = PartialDataColumnFulu {
