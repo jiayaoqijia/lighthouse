@@ -843,7 +843,8 @@ impl FastConfirmationRule {
 
     /// Spec: `get_node_support_between_slots`.
     ///
-    /// The node is `block` with `payload_status`, which is `None` for a pre-Gloas block.
+    /// Discount support of the selected parent node together with its PENDING
+    /// node. `None` is the single pre-Gloas node. Each validator counts once.
     #[allow(clippy::too_many_arguments)]
     fn get_node_support_between_slots(
         &self,
@@ -871,8 +872,10 @@ impl FastConfirmationRule {
                     .slot_assignments
                     .is_in_range(val_idx, start_slot, end_slot)?
                 && vote.current_root() == block.root()
-                && payload_status
-                    .is_none_or(|status| vote.current_payload_status(block.slot()) == status)
+                && payload_status.is_none_or(|status| {
+                    let supported = vote.current_payload_status(block.slot());
+                    supported == PayloadStatus::Pending || supported == status
+                })
                 && !equivocating_indices.contains(&(val_idx as u64))
             {
                 score = score.safe_add(balance)?;
@@ -1579,6 +1582,84 @@ mod tests {
     use types::{MainnetEthSpec, Spec};
 
     type E = Spec;
+
+    #[test]
+    fn empty_slot_discount_counts_pending_and_selected_branch_once() {
+        use ssz::{Decode, Encode};
+        let spec = E::default_spec();
+        let validators = (0..32)
+            .map(|index| {
+                let mut validator = active_validator(&spec, index == 0);
+                if index == 16 {
+                    validator.activation_epoch = Epoch::new(1);
+                }
+                validator
+            })
+            .collect();
+        let mut state = state_with_validators(validators, &spec);
+        state.build_all_committee_caches(&spec).unwrap();
+        let root = Hash256::repeat_byte(1);
+        let checkpoint = Checkpoint {
+            epoch: Epoch::new(0),
+            root,
+        };
+        let source = BalanceSourceData::new(&state, root, &spec).unwrap();
+        let fcr = FastConfirmationRule::new::<E>(
+            root,
+            &state,
+            checkpoint,
+            &state,
+            None,
+            25,
+            spec.proposer_score_boost,
+            &spec,
+        )
+        .unwrap();
+        let (array, child) = genesis_and_child_proto_array(root, &spec);
+        let block = get_block(child, &array).unwrap();
+        let votes: Vec<_> = (0..32)
+            .map(|index| {
+                let vote_root = if index >= 24 {
+                    Hash256::repeat_byte(9)
+                } else {
+                    child
+                };
+                let slot = if index < 8 {
+                    block.slot()
+                } else {
+                    block.slot().safe_add(1).unwrap()
+                };
+                let present = (8..16).contains(&index);
+                let mut bytes = vote_root.as_ssz_bytes();
+                bytes.extend(vote_root.as_ssz_bytes());
+                bytes.extend(slot.as_ssz_bytes());
+                bytes.extend(slot.as_ssz_bytes());
+                bytes.extend(present.as_ssz_bytes());
+                bytes.extend(present.as_ssz_bytes());
+                VoteTracker::from_ssz_bytes(&bytes).unwrap()
+            })
+            .collect();
+        let equivocators = BTreeSet::from([8]);
+        let weight = spec.max_effective_balance;
+        for (branch, count) in [
+            (Some(PayloadStatus::Full), 14),
+            (Some(PayloadStatus::Empty), 14),
+            (None, 21),
+        ] {
+            let score = fcr
+                .get_node_support_between_slots(
+                    &source,
+                    block,
+                    branch,
+                    Slot::new(0),
+                    Slot::new(E::slots_per_epoch().safe_sub(1).unwrap()),
+                    &votes,
+                    &equivocators,
+                )
+                .unwrap();
+            assert_eq!(score, count * weight, "branch={branch:?}");
+        }
+    }
 
     #[test]
     fn test_block_should_be_finalized() {
