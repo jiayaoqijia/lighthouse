@@ -1,0 +1,19 @@
+{
+  "failed_head": "c02fcf4f0e871707dd489a53456265e37f78f4e4",
+  "job": 138857751452,
+  "artifact": 14976402185,
+  "artifact_sha256": "323f53126ac63bb2d01a297c218fc0cfcb454669e9e56b21d15a1d4b6455c136",
+  "original_slot_duration_ms": 3000,
+  "failed_assertion": "128 canonical blocks, expected129; slot33 orphaned",
+  "observed_chain": [
+    "Slot32 block and envelope were produced/published at 23:45:45.0-45.244.",
+    "Some peers imported envelope32 at45.292-45.330; two imports occurred only at48.320 and48.335, after slot33 began.",
+    "Slot33 was produced and imported at48.074 (68ms after slot start).",
+    "The delayed envelope32 imports immediately changed fork-choice head from block33 to block32 at48.321 and48.336.",
+    "Slot34 was produced at51.029 and the chain continued; the final all-canonical-slot check found orphaned slot33."
+  ],
+  "normative_boundary": "Current Gloas get_weight zeroes previous-slot payload-decision weights and should_extend_payload can select a timely/available FULL parent. All produced blocks need not remain canonical under delayed envelopes. These logs establish a delayed-message/reorg sequence, not a native EL deadlock.",
+  "unattributed": "The artifact does not attribute the two late envelope deliveries to an exact scheduler/transport wait. This is not evidence that original-04 was reproduced or resolved.",
+  "qualification_change": "Keep every existing all-canonical-slot and95-percent-attestation assertion and all real cryptography; use the production12-second clock for the default hosted qualification profile. Explicit accelerated-clock stress remains available.",
+  "new_full_local_qualification": "pending"
+}

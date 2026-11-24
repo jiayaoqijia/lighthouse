@@ -416,7 +416,9 @@ jobs:
     - name: Create log dir
       run: mkdir ${{ runner.temp }}/fallback_simulator_logs
     - name: Run a beacon chain sim which tests VC fallback behaviour
-      run: cargo run --release --bin simulator fallback-sim --disable-stdout-logging --log-dir ${{ runner.temp }}/fallback_simulator_logs
+      # Keep real BLS/KZG, all-canonical-slot and 95% attestation checks. An
+      # explicitly compressed clock is a separate stress configuration.
+      run: cargo run --release --bin simulator fallback-sim --speed-up-factor 1 --disable-stdout-logging --log-dir ${{ runner.temp }}/fallback_simulator_logs
     - name: Upload logs
       if: always()
       uses: actions/upload-artifact@v7

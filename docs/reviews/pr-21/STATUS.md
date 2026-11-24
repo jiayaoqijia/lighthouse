@@ -15,3 +15,16 @@ PR: https://github.com/jiayaoqijia/lighthouse/pull/21 (base `eth2030`). Function
 The retained failed-job artifact proves slot 6 was produced and accepted at 2.722 seconds, propagated/imported at about 3.030 seconds, then deliberately reorged by slot 7 because its weight was zero. This is a different event from a missing production or import stall. The six-second minimal clock gave only a two-second pre-Gloas window, while the simulator asserts every canonical slot and full aggregates. Its normal full-cryptography baseline now uses production twelve-second timing with the same minimal state; the existing speed-up factor two retains six-second stress. Every assertion, real BLS/KZG validation and proposer reorg policy remains enabled. The cause of the 2.7-second publication-stage delay is not proven and is not called a fixed node defect or original-04. A fresh complete simulation remains required. See BASIC_SIMULATOR_CI.json.
 
 The complete production-clock local simulator now exits successfully with four beacon nodes and two validator clients, after preserving every original assertion and real cryptographic/proposer-reorg behavior. The immutable deposit build artifact download reset in the fresh debug profile was repaired only in its newly generated output directory by reusing four cached artifacts matching the build script checksums; no contract source or data changed. The independent peer final pin/provenance rerun passes3.07s, and the fresh-build exact-byte real consumer passes2.75s. Published-head CI remains required.
+# Fallback simulator follow-up
+
+The next hosted fallback simulator failure was inspected through its complete
+artifact, not rerun blindly. Under the previous three-second clock and forced
+EL disconnections, slot 33 was produced/imported in 68ms but two late slot-32
+envelope deliveries caused a head change back to block 32; slot 34 continued.
+The retained receipt distinguishes that actual delayed-message/reorg sequence
+from an EL import stall and does not invent a cause for the delivery delay.
+The full qualification profile now uses production twelve-second slots while
+retaining real cryptography, every canonical-slot assertion and the 95-percent
+attestation requirement. Explicit compressed-clock stress is still available.
+The new complete local fallback run remains pending.
+
