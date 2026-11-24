@@ -454,7 +454,8 @@ impl<E: EthSpec> Case for ForkChoiceTest<E> {
         const IGNORED_PRE_FULU_CASES: &[&str] = &["epoch_boundary"];
 
         if !self.strict_snapshot
-            && (IGNORED_FAST_CONFIRMATION_CASES.contains(&self.description.as_str())
+            && ((!cfg!(feature = "fake_crypto_real_pubkeys")
+                && IGNORED_FAST_CONFIRMATION_CASES.contains(&self.description.as_str()))
                 || (!fork_name.fulu_enabled()
                     && IGNORED_PRE_FULU_CASES.contains(&self.description.as_str())))
         {
