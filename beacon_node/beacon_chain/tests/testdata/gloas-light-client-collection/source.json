@@ -1,0 +1,59 @@
+{
+  "reference": "d2021d2719235f0df4726a1d330502cb15aa8ea3",
+  "case": "/projects/eth2030/qualification/glamsterdam-closure-20261125/current-cl-complete-vectors/minimal/gloas/light_client/data_collection/pyspec_tests/light_client_data_collection",
+  "files": {
+    "state.ssz.gz": {
+      "reference_file": "initial_state.ssz_snappy",
+      "reference_sha256": "43148e6f997e9ac01831fe39bf47b01720a8f7012040afeb9fcc212ebd8c02ab",
+      "ssz_sha256": "ce16c52df30ed7bae21b4c6decee4e1848806197cad08f2c269e8967bcf3745f",
+      "gzip_sha256": "a0f9681c45840741a067e185e4e8f6243ef2f3579e644caf93a5a7913ba865e6",
+      "ssz_bytes": 24269
+    },
+    "block-1.ssz.gz": {
+      "reference_file": "block_1_0x840368628938f914296068b8ef91584ec0dc87f26fafda41a269eba9c20f5f52.ssz_snappy",
+      "reference_sha256": "9ba30238f3a871cfca982f86bc601f6fd791f7b67944c653db17c66d883062b9",
+      "ssz_sha256": "574588ebfbea8d66887747335e7f62808cef035dc66b178660d9d6314729fbf3",
+      "gzip_sha256": "8fd81e513ca01e6531c54b9cb735da695d15c05821e20c7edb5d643ebc0ad9ef",
+      "ssz_bytes": 864
+    },
+    "block-2.ssz.gz": {
+      "reference_file": "block_2_0xe22d06bd7d0af04f1dc89f3a9833c9196e7101cedc6b222b5f206f94dc8c3421.ssz_snappy",
+      "reference_sha256": "4d8809bb84aafbd0955e0bb38220a70299621118f39a2f53e1d6d53b4d94cce4",
+      "ssz_sha256": "ecf4d2988b10a00007fc3149085ad49002a03aead68702c77866997e90aae21c",
+      "gzip_sha256": "aa7ab7af8112a2940da36bd62d02d9f9ab0a530b08d5e53f82486caa421da414",
+      "ssz_bytes": 1099
+    },
+    "bootstrap-0.ssz.gz": {
+      "reference_file": "bootstrap_0_0x46711859db546a35e3ff9d69fd2981a2b00d0a77433b0810a296dadea01a0433.ssz_snappy",
+      "reference_sha256": "8198113aa3f8c157a82e775752f3d7c9960555350696f2e7f6fdd5679f1feed2",
+      "ssz_sha256": "81b49955b9cc099edadcd6e911ed4019708ca7a706436363868094d9d428667c",
+      "gzip_sha256": "b80f833b81cef3f5b41209c571fe82e648c5c4b0e2fb873b31f68d5a4f5ce903",
+      "ssz_bytes": 2432
+    },
+    "update-0.ssz.gz": {
+      "reference_file": "update_0_0xeb13cba7b8fb383981b8731252d267ef68637aca1ea17743048e7d36d212c274.ssz_snappy",
+      "reference_sha256": "959e4553eeeb30d762d4eff4d58586517bce6cf1de5a4148e7a1fe283503d41f",
+      "ssz_sha256": "0dd2f5a0e524da6af28e35c646ca6f9b79b7b7856d12d6448f3d1e2e8c3e1759",
+      "gzip_sha256": "295f25093e0b25ed45c310f004210c0218bde65cf9754e3d7852537d034eacb1",
+      "ssz_bytes": 3324
+    },
+    "finality-0.ssz.gz": {
+      "reference_file": "finality_update_0_0x4afa1b8d187d0fc4842d6e17f5fda2046f4ec065fabc611dcc7d2e81a289126e.ssz_snappy",
+      "reference_sha256": "ac24b4c917075278a1688590031e2e1623b76607677a4845c8ff0fc6f8d72fd0",
+      "ssz_sha256": "e2edc135e80b30d4395ab1b19b625097b0ba49ccbcefb8bf38ba13d252e3c0fd",
+      "gzip_sha256": "c7e04eb9f0bcaf60fb84fc771a6f6dd1c74992875795ff5faf01b9c3fd135896",
+      "ssz_bytes": 1388
+    },
+    "optimistic-0.ssz.gz": {
+      "reference_file": "optimistic_update_0_0xec8ee9f6feced01e24acc922c0729a1b9f5c44e0fe91a09916ec4cb21e4850bd.ssz_snappy",
+      "reference_sha256": "1620252a7ddcdef3ac8416a9558234117c85e12ca975dfb7663c9daf11532f7c",
+      "ssz_sha256": "93bfbe2cf1afbd5467e7695c7e93acc734b736c0f9998d0019bf85e9e671adac",
+      "gzip_sha256": "682fd1cb07528da12ad89dc2dcebb63d58a1ae3ead4572061e34792d15d02f14",
+      "ssz_bytes": 604
+    },
+    "config.yaml": {
+      "reference_file": "config.yaml",
+      "sha256": "3e6dae9815f32fc8b4730e6b8405e8ca2abea4001b113bc90ea7022619770744"
+    }
+  }
+}

@@ -92,6 +92,67 @@ pub struct LightClientFinalityUpdate<E: EthSpec> {
     pub signature_slot: Slot,
 }
 
+/// Project a fully constructed update without losing the valid default genesis
+/// finalized header or its nonempty finality branch.
+impl<E: EthSpec> From<crate::LightClientUpdate<E>> for LightClientFinalityUpdate<E> {
+    fn from(update: crate::LightClientUpdate<E>) -> Self {
+        match update {
+            crate::LightClientUpdate::Altair(update) => {
+                Self::Altair(LightClientFinalityUpdateAltair {
+                    attested_header: update.attested_header,
+                    finalized_header: update.finalized_header,
+                    finality_branch: update.finality_branch,
+                    sync_aggregate: update.sync_aggregate,
+                    signature_slot: update.signature_slot,
+                })
+            }
+            crate::LightClientUpdate::Capella(update) => {
+                Self::Capella(LightClientFinalityUpdateCapella {
+                    attested_header: update.attested_header,
+                    finalized_header: update.finalized_header,
+                    finality_branch: update.finality_branch,
+                    sync_aggregate: update.sync_aggregate,
+                    signature_slot: update.signature_slot,
+                })
+            }
+            crate::LightClientUpdate::Deneb(update) => {
+                Self::Deneb(LightClientFinalityUpdateDeneb {
+                    attested_header: update.attested_header,
+                    finalized_header: update.finalized_header,
+                    finality_branch: update.finality_branch,
+                    sync_aggregate: update.sync_aggregate,
+                    signature_slot: update.signature_slot,
+                })
+            }
+            crate::LightClientUpdate::Electra(update) => {
+                Self::Electra(LightClientFinalityUpdateElectra {
+                    attested_header: update.attested_header,
+                    finalized_header: update.finalized_header,
+                    finality_branch: update.finality_branch,
+                    sync_aggregate: update.sync_aggregate,
+                    signature_slot: update.signature_slot,
+                })
+            }
+            crate::LightClientUpdate::Fulu(update) => Self::Fulu(LightClientFinalityUpdateFulu {
+                attested_header: update.attested_header,
+                finalized_header: update.finalized_header,
+                finality_branch: update.finality_branch,
+                sync_aggregate: update.sync_aggregate,
+                signature_slot: update.signature_slot,
+            }),
+            crate::LightClientUpdate::Gloas(update) => {
+                Self::Gloas(LightClientFinalityUpdateGloas {
+                    attested_header: update.attested_header,
+                    finalized_header: update.finalized_header,
+                    finality_branch: update.finality_branch,
+                    sync_aggregate: update.sync_aggregate,
+                    signature_slot: update.signature_slot,
+                })
+            }
+        }
+    }
+}
+
 impl<E: EthSpec> LightClientFinalityUpdate<E> {
     pub fn new(
         attested_block: &SignedBlindedBeaconBlock<E>,

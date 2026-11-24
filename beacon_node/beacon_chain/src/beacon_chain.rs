@@ -1506,9 +1506,16 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         sync_committee_period: u64,
         count: u64,
     ) -> Result<Vec<LightClientUpdate<T::EthSpec>>, Error> {
-        Ok(self
+        let mut updates = self
             .store
-            .get_light_client_updates(sync_committee_period, count)?)
+            .get_light_client_updates(sync_committee_period, count)?;
+        // Older versions could persist a zero-participant update. Do not serve
+        // those legacy entries after an upgrade/restart.
+        updates.retain(|update| {
+            (update.sync_aggregate().sync_committee_bits.num_set_bits() as u64)
+                >= self.spec.min_sync_committee_participants
+        });
+        Ok(updates)
     }
 
     /// Returns the current heads of the `BeaconChain`. For the canonical head, see `Self::head`.
