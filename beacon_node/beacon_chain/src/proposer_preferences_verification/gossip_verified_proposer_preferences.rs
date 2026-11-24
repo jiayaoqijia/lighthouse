@@ -13,16 +13,23 @@ use parking_lot::{Mutex, RwLock};
 use slot_clock::SlotClock;
 use state_processing::builder_deposits_cache::OnboardBuildersCache;
 use tracing::debug;
-use types::{ChainSpec, EthSpec, Hash256, ProposerPreferences, SignedProposerPreferences, Slot};
+use types::{ChainSpec, EthSpec, Hash256, ProposerPreferences, SignedProposerPreferences};
 
 /// Verify that proposer preferences are consistent with the current chain state
 pub(crate) fn verify_preferences_consistency<E: EthSpec>(
     preferences: &ProposerPreferences,
-    current_slot: Slot,
+    slot_clock: &impl SlotClock,
     spec: &ChainSpec,
 ) -> Result<(), ProposerPreferencesError> {
     let proposal_slot = preferences.proposal_slot;
-    let current_epoch = current_slot.epoch(E::slots_per_epoch());
+    let current_slot = slot_clock
+        .now()
+        .ok_or(ProposerPreferencesError::UnableToReadSlot)?;
+    let now_ms = slot_clock
+        .now_duration()
+        .ok_or(ProposerPreferencesError::UnableToReadSlot)?
+        .as_millis();
+    let disparity_ms = spec.maximum_gossip_clock_disparity().as_millis();
     let proposal_epoch = proposal_slot.epoch(E::slots_per_epoch());
 
     if let Some(gloas_fork_epoch) = spec.gloas_fork_epoch
@@ -31,17 +38,27 @@ pub(crate) fn verify_preferences_consistency<E: EthSpec>(
         return Err(ProposerPreferencesError::ProposalEpochPreGloas { proposal_epoch });
     }
 
-    if proposal_epoch < current_epoch
-        || proposal_epoch > current_epoch.saturating_add(spec.min_seed_lookahead)
-    {
-        return Err(ProposerPreferencesError::InvalidProposalEpoch { proposal_epoch });
-    }
-
-    if proposal_slot <= current_slot {
+    // Gloas is_past_slot and is_future_slot compare milliseconds inclusively.
+    // Rounding to epochs/slots drops the valid clock-disparity boundary.
+    let proposal_start_ms = slot_clock
+        .start_of(proposal_slot)
+        .ok_or(ProposerPreferencesError::UnableToReadSlot)?
+        .as_millis();
+    if now_ms > proposal_start_ms + disparity_ms {
         return Err(ProposerPreferencesError::ProposalSlotAlreadyPassed {
             proposal_slot,
             current_slot,
         });
+    }
+    let lookahead_start = proposal_epoch
+        .saturating_sub(spec.min_seed_lookahead)
+        .start_slot(E::slots_per_epoch());
+    let lookahead_start_ms = slot_clock
+        .start_of(lookahead_start)
+        .ok_or(ProposerPreferencesError::UnableToReadSlot)?
+        .as_millis();
+    if now_ms + disparity_ms < lookahead_start_ms {
+        return Err(ProposerPreferencesError::InvalidProposalEpoch { proposal_epoch });
     }
 
     Ok(())
@@ -73,10 +90,6 @@ impl GossipVerifiedProposerPreferences {
         let proposal_slot = signed_preferences.message.proposal_slot;
         let dependent_root = signed_preferences.message.dependent_root;
         let validator_index = signed_preferences.message.validator_index;
-        let current_slot = ctx
-            .slot_clock
-            .now()
-            .ok_or(ProposerPreferencesError::UnableToReadSlot)?;
 
         if ctx
             .gossip_verified_proposer_preferences_cache
@@ -90,7 +103,7 @@ impl GossipVerifiedProposerPreferences {
 
         verify_preferences_consistency::<T::EthSpec>(
             &signed_preferences.message,
-            current_slot,
+            ctx.slot_clock,
             ctx.spec,
         )?;
 
@@ -284,6 +297,8 @@ mod tests {
     use super::verify_preferences_consistency;
     use crate::proposer_preferences_verification::ProposerPreferencesError;
     use crate::test_utils::{fork_name_from_env, test_spec};
+    use slot_clock::{SlotClock, TestingSlotClock};
+    use std::time::Duration;
 
     type E = Spec;
 
@@ -301,6 +316,12 @@ mod tests {
         test_spec::<E>()
     }
 
+    fn clock_at(slot: Slot) -> TestingSlotClock {
+        let clock = TestingSlotClock::new(Slot::new(0), Duration::ZERO, spec().get_slot_duration());
+        clock.set_slot(slot.as_u64());
+        clock
+    }
+
     #[test]
     fn test_invalid_epoch_too_old() {
         if !fork_name_from_env().is_some_and(|f| f.gloas_enabled()) {
@@ -309,10 +330,10 @@ mod tests {
         let current_slot = Slot::new(2 * E::slots_per_epoch());
         let prefs = make_preferences(Slot::new(3), 0);
 
-        let result = verify_preferences_consistency::<E>(&prefs, current_slot, &spec());
+        let result = verify_preferences_consistency::<E>(&prefs, &clock_at(current_slot), &spec());
         assert!(matches!(
             result,
-            Err(ProposerPreferencesError::InvalidProposalEpoch { .. })
+            Err(ProposerPreferencesError::ProposalSlotAlreadyPassed { .. })
         ));
     }
 
@@ -324,7 +345,7 @@ mod tests {
         let current_slot = Slot::new(E::slots_per_epoch());
         let prefs = make_preferences(Slot::new(3 * E::slots_per_epoch() + 1), 0);
 
-        let result = verify_preferences_consistency::<E>(&prefs, current_slot, &spec());
+        let result = verify_preferences_consistency::<E>(&prefs, &clock_at(current_slot), &spec());
         assert!(matches!(
             result,
             Err(ProposerPreferencesError::InvalidProposalEpoch { .. })
@@ -339,7 +360,7 @@ mod tests {
         let current_slot = Slot::new(10);
         let prefs = make_preferences(Slot::new(9), 0);
 
-        let result = verify_preferences_consistency::<E>(&prefs, current_slot, &spec());
+        let result = verify_preferences_consistency::<E>(&prefs, &clock_at(current_slot), &spec());
         assert!(matches!(
             result,
             Err(ProposerPreferencesError::ProposalSlotAlreadyPassed { .. })
@@ -354,10 +375,44 @@ mod tests {
         let current_slot = Slot::new(10);
         let prefs = make_preferences(Slot::new(10), 0);
 
-        let result = verify_preferences_consistency::<E>(&prefs, current_slot, &spec());
-        assert!(matches!(
-            result,
-            Err(ProposerPreferencesError::ProposalSlotAlreadyPassed { .. })
-        ));
+        let result = verify_preferences_consistency::<E>(&prefs, &clock_at(current_slot), &spec());
+        assert!(result.is_ok(), "{result:?}");
+    }
+    #[test]
+    fn inclusive_millisecond_boundaries() {
+        fn check<E: EthSpec>() {
+            let mut spec = E::default_spec();
+            spec.gloas_fork_epoch = Some(types::Epoch::new(0));
+            let clock = TestingSlotClock::new(
+                Slot::new(0),
+                Duration::from_secs(100),
+                spec.get_slot_duration(),
+            );
+            let proposal = Slot::new(3 * E::slots_per_epoch());
+            let preferences = make_preferences(proposal, 0);
+            let start = clock.start_of(proposal).unwrap();
+            let disparity = spec.maximum_gossip_clock_disparity();
+            clock.set_current_time(start + disparity);
+            assert!(verify_preferences_consistency::<E>(&preferences, &clock, &spec).is_ok());
+            clock.set_current_time(start + disparity + Duration::from_millis(1));
+            assert!(matches!(
+                verify_preferences_consistency::<E>(&preferences, &clock, &spec),
+                Err(ProposerPreferencesError::ProposalSlotAlreadyPassed { .. })
+            ));
+            let lookahead = proposal
+                .epoch(E::slots_per_epoch())
+                .saturating_sub(spec.min_seed_lookahead)
+                .start_slot(E::slots_per_epoch());
+            let start = clock.start_of(lookahead).unwrap();
+            clock.set_current_time(start - disparity);
+            assert!(verify_preferences_consistency::<E>(&preferences, &clock, &spec).is_ok());
+            clock.set_current_time(start - disparity - Duration::from_millis(1));
+            assert!(matches!(
+                verify_preferences_consistency::<E>(&preferences, &clock, &spec),
+                Err(ProposerPreferencesError::InvalidProposalEpoch { .. })
+            ));
+        }
+        check::<types::MinimalEthSpec>();
+        check::<types::MainnetEthSpec>();
     }
 }

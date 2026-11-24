@@ -321,27 +321,27 @@ impl<T: BeaconChainTypes> GossipVerifiedEnvelope<T> {
             snapshot: opt_snapshot,
         };
 
-        // Mark the envelope as seen regardless of its source, so that gossip deduplicates
-        // against envelopes we already hold, whichever path they arrived through.
-        // The operation is atomic, so if a concurrent verification marked the same
-        // `(block_root, builder_index)` pair first, this envelope is considered a duplicate.
-        let envelope_already_seen = !ctx
-            .observed_payload_envelopes
-            .observe_envelope(&gossip_verified_envelope);
-
-        if envelope_already_seen && ctx.source == EnvelopeSource::Gossip {
+        // Seen is the gossip validator's state, distinct from the imported
+        // payload store. RPC/HTTP recovery must not consume the first gossip
+        // observation or seed seen.execution_payloads used by bid validation.
+        // Observation remains atomic after all signature/content checks pass.
+        if ctx.source == EnvelopeSource::Gossip
+            && !ctx
+                .observed_payload_envelopes
+                .observe_envelope(&gossip_verified_envelope)
+        {
             return Err(EnvelopeError::EnvelopeAlreadySeen {
                 block_root: beacon_block_root,
                 builder_index,
             });
         }
 
-        if !envelope_already_seen {
+        if ctx.source == EnvelopeSource::Gossip {
             let payload = &gossip_verified_envelope.signed_envelope.message.payload;
             ctx.observed_execution_payloads
                 .insert(payload.block_hash, payload.gas_limit);
 
-            // Emit the SSE event once for the first observation from any source.
+            // Emit the gossip SSE event once for the first valid gossip observation.
             if let Some(event_handler) = ctx.event_handler.as_ref()
                 && event_handler.has_execution_payload_gossip_subscribers()
             {
