@@ -1,0 +1,29 @@
+{
+  "reference": "d2021d2719235f0df4726a1d330502cb15aa8ea3",
+  "crypto": "fixture_fake",
+  "source": "unchanged current independently generated reference vectors",
+  "before": [
+    {
+      "preset": "minimal",
+      "runner": "fast_confirmation",
+      "handler": "is_one_confirmed",
+      "exit_code": 101,
+      "reported": 3,
+      "passed": 1,
+      "failures": [
+        {
+          "crypto": "fixture_fake",
+          "error": "NotEqual: confirmed_root check failed: Got 0x4deb13928ea3b4ebff4cb1f8a82bdf79c396b98b4443fd47f80e8544e06f1441 | Expected 0xf3db7003e75b9eb9a76d590043d455d76920135567f141ce31a8a02b376b679a",
+          "passed": false,
+          "path": "/projects/eth2030/qualification/glamsterdam-closure-20261125/current-cl-vectors/minimal/gloas/fast_confirmation/is_one_confirmed/pyspec_tests/empty_slot_discount_pending_and_empty_parent"
+        },
+        {
+          "crypto": "fixture_fake",
+          "error": "NotEqual: confirmed_root check failed: Got 0x4deb13928ea3b4ebff4cb1f8a82bdf79c396b98b4443fd47f80e8544e06f1441 | Expected 0x561f6bf51d024f0223efb0c0dede32146327640b46765351f18b7bf3608b6b6a",
+          "passed": false,
+          "path": "/projects/eth2030/qualification/glamsterdam-closure-20261125/current-cl-vectors/minimal/gloas/fast_confirmation/is_one_confirmed/pyspec_tests/empty_slot_discount_pending_and_full_parent"
+        }
+      ]
+    }
+  ]
+}
