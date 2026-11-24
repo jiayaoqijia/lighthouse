@@ -2979,6 +2979,17 @@ impl<T: BeaconChainTypes> NetworkBeaconProcessor<T> {
 
                 return;
             }
+            AttnError::OptimisticPayload { .. } => {
+                self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Ignore);
+            }
+            AttnError::InvalidPayload { .. } => {
+                self.propagate_validation_result(message_id, peer_id, MessageAcceptance::Reject);
+                self.gossip_penalize_peer(
+                    peer_id,
+                    PeerAction::LowToleranceError,
+                    "attn_invalid_payload",
+                );
+            }
             AttnError::UnknownPayloadEnvelope { beacon_block_root } => {
                 trace!(
                     %peer_id,
