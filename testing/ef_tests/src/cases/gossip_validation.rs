@@ -18,8 +18,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use types::{
-    AttesterSlashing, BeaconBlock, BeaconState, BlobSchedule, BlockImportSource, ChainSpec,
-    Checkpoint, EthSpec, ExecPayload, ForkName, Hash256, ProposerSlashing, SignedAggregateAndProof,
+    AttesterSlashing, BeaconBlock, BeaconState, BlockImportSource, ChainSpec, Checkpoint, EthSpec,
+    ExecPayload, ForkName, Hash256, ProposerSlashing, SignedAggregateAndProof,
     SignedAggregateAndProofElectra, SignedBeaconBlock, SignedBlsToExecutionChange,
     SignedContributionAndProof, SignedVoluntaryExit, SingleAttestation, Slot, SubnetId,
     SyncCommitteeMessage, SyncSubnetId,
@@ -58,18 +58,13 @@ struct Meta {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-struct CaseConfig {
-    #[serde(default)]
-    blob_schedule: Option<BlobSchedule>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct SetupBlock {
     block: String,
     #[serde(default)]
     failed: bool,
+    #[serde(default)]
+    payload: Option<String>,
     #[serde(default)]
     payload_status: Option<PayloadStatus>,
 }
@@ -114,6 +109,11 @@ enum Topic {
     BlsToExecutionChange,
     SyncCommittee,
     SyncCommitteeContributionAndProof,
+    ExecutionPayloadBid,
+    ExecutionPayload,
+    ProposerPreferences,
+    PayloadAttestationMessage,
+    DataColumnSidecar,
 }
 
 #[derive(Debug)]
@@ -311,12 +311,18 @@ impl<E: EthSpec> GossipTester<E> {
                 continue;
             }
             if initial_block_index == Some(index) {
+                if let Some(payload) = &setup_block.payload {
+                    self.import_setup_payload(&case.path, payload)?;
+                }
                 continue;
             }
             let block = blocks.get(&setup_block.block).ok_or_else(|| {
                 Error::FailedToParseTest(format!("unknown block file {}", setup_block.block))
             })?;
             self.import_setup_block(block.clone(), setup_block.payload_status)?;
+            if let Some(payload) = &setup_block.payload {
+                self.import_setup_payload(&case.path, payload)?;
+            }
         }
 
         Ok(())
@@ -332,7 +338,96 @@ impl<E: EthSpec> GossipTester<E> {
         let message_id = MessageId::new(message_meta.message.as_bytes());
         let peer_id = PeerId::random();
 
+        // Setup messages may use another Gloas gossip topic in the same ordered trace.
+        let topic = if message_meta.message.starts_with("proposer_preferences_") {
+            &Topic::ProposerPreferences
+        } else if message_meta
+            .message
+            .starts_with("execution_payload_envelope_")
+        {
+            &Topic::ExecutionPayload
+        } else if message_meta.message.starts_with("execution_payload_bid_") {
+            &Topic::ExecutionPayloadBid
+        } else if message_meta
+            .message
+            .starts_with("payload_attestation_message_")
+        {
+            &Topic::PayloadAttestationMessage
+        } else {
+            topic
+        };
         match topic {
+            Topic::ExecutionPayloadBid => {
+                let signed: types::SignedExecutionPayloadBidGloas<E> =
+                    ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+                self.set_message_time(message_meta)?;
+                self.network_beacon_processor
+                    .process_gossip_execution_payload_bid(
+                        message_id.clone(),
+                        peer_id,
+                        Arc::new(types::SignedExecutionPayloadBid::Gloas(signed)),
+                    );
+            }
+            Topic::ExecutionPayload => {
+                let signed: types::SignedExecutionPayloadEnvelope<E> =
+                    ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+                let seen = self.set_message_time(message_meta)?;
+                self.block_on_dangerous(
+                    self.network_beacon_processor
+                        .clone()
+                        .process_gossip_execution_payload_envelope(
+                            message_id.clone(),
+                            peer_id,
+                            Arc::new(signed),
+                            seen,
+                        ),
+                )?;
+            }
+            Topic::ProposerPreferences => {
+                let signed: types::SignedProposerPreferences =
+                    ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+                self.set_message_time(message_meta)?;
+                self.network_beacon_processor
+                    .process_gossip_proposer_preferences(
+                        message_id.clone(),
+                        peer_id,
+                        Arc::new(signed),
+                    );
+            }
+            Topic::PayloadAttestationMessage => {
+                let signed: types::PayloadAttestationMessage =
+                    ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+                self.set_message_time(message_meta)?;
+                self.network_beacon_processor
+                    .process_gossip_payload_attestation(
+                        message_id.clone(),
+                        peer_id,
+                        Box::new(signed),
+                        ReprocessAllowance::None,
+                    );
+            }
+            Topic::DataColumnSidecar => {
+                let sidecar: types::DataColumnSidecarGloas<E> =
+                    ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+                let seen = self.set_message_time(message_meta)?;
+                let subnet = types::DataColumnSubnetId::new(
+                    message_meta
+                        .subnet_id
+                        .ok_or_else(|| Error::FailedToParseTest("missing column subnet".into()))?,
+                );
+                self.block_on_dangerous(
+                    self.network_beacon_processor
+                        .clone()
+                        .process_gossip_data_column_sidecar(
+                            message_id.clone(),
+                            peer_id,
+                            subnet,
+                            Arc::new(types::DataColumnSidecar::Gloas(sidecar)),
+                            seen,
+                            false,
+                        ),
+                )?;
+            }
             Topic::ProposerSlashing => {
                 self.process_proposer_slashing(path, message_meta, message_id.clone(), peer_id)?
             }
@@ -388,6 +483,34 @@ impl<E: EthSpec> GossipTester<E> {
         }
 
         self.validation_result(&message_id, &peer_id)
+    }
+
+    fn import_setup_payload(&self, path: &Path, name: &str) -> Result<(), Error> {
+        let envelope: types::SignedExecutionPayloadEnvelope<E> =
+            ssz_decode_file(&path.join(format!("{name}.ssz_snappy")))?;
+        let message_id = MessageId::new(name.as_bytes());
+        let peer_id = PeerId::random();
+        let seen = self.set_time_ms(self.current_time_ms)?;
+        self.block_on_dangerous(
+            self.network_beacon_processor
+                .clone()
+                .process_gossip_execution_payload_envelope(
+                    message_id.clone(),
+                    peer_id,
+                    Arc::new(envelope),
+                    seen,
+                ),
+        )?;
+        let actual = self.validation_result(&message_id, &peer_id)?;
+        if !matches!(
+            actual,
+            MessageAcceptance::Accept | MessageAcceptance::Ignore
+        ) {
+            return Err(Error::InternalError(format!(
+                "setup payload {name} rejected"
+            )));
+        }
+        Ok(())
     }
 
     fn process_proposer_slashing(
@@ -506,10 +629,18 @@ impl<E: EthSpec> GossipTester<E> {
         message_id: MessageId,
         peer_id: PeerId,
     ) -> Result<(), Error> {
-        let aggregate = ssz_decode_file::<SignedAggregateAndProofElectra<E>>(
-            &path.join(format!("{}.ssz_snappy", message_meta.message)),
-        )
-        .map(SignedAggregateAndProof::Electra)?;
+        let ssz_path = path.join(format!("{}.ssz_snappy", message_meta.message));
+        let aggregate = if self
+            .spec
+            .gloas_fork_epoch
+            .is_some_and(|epoch| epoch <= self.harness.chain.epoch().unwrap_or_default())
+        {
+            ssz_decode_file::<types::SignedAggregateAndProofGloas<E>>(&ssz_path)
+                .map(SignedAggregateAndProof::Gloas)?
+        } else {
+            ssz_decode_file::<SignedAggregateAndProofElectra<E>>(&ssz_path)
+                .map(SignedAggregateAndProof::Electra)?
+        };
         let seen_timestamp = self.set_message_time(message_meta)?;
 
         self.network_beacon_processor
@@ -762,12 +893,10 @@ impl<E: EthSpec> GossipValidation<E> {
             return Ok(spec);
         }
 
-        let case_config: CaseConfig = yaml_decode_file(&config_path)?;
-        let Some(blob_schedule) = case_config.blob_schedule else {
-            return Ok(spec);
-        };
-
-        spec.blob_schedule = blob_schedule;
+        let case_config: types::Config = yaml_decode_file(&config_path)?;
+        spec = case_config
+            .apply_to_chain_spec::<E>(&spec)
+            .ok_or_else(|| Error::FailedToParseTest("snapshot config preset mismatch".into()))?;
         Ok(spec)
     }
 

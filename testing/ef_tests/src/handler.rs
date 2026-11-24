@@ -77,6 +77,44 @@ pub trait Handler {
         }
     }
 
+    /// Execute an explicitly supplied independent snapshot without changing the
+    /// release fixture root or silently skipping inactive/known-failure cases.
+    fn snapshot_results(&self, path: &std::path::Path, fork: ForkName) -> Vec<crate::CaseResult> {
+        let mut paths = Vec::new();
+        for suite in fs::read_dir(path).expect("snapshot handler exists") {
+            let suite = suite.expect("read snapshot suite");
+            if !suite.file_type().expect("snapshot suite type").is_dir() {
+                continue;
+            }
+            for case in fs::read_dir(suite.path()).expect("snapshot suite exists") {
+                let case = case.expect("read snapshot case");
+                if case.file_type().expect("snapshot case type").is_dir() {
+                    paths.push(case.path());
+                }
+            }
+        }
+        paths.sort();
+        assert!(
+            !paths.is_empty(),
+            "empty snapshot handler {}",
+            path.display()
+        );
+        paths
+            .into_iter()
+            .enumerate()
+            .map(|(case_index, path)| {
+                let result = Self::Case::load_from_dir(&path, fork)
+                    .and_then(|case| case.result(case_index, fork));
+                crate::CaseResult {
+                    case_index,
+                    desc: self.handler_name(),
+                    path,
+                    result,
+                }
+            })
+            .collect()
+    }
+
     // Do NOT override this function.
     // TODO: use default keyword when stable.
     fn rayon_enabled() -> bool {

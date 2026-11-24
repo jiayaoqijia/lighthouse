@@ -1,3 +1,7 @@
-# Status
+# Current Gloas source-vector admission
 
-G02 active at merged eth2030 983f62e9. Current upstream d2021d27 has package version 1.7.0-beta.5 without a corresponding published tag; the inherited client release fixture overlay is older. Generate from unchanged current source in an isolated environment and qualify both presets rather than relabeling old vectors as current.
+In progress against `eth2030` source `983f62e9b08e3ee655df951909df099e80e5ad7b`. Independent Python vectors are generated from unchanged consensus-specs `d2021d2719235f0df4726a1d330502cb15aa8ea3` (package version 1.7.0-beta.5; no corresponding release tag at the audit). Both mainnet and minimal presets include Gloas tests and inherited tests. Reference generator skips are reported separately from emitted client cases.
+
+A separate explicit-path runner admits every registered emitted case through the existing native EF handler, emits per-case results and fails unsupported handlers, loading failures and known/BLS skips. Existing default release fixture roots and full-suite behavior are preserved. The Gloas gossip adapter is being extended to native bid, signed envelope, proposer preferences, payload attestation and data-column processing. Ordered cross-topic setup messages retain their independent bytes. Final acceptance and test counts are not yet established.
+
+Initial real-BLS execution passed the generated fork, transition, operations and epoch samples already consumed. Fast-confirmation fixtures explicitly marked `bls_setting: 2` contain synthetic invalid signatures and require a separately labelled fake-crypto mathematical lane; they cannot be reported as real-BLS acceptance. Current converted-type static SSZ consumption and strict count reconciliation remain required.
