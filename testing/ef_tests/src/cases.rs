@@ -126,6 +126,10 @@ pub trait LoadCase: Sized {
 }
 
 pub trait Case: Debug + Sync {
+    /// Current-snapshot admission executes conditions covered by legacy release
+    /// harness waivers instead of silently retaining those waivers.
+    fn prepare_for_snapshot(&mut self) {}
+
     /// An optional field for implementing a custom description.
     ///
     /// Defaults to "no description".

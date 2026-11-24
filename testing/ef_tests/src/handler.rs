@@ -103,8 +103,10 @@ pub trait Handler {
             .into_iter()
             .enumerate()
             .map(|(case_index, path)| {
-                let result = Self::Case::load_from_dir(&path, fork)
-                    .and_then(|case| case.result(case_index, fork));
+                let result = Self::Case::load_from_dir(&path, fork).and_then(|mut case| {
+                    case.prepare_for_snapshot();
+                    case.result(case_index, fork)
+                });
                 crate::CaseResult {
                     case_index,
                     desc: self.handler_name(),

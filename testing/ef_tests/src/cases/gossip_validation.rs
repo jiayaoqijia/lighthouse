@@ -123,6 +123,7 @@ pub struct GossipValidation<E: EthSpec> {
     path: PathBuf,
     meta: Meta,
     state: BeaconState<E>,
+    strict_snapshot: bool,
 }
 
 impl<E: EthSpec> LoadCase for GossipValidation<E> {
@@ -135,11 +136,15 @@ impl<E: EthSpec> LoadCase for GossipValidation<E> {
             path: path.to_path_buf(),
             meta,
             state,
+            strict_snapshot: false,
         })
     }
 }
 
 impl<E: EthSpec + TypeName> Case for GossipValidation<E> {
+    fn prepare_for_snapshot(&mut self) {
+        self.strict_snapshot = true;
+    }
     fn description(&self) -> String {
         self.path
             .iter()
@@ -149,7 +154,7 @@ impl<E: EthSpec + TypeName> Case for GossipValidation<E> {
     }
 
     fn result(&self, _case_index: usize, fork_name: ForkName) -> Result<(), Error> {
-        if self.has_known_harness_limitation() {
+        if !self.strict_snapshot && self.has_known_harness_limitation() {
             return Err(Error::SkippedKnownFailure);
         }
 
@@ -343,13 +348,18 @@ impl<E: EthSpec> GossipTester<E> {
                 let block = blocks
                     .get(&setup_block.block)
                     .ok_or_else(|| Error::FailedToParseTest("missing failed block".into()))?;
-                if self
-                    .import_setup_block(block.clone(), setup_block.payload_status)
-                    .is_ok()
-                {
-                    return Err(Error::DidntFail(
-                        "reference consensus-failed setup block imported".into(),
-                    ));
+                let root = block.canonical_root();
+                let outcome = self.block_on_dangerous(self.harness.chain.process_block(
+                    root,
+                    LookupBlock::new(root, Arc::new(block.clone())),
+                    NotifyExecutionLayer::Yes,
+                    BlockImportSource::Lookup,
+                    || Ok(()),
+                ))?;
+                if !matches!(outcome, Err(BlockError::StateRootMismatch { .. })) {
+                    return Err(Error::InternalError(format!(
+                        "reference failed setup needs its authenticated wrong-state-root rejection, got {outcome:?}"
+                    )));
                 }
                 continue;
             }
