@@ -54,6 +54,13 @@
     "config.yaml": {
       "reference_file": "config.yaml",
       "sha256": "3e6dae9815f32fc8b4730e6b8405e8ca2abea4001b113bc90ea7022619770744"
+    },
+    "block-3.ssz.gz": {
+      "reference_file": "block_3_0x04062711053c79b0b3c351d7959d9cb9fc7f20cf08e85349b9cdbadd0ab1806d.ssz_snappy",
+      "reference_sha256": "54d3aebaa9ac7f724e9d080de48e0cfba171fee8f6dd73b77bb57553f63a86f3",
+      "ssz_sha256": "47511cbbbe67877bd2d9231f5d48668468589f0e552900419dfd8affb6438b03",
+      "gzip_sha256": "09be94070dbf4589bc9e6259bc40dbed3662a0dbbce688916463f854c7a3c132",
+      "ssz_bytes": 1099
     }
   }
 }

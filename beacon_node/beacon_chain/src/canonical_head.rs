@@ -1590,6 +1590,21 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             .lock()
             .update_head_block_root(new_cached_head.head_block_root());
 
+        if self.config.enable_light_client_server
+            && let Some(mut sender) = self.light_client_server_tx.clone()
+            && let Ok(aggregate) = new_snapshot.beacon_block.message().body().sync_aggregate()
+            && let Err(error) = sender.try_send((
+                new_snapshot.beacon_block.parent_root(),
+                new_snapshot.beacon_block.slot(),
+                aggregate.clone(),
+            ))
+        {
+            debug!(
+                ?error,
+                "Failed to schedule canonical light-client update after head change"
+            );
+        }
+
         // Detect and potentially report any re-orgs.
         let reorg_distance = detect_reorg(
             &old_snapshot.beacon_state,

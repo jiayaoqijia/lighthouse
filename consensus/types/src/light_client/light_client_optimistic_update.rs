@@ -66,6 +66,53 @@ pub struct LightClientOptimisticUpdate<E: EthSpec> {
     pub signature_slot: Slot,
 }
 
+impl<E: EthSpec> From<crate::LightClientUpdate<E>> for LightClientOptimisticUpdate<E> {
+    fn from(update: crate::LightClientUpdate<E>) -> Self {
+        match update {
+            crate::LightClientUpdate::Altair(update) => {
+                Self::Altair(LightClientOptimisticUpdateAltair {
+                    attested_header: update.attested_header,
+                    sync_aggregate: update.sync_aggregate,
+                    signature_slot: update.signature_slot,
+                })
+            }
+            crate::LightClientUpdate::Capella(update) => {
+                Self::Capella(LightClientOptimisticUpdateCapella {
+                    attested_header: update.attested_header,
+                    sync_aggregate: update.sync_aggregate,
+                    signature_slot: update.signature_slot,
+                })
+            }
+            crate::LightClientUpdate::Deneb(update) => {
+                Self::Deneb(LightClientOptimisticUpdateDeneb {
+                    attested_header: update.attested_header,
+                    sync_aggregate: update.sync_aggregate,
+                    signature_slot: update.signature_slot,
+                })
+            }
+            crate::LightClientUpdate::Electra(update) => {
+                Self::Electra(LightClientOptimisticUpdateElectra {
+                    attested_header: update.attested_header,
+                    sync_aggregate: update.sync_aggregate,
+                    signature_slot: update.signature_slot,
+                })
+            }
+            crate::LightClientUpdate::Fulu(update) => Self::Fulu(LightClientOptimisticUpdateFulu {
+                attested_header: update.attested_header,
+                sync_aggregate: update.sync_aggregate,
+                signature_slot: update.signature_slot,
+            }),
+            crate::LightClientUpdate::Gloas(update) => {
+                Self::Gloas(LightClientOptimisticUpdateGloas {
+                    attested_header: update.attested_header,
+                    sync_aggregate: update.sync_aggregate,
+                    signature_slot: update.signature_slot,
+                })
+            }
+        }
+    }
+}
+
 impl<E: EthSpec> LightClientOptimisticUpdate<E> {
     pub fn new(
         attested_block: &SignedBlindedBeaconBlock<E>,
