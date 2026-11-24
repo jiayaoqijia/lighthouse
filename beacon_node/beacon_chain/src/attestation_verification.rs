@@ -109,14 +109,18 @@ pub enum Error {
     /// ## Peer scoring
     ///
     /// The peer has sent an invalid message.
-    InvalidSelectionProof { aggregator_index: u64 },
+    InvalidSelectionProof {
+        aggregator_index: u64,
+    },
     /// The `selection_proof` on the aggregate attestation selects it as a validator, however the
     /// aggregator index is not in the committee for that attestation.
     ///
     /// ## Peer scoring
     ///
     /// The peer has sent an invalid message.
-    AggregatorNotInCommittee { aggregator_index: u64 },
+    AggregatorNotInCommittee {
+        aggregator_index: u64,
+    },
     /// The `attester_index` for a `SingleAttestation` is not a member of the committee defined
     /// by its `beacon_block_root`, `committee_index` and `slot`.
     ///
@@ -174,7 +178,12 @@ pub enum Error {
     ///
     /// The attestation points to a block we have not yet imported. It's unclear if the attestation
     /// is valid or not.
-    UnknownHeadBlock { beacon_block_root: Hash256 },
+    UnknownHeadBlock {
+        beacon_block_root: Hash256,
+    },
+    BlockFailedConsensus {
+        beacon_block_root: Hash256,
+    },
     /// An attestation indicating the presence of a payload (`index == 1`) references a block whose
     /// execution payload envelope has not been seen yet.
     ///
@@ -182,11 +191,17 @@ pub enum Error {
     ///
     /// The attestation may be valid once the payload envelope is retrieved; it's unclear if the
     /// attestation is valid or not, so it is ignored (not penalized) pending the envelope.
-    UnknownPayloadEnvelope { beacon_block_root: Hash256 },
+    UnknownPayloadEnvelope {
+        beacon_block_root: Hash256,
+    },
     /// The envelope is available but its execution verdict is still optimistic.
-    OptimisticPayload { beacon_block_root: Hash256 },
+    OptimisticPayload {
+        beacon_block_root: Hash256,
+    },
     /// The claimed present payload was definitively rejected by the execution layer.
-    InvalidPayload { beacon_block_root: Hash256 },
+    InvalidPayload {
+        beacon_block_root: Hash256,
+    },
     /// The `attestation.data.beacon_block_root` block is from before the finalized checkpoint.
     ///
     /// ## Peer scoring
@@ -194,7 +209,9 @@ pub enum Error {
     /// The attestation is not descended from the finalized checkpoint, which is a REJECT according
     /// to the spec. We downscore lightly because this could also happen if we are processing
     /// attestations extremely slowly.
-    HeadBlockFinalized { beacon_block_root: Hash256 },
+    HeadBlockFinalized {
+        beacon_block_root: Hash256,
+    },
     /// The `attestation.data.slot` is not from the same epoch as `data.target.epoch`.
     ///
     /// ## Peer scoring
@@ -221,7 +238,10 @@ pub enum Error {
     /// ## Peer scoring
     ///
     /// The peer has sent an invalid message.
-    NoCommitteeForSlotAndIndex { slot: Slot, index: CommitteeIndex },
+    NoCommitteeForSlotAndIndex {
+        slot: Slot,
+        index: CommitteeIndex,
+    },
     /// The attestation doesn't have only one aggregation bit set.
     ///
     /// ## Peer scoring
@@ -236,14 +256,20 @@ pub enum Error {
     /// It's unclear if this attestation is valid, however we have already observed a
     /// single-participant attestation from this validator for this epoch and should not observe
     /// another.
-    PriorAttestationKnown { validator_index: u64, epoch: Epoch },
+    PriorAttestationKnown {
+        validator_index: u64,
+        epoch: Epoch,
+    },
     /// The attestation is attesting to a state that is later than itself. (Viz., attesting to the
     /// future).
     ///
     /// ## Peer scoring
     ///
     /// The peer has sent an invalid message.
-    AttestsToFutureBlock { block: Slot, attestation: Slot },
+    AttestsToFutureBlock {
+        block: Slot,
+        attestation: Slot,
+    },
     /// The attestation was received on an invalid attestation subnet.
     ///
     /// ## Peer scoring
@@ -270,7 +296,10 @@ pub enum Error {
     /// ## Peer scoring
     ///
     /// The peer has sent an invalid message.
-    InvalidTargetEpoch { slot: Slot, epoch: Epoch },
+    InvalidTargetEpoch {
+        slot: Slot,
+        epoch: Epoch,
+    },
     /// The attestation references an invalid target block.
     ///
     /// ## Peer scoring
@@ -1268,6 +1297,14 @@ fn verify_head_block_is_known<T: BeaconChainTypes>(
     attestation_data: &AttestationData,
     max_skip_slots: Option<u64>,
 ) -> Result<ProtoBlock, Error> {
+    if chain
+        .canonical_head
+        .block_failed_consensus(&attestation_data.beacon_block_root)
+    {
+        return Err(Error::BlockFailedConsensus {
+            beacon_block_root: attestation_data.beacon_block_root,
+        });
+    }
     let block_opt = chain
         .canonical_head
         .fork_choice_read_lock()
@@ -1351,7 +1388,23 @@ pub fn verify_propagation_slot_range<S: SlotClock, E: EthSpec>(
         one_epoch_prior
     };
 
-    if attestation_slot < earliest_permissible_slot {
+    let is_past = if current_fork.deneb_enabled() {
+        let end_epoch = attestation_slot
+            .epoch(E::slots_per_epoch())
+            .saturating_add(2_u64);
+        let end_ms = slot_clock
+            .start_of(end_epoch.start_slot(E::slots_per_epoch()))
+            .ok_or(BeaconChainError::UnableToReadSlot)?
+            .as_millis();
+        let now_ms = slot_clock
+            .now_duration()
+            .ok_or(BeaconChainError::UnableToReadSlot)?
+            .as_millis();
+        now_ms > end_ms + spec.maximum_gossip_clock_disparity().as_millis()
+    } else {
+        attestation_slot < earliest_permissible_slot
+    };
+    if is_past {
         return Err(Error::PastSlot {
             attestation_slot,
             earliest_permissible_slot,
@@ -1712,5 +1765,37 @@ mod payload_verdict_tests {
         assert!(
             verify_attested_payload_status(1, true, ExecutionStatus::Valid(hash), root).is_ok()
         );
+    }
+}
+
+#[cfg(test)]
+mod attestation_epoch_boundary_tests {
+    use super::*;
+    use slot_clock::TestingSlotClock;
+    use std::time::Duration;
+    #[test]
+    fn previous_epoch_includes_exact_upper_clock_disparity() {
+        type E = types::MinimalEthSpec;
+        let mut spec = E::default_spec();
+        spec.deneb_fork_epoch = Some(Epoch::new(0));
+        let clock = TestingSlotClock::new(
+            Slot::new(0),
+            Duration::from_secs(100),
+            spec.get_slot_duration(),
+        );
+        let end = clock.start_of(Slot::new(3 * E::slots_per_epoch())).unwrap();
+        for slot in [E::slots_per_epoch(), 2 * E::slots_per_epoch() - 1] {
+            let mut data = AttestationData::default();
+            data.slot = Slot::new(slot);
+            clock.set_current_time(end + spec.maximum_gossip_clock_disparity());
+            assert!(verify_propagation_slot_range::<_, E>(&clock, &data, &spec).is_ok());
+            clock.set_current_time(
+                end + spec.maximum_gossip_clock_disparity() + Duration::from_millis(1),
+            );
+            assert!(matches!(
+                verify_propagation_slot_range::<_, E>(&clock, &data, &spec),
+                Err(Error::PastSlot { .. })
+            ));
+        }
     }
 }

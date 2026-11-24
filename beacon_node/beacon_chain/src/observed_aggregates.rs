@@ -137,7 +137,8 @@ impl<E: EthSpec> SubsetItem for AttestationRef<'_, E> {
                 if let Ok(aggregation_bits) =
                     progressive_bits_to_bitlist::<E>(&att.aggregation_bits)
                 {
-                    return aggregation_bits.is_subset(other);
+                    return aggregation_bits.len() == other.len()
+                        && aggregation_bits.is_subset(other);
                 }
                 false
             }
@@ -157,7 +158,8 @@ impl<E: EthSpec> SubsetItem for AttestationRef<'_, E> {
                 if let Ok(aggregation_bits) =
                     progressive_bits_to_bitlist::<E>(&att.aggregation_bits)
                 {
-                    return other.is_subset(&aggregation_bits);
+                    return aggregation_bits.len() == other.len()
+                        && other.is_subset(&aggregation_bits);
                 }
                 false
             }
@@ -719,4 +721,29 @@ mod tests {
         ObservedAggregateAttestations,
         get_attestation
     );
+}
+
+#[cfg(test)]
+mod progressive_length_tests {
+    use super::*;
+    #[test]
+    fn malformed_bit_length_cannot_be_deduplicated_as_a_subset() {
+        type E = types::MinimalEthSpec;
+        let mut bits = ProgressiveBitList::with_capacity(8);
+        bits.set(0, true).unwrap();
+        let att = types::AttestationGloas::<E> {
+            aggregation_bits: bits,
+            data: Default::default(),
+            signature: bls::AggregateSignature::infinity(),
+            committee_bits: Default::default(),
+        };
+        let mut seen = BitList::<<E as EthSpec>::MaxValidatorsPerSlot>::with_capacity(7).unwrap();
+        seen.set(0, true).unwrap();
+        let reference = AttestationRef::Gloas(&att);
+        assert!(!reference.is_subset(&seen));
+        assert!(!reference.is_superset(&seen));
+        let seen = reference.get_item().unwrap();
+        assert!(reference.is_subset(&seen));
+        assert!(reference.is_superset(&seen));
+    }
 }
