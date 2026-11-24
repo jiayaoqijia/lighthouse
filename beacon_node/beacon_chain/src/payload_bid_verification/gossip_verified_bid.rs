@@ -43,16 +43,21 @@ fn verify_bid_slot_with_tolerance<C: SlotClock>(
     clock: &C,
     tolerance: Duration,
 ) -> Result<(), PayloadBidError> {
-    let current = clock.now().ok_or(PayloadBidError::UnableToReadSlot)?;
-    if verify_bid_slot(bid_slot, current).is_ok() {
-        return Ok(());
-    }
-    let earliest = clock.now_with_past_tolerance(tolerance).unwrap_or(current);
-    let latest = clock
-        .now_with_future_tolerance(tolerance)
-        .unwrap_or(current)
-        .saturating_add(1u64);
-    if bid_slot >= earliest && bid_slot <= latest {
+    let now_ms = clock
+        .now_duration()
+        .ok_or(PayloadBidError::UnableToReadSlot)?
+        .as_millis();
+    let start_ms = clock
+        .start_of(bid_slot.saturating_sub(1_u64))
+        .ok_or(PayloadBidError::UnableToReadSlot)?
+        .as_millis();
+    let end_ms = clock
+        .start_of(bid_slot.saturating_add(1_u64))
+        .ok_or(PayloadBidError::UnableToReadSlot)?
+        .as_millis();
+    let tolerance_ms = tolerance.as_millis();
+    // is_current_slot(slot) || is_current_slot(slot - 1), inclusive at both ends.
+    if now_ms + tolerance_ms >= start_ms && now_ms <= end_ms + tolerance_ms {
         Ok(())
     } else {
         Err(PayloadBidError::InvalidBidSlot { bid_slot })
@@ -692,5 +697,37 @@ mod tests {
     fn test_is_gas_limit_target_compatible_parent_underflows() {
         // parent=1023: max(1023/1024, 1) - 1 = max(0, 1) - 1 = 0, no change allowed
         assert!(is_gas_limit_target_compatible(1023, 1023, 60_000_000).unwrap());
+    }
+}
+
+#[cfg(test)]
+mod bid_clock_boundary_tests {
+    use super::*;
+    use slot_clock::TestingSlotClock;
+    #[test]
+    fn current_or_next_slot_has_inclusive_disparity_endpoints() {
+        let clock = TestingSlotClock::new(
+            Slot::new(0),
+            Duration::from_secs(100),
+            Duration::from_secs(12),
+        );
+        let bid = Slot::new(10);
+        let tolerance = Duration::from_millis(500);
+        let start = clock.start_of(bid - 1).unwrap();
+        let end = clock.start_of(bid + 1).unwrap();
+        for time in [start - tolerance, end + tolerance] {
+            clock.set_current_time(time);
+            assert!(verify_bid_slot_with_tolerance(bid, &clock, tolerance).is_ok());
+        }
+        for time in [
+            start - tolerance - Duration::from_millis(1),
+            end + tolerance + Duration::from_millis(1),
+        ] {
+            clock.set_current_time(time);
+            assert!(matches!(
+                verify_bid_slot_with_tolerance(bid, &clock, tolerance),
+                Err(PayloadBidError::InvalidBidSlot { .. })
+            ));
+        }
     }
 }

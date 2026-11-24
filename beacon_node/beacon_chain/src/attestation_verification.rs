@@ -42,7 +42,7 @@ use crate::{
 };
 use bls::verify_signature_sets;
 use itertools::Itertools;
-use proto_array::Block as ProtoBlock;
+use proto_array::{Block as ProtoBlock, ExecutionStatus};
 use slot_clock::SlotClock;
 use state_processing::{
     common::{
@@ -183,6 +183,10 @@ pub enum Error {
     /// The attestation may be valid once the payload envelope is retrieved; it's unclear if the
     /// attestation is valid or not, so it is ignored (not penalized) pending the envelope.
     UnknownPayloadEnvelope { beacon_block_root: Hash256 },
+    /// The envelope is available but its execution verdict is still optimistic.
+    OptimisticPayload { beacon_block_root: Hash256 },
+    /// The claimed present payload was definitively rejected by the execution layer.
+    InvalidPayload { beacon_block_root: Hash256 },
     /// The `attestation.data.beacon_block_root` block is from before the finalized checkpoint.
     ///
     /// ## Peer scoring
@@ -621,16 +625,13 @@ impl<'a, T: BeaconChainTypes> IndexedAggregatedAttestation<'a, T> {
             ));
         }
 
-        // [New in Gloas]: `index == 1` claims the block's execution payload is present. Ignore the
-        // attestation until we have seen the block's payload envelope, so it can be re-processed
-        // (and the envelope retrieved) once the payload is received.
-        if fork_name.gloas_enabled()
-            && attestation.data().index == 1
-            && !head_block.payload_received
-        {
-            return Err(Error::UnknownPayloadEnvelope {
-                beacon_block_root: attestation.data().beacon_block_root,
-            });
+        if fork_name.gloas_enabled() {
+            verify_attested_payload_status(
+                attestation.data().index,
+                head_block.payload_received,
+                head_block.execution_status,
+                attestation.data().beacon_block_root,
+            )?;
         }
 
         // Check the attestation target root is consistent with the head root.
@@ -961,14 +962,13 @@ impl<'a, T: BeaconChainTypes> IndexedUnaggregatedAttestation<'a, T> {
             ));
         }
 
-        // [New in Gloas]: `index == 1` claims the block's execution payload is present. Ignore the
-        // attestation until we have seen the block's payload envelope, so it can be re-processed
-        // (and the envelope retrieved) once the payload is received.
-        if fork_name.gloas_enabled() && attestation.data.index == 1 && !head_block.payload_received
-        {
-            return Err(Error::UnknownPayloadEnvelope {
-                beacon_block_root: attestation.data.beacon_block_root,
-            });
+        if fork_name.gloas_enabled() {
+            verify_attested_payload_status(
+                attestation.data.index,
+                head_block.payload_received,
+                head_block.execution_status,
+                attestation.data.beacon_block_root,
+            )?;
         }
 
         // Check the attestation target root is consistent with the head root.
@@ -1228,6 +1228,28 @@ impl<'a, T: BeaconChainTypes> VerifiedUnaggregatedAttestation<'a, T> {
     /// to no-longer be valid.
     pub fn __indexed_attestation_mut(&mut self) -> &mut IndexedAttestation<T::EthSpec> {
         &mut self.indexed_attestation
+    }
+}
+
+// Gloas verify_attestation_payload_status: availability does not imply EL validity.
+fn verify_attested_payload_status(
+    index: u64,
+    received: bool,
+    status: ExecutionStatus,
+    beacon_block_root: Hash256,
+) -> Result<(), Error> {
+    if index != 1 {
+        return Ok(());
+    }
+    if !received {
+        return Err(Error::UnknownPayloadEnvelope { beacon_block_root });
+    }
+    match status {
+        ExecutionStatus::Valid(_) => Ok(()),
+        ExecutionStatus::Invalid(_) => Err(Error::InvalidPayload { beacon_block_root }),
+        ExecutionStatus::Optimistic(_)
+        | ExecutionStatus::NotYetRevealed(_)
+        | ExecutionStatus::Irrelevant(_) => Err(Error::OptimisticPayload { beacon_block_root }),
     }
 }
 
@@ -1656,4 +1678,39 @@ where
                 })
             }))
     })?
+}
+
+#[cfg(test)]
+mod payload_verdict_tests {
+    use super::*;
+    #[test]
+    fn present_payload_needs_actual_el_verdict() {
+        let hash = types::ExecutionBlockHash::zero();
+        let root = Hash256::ZERO;
+        for status in [
+            ExecutionStatus::Optimistic(hash),
+            ExecutionStatus::NotYetRevealed(hash),
+            ExecutionStatus::Irrelevant(false),
+        ] {
+            assert!(matches!(
+                verify_attested_payload_status(1, true, status, root),
+                Err(Error::OptimisticPayload { .. })
+            ));
+            assert!(verify_attested_payload_status(0, true, status, root).is_ok());
+        }
+        assert!(matches!(
+            verify_attested_payload_status(1, true, ExecutionStatus::Invalid(hash), root),
+            Err(Error::InvalidPayload { .. })
+        ));
+        assert!(matches!(
+            verify_attested_payload_status(1, false, ExecutionStatus::Invalid(hash), root),
+            Err(Error::UnknownPayloadEnvelope { .. })
+        ));
+        assert!(
+            verify_attested_payload_status(0, true, ExecutionStatus::Invalid(hash), root).is_ok()
+        );
+        assert!(
+            verify_attested_payload_status(1, true, ExecutionStatus::Valid(hash), root).is_ok()
+        );
+    }
 }
