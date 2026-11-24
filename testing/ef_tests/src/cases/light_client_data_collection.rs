@@ -183,19 +183,18 @@ impl<E: EthSpec> Case for LightClientDataCollection<E> {
                         .get_blinded_block(&new_head.head_block_root)
                         .map_err(internal)?
                         .ok_or_else(|| internal("selected head block missing"))?;
-                    let aggregate = block
-                        .message()
-                        .body()
-                        .sync_aggregate()
-                        .map_err(internal)?
-                        .clone();
+                    // This fixture explicitly selects a stored canonical branch.
+                    // Use the production projection with that head; native
+                    // fork-choice selection/notification is separately covered
+                    // by real signed-block reorg regressions in beacon_chain.
                     harness
                         .chain
-                        .recompute_and_cache_light_client_updates((
-                            block.parent_root(),
-                            block.slot(),
-                            aggregate,
-                        ))
+                        .light_client_server_cache
+                        .recompute_for_head(
+                            harness.chain.store.clone(),
+                            new_head.head_block_root,
+                            &spec,
+                        )
                         .map_err(internal)?;
                     let state = harness
                         .chain
