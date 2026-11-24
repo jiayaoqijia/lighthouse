@@ -1388,3 +1388,22 @@ impl<E: EthSpec + TypeName, O: Operation<E>> Handler for OperationsHandler<E, O>
         O::handler_name()
     }
 }
+
+#[derive(Educe)]
+#[educe(Default)]
+pub struct LightClientDataCollectionHandler<E>(PhantomData<E>);
+impl<E: EthSpec + TypeName> Handler for LightClientDataCollectionHandler<E> {
+    type Case = cases::LightClientDataCollection<E>;
+    fn config_name() -> &'static str {
+        E::name()
+    }
+    fn runner_name() -> &'static str {
+        "light_client"
+    }
+    fn handler_name(&self) -> String {
+        "data_collection".into()
+    }
+    fn use_rayon() -> bool {
+        false
+    }
+}

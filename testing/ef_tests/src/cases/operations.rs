@@ -78,6 +78,7 @@ pub struct ParentExecutionPayloadBlock<E: EthSpec> {
 #[derive(Debug, Clone)]
 pub struct Operations<E: EthSpec, O: Operation<E>> {
     metadata: Metadata,
+    strict_snapshot: bool,
     config: Option<types::Config>,
     execution_metadata: Option<ExecutionMetadata>,
     pub pre: BeaconState<E>,
@@ -878,6 +879,7 @@ impl<E: EthSpec, O: Operation<E>> LoadCase for Operations<E, O> {
 
         Ok(Self {
             metadata,
+            strict_snapshot: false,
             config,
             execution_metadata,
             pre,
@@ -888,6 +890,9 @@ impl<E: EthSpec, O: Operation<E>> LoadCase for Operations<E, O> {
 }
 
 impl<E: EthSpec, O: Operation<E>> Case for Operations<E, O> {
+    fn prepare_for_snapshot(&mut self) {
+        self.strict_snapshot = true;
+    }
     fn description(&self) -> String {
         self.metadata.description.clone().unwrap_or_default()
     }
@@ -897,6 +902,12 @@ impl<E: EthSpec, O: Operation<E>> Case for Operations<E, O> {
     }
 
     fn result(&self, _case_index: usize, fork_name: ForkName) -> Result<(), Error> {
+        if self.strict_snapshot
+            && cfg!(feature = "fake_crypto")
+            && !matches!(self.metadata.bls_setting, Some(BlsSetting::Ignored))
+        {
+            return Err(Error::SkippedBls);
+        }
         let operation = match self.operation.as_ref().ok_or(Error::SkippedBls)? {
             Ok(operation) => operation,
             Err(error) => return compare_result::<BeaconState<E>, _>(&Err(error), &self.post),

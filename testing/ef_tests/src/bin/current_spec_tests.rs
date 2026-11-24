@@ -87,6 +87,9 @@ fn consume<E: EthSpec + TypeName>(
         ("sanity", "blocks") => run!(SanityBlocksHandler::<E>::default()),
         ("sanity", "slots") => run!(SanitySlotsHandler::<E>::default()),
         ("random", "random") => run!(RandomHandler::<E>::default()),
+        ("light_client", "data_collection") => {
+            run!(LightClientDataCollectionHandler::<E>::default())
+        }
         ("light_client", "update_ranking") => run!(LightClientUpdateHandler::<E>::default()),
         ("light_client", "single_merkle_proof") => run!(MerkleProofValidityHandler::<E>::default()),
         ("fork_choice", _) => {
@@ -161,8 +164,11 @@ fn main() {
     );
     assert!(
         !cfg!(feature = "fake_crypto")
-            || matches!(args[1].as_str(), "ssz_static" | "fast_confirmation"),
-        "state/gossip acceptance requires real BLS"
+            || matches!(
+                args[1].as_str(),
+                "ssz_static" | "fast_confirmation" | "operations"
+            ),
+        "gossip acceptance requires real BLS; synthetic operation cases must explicitly declare ignored BLS"
     );
     assert!(
         COMPILED_REVISION.is_some_and(|revision| revision.len() == 40)

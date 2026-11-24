@@ -98,6 +98,10 @@ struct MessageMeta {
     subnet_id: Option<u64>,
     #[serde(default)]
     current_time_ms: Option<u64>,
+    #[serde(default)]
+    group_id: Option<String>,
+    #[serde(default)]
+    column_index: Option<u64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -118,6 +122,7 @@ enum Topic {
     ProposerPreferences,
     PayloadAttestationMessage,
     DataColumnSidecar,
+    PartialDataColumnSidecar,
 }
 
 #[derive(Debug)]
@@ -305,6 +310,23 @@ impl<E: EthSpec> GossipTester<E> {
                         .map_err(|e| Error::InternalError(format!("fixture head state: {e:?}")))?
                     {
                         *state.finalized_checkpoint_mut() = checkpoint;
+                        state.apply_pending_mutations().map_err(|e| {
+                            Error::InternalError(format!("fixture checkpoint mutation: {e:?}"))
+                        })?;
+                        tester
+                            .harness
+                            .chain
+                            .store
+                            .state_cache
+                            .lock()
+                            .delete_block_states(&root);
+                        tester
+                            .harness
+                            .chain
+                            .store
+                            .state_cache
+                            .lock()
+                            .delete_state(&block.state_root());
                         tester
                             .harness
                             .chain
@@ -340,6 +362,10 @@ impl<E: EthSpec> GossipTester<E> {
         let harness_builder = || {
             BeaconChainHarness::<EphemeralHarnessType<E>>::builder(E::default())
                 .spec(spec.clone())
+                .chain_config(beacon_chain::ChainConfig {
+                    enable_partial_columns: case.meta.topic == Topic::PartialDataColumnSidecar,
+                    ..Default::default()
+                })
                 .keypairs(vec![])
                 .mock_execution_layer()
                 .recalculate_fork_times_with_genesis(genesis_time)
@@ -422,10 +448,29 @@ impl<E: EthSpec> GossipTester<E> {
                     BlockImportSource::Lookup,
                     || Ok(()),
                 ))?;
-                if !matches!(outcome, Err(BlockError::StateRootMismatch { .. })) {
-                    return Err(Error::InternalError(format!(
-                        "reference failed setup needs its authenticated wrong-state-root rejection, got {outcome:?}"
-                    )));
+                match outcome {
+                    Err(BlockError::StateRootMismatch { .. }) => {}
+                    Ok(_)
+                        if matches!(
+                            case.meta.topic,
+                            Topic::BeaconAttestation | Topic::BeaconAggregateAndProof
+                        ) =>
+                    {
+                        // Inherited helpers/gossip.py deliberately remove a valid
+                        // block's abstract store state. This is an explicit
+                        // synthetic known-failed context, not a claim the native
+                        // block failed consensus. The wrong-state-root Gloas
+                        // fixtures above separately prove real failure capture.
+                        self.harness
+                            .chain
+                            .canonical_head
+                            .testing_mark_consensus_failed(root);
+                    }
+                    other => {
+                        return Err(Error::InternalError(format!(
+                            "failed setup native outcome: {other:?}"
+                        )));
+                    }
                 }
                 continue;
             }
@@ -468,6 +513,61 @@ impl<E: EthSpec> GossipTester<E> {
     ) -> Result<MessageAcceptance, Error> {
         let message_id = MessageId::new(message_meta.message.as_bytes());
         let peer_id = PeerId::random();
+        if *topic == Topic::PartialDataColumnSidecar {
+            let group: types::PartialDataColumnGroupId = ssz_decode_file(&path.join(format!(
+                    "{}.ssz_snappy",
+                    message_meta
+                        .group_id
+                        .as_ref()
+                        .ok_or_else(|| Error::FailedToParseTest(
+                            "missing partial group id".into()
+                        ))?
+                )))?;
+            let sidecar: types::PartialDataColumnSidecarGloas<E> =
+                ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+            let index = message_meta
+                .column_index
+                .ok_or_else(|| Error::FailedToParseTest("missing partial column index".into()))?;
+            let column = types::PartialDataColumnGloas::<E> {
+                block_root: group.beacon_block_root,
+                slot: group.slot,
+                index,
+                sidecar,
+            };
+            let subnet = types::DataColumnSubnetId::from_column_index(index, &self.harness.spec);
+            let gossip = lighthouse_network::types::GossipTopic::new(
+                lighthouse_network::types::GossipKind::DataColumnSidecar(subnet),
+                lighthouse_network::types::GossipEncoding::default(),
+                [0; 4],
+            );
+            let seen = self.set_message_time(message_meta)?;
+            self.block_on_dangerous(
+                self.network_beacon_processor
+                    .process_gossip_partial_data_column_sidecar(
+                        peer_id,
+                        Box::new(column.into()),
+                        seen,
+                        gossip,
+                    ),
+            )?;
+            let mut receiver = self
+                .network_rx
+                .lock()
+                .map_err(|_| Error::InternalError("network receiver lock".into()))?;
+            let mut acceptance = MessageAcceptance::Ignore;
+            while let Ok(message) = receiver.try_recv() {
+                match message {
+                    NetworkMessage::PartialValidationFailure {
+                        propagation_source, ..
+                    } if propagation_source == peer_id => return Ok(MessageAcceptance::Reject),
+                    NetworkMessage::PublishPartialColumns { messages } if !messages.is_empty() => {
+                        acceptance = MessageAcceptance::Accept
+                    }
+                    _ => {}
+                }
+            }
+            return Ok(acceptance);
+        }
 
         // These two fixtures deliberately construct an already-Gloas chain
         // before a future configured activation (activate_at_genesis=True).
@@ -479,16 +579,30 @@ impl<E: EthSpec> GossipTester<E> {
         {
             use beacon_chain::proposer_preferences_verification::{
                 ProposerPreferencesError,
-                gossip_verified_proposer_preferences::GossipVerifiedProposerPreferences,
+                gossip_verified_proposer_preferences::testing_verify_preferences_consistency,
             };
             let preferences: types::SignedProposerPreferences =
                 ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
-            let mut ctx = self
+            match testing_verify_preferences_consistency::<E>(
+                &preferences.message,
+                &self.harness.chain.slot_clock,
+                &self.spec,
+            ) {
+                Err(ProposerPreferencesError::ProposalEpochPreGloas { .. }) => {
+                    return Ok(MessageAcceptance::Ignore);
+                }
+                Err(e) => {
+                    return Err(Error::InternalError(format!(
+                        "synthetic preference timing: {e:?}"
+                    )));
+                }
+                Ok(()) => {}
+            }
+            return match self
                 .harness
                 .chain
-                .proposer_preferences_gossip_verification_context();
-            ctx.spec = &self.spec;
-            return match GossipVerifiedProposerPreferences::new(Arc::new(preferences), &ctx) {
+                .verify_proposer_preferences_for_gossip(Arc::new(preferences))
+            {
                 Ok(_) => Ok(MessageAcceptance::Accept),
                 Err(ProposerPreferencesError::ProposalEpochPreGloas { .. }) => {
                     Ok(MessageAcceptance::Ignore)
@@ -567,6 +681,7 @@ impl<E: EthSpec> GossipTester<E> {
                         ReprocessAllowance::None,
                     );
             }
+            Topic::PartialDataColumnSidecar => unreachable!("partial admission returned above"),
             Topic::DataColumnSidecar => {
                 let sidecar: types::DataColumnSidecarGloas<E> =
                     ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
@@ -665,6 +780,15 @@ impl<E: EthSpec> GossipTester<E> {
                 || status == Some(PayloadStatus::Invalidated)
             {
                 mock.server.all_payloads_syncing(true);
+                mock.server.set_payload_statuses(
+                    head_hash,
+                    PayloadStatusV1 {
+                        status: PayloadStatusV1Status::Syncing,
+                        latest_valid_hash: None,
+                        validation_error: None,
+                        inclusion_list_satisfied: None,
+                    },
+                );
             } else {
                 mock.server.all_payloads_valid();
             }
