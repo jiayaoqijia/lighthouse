@@ -15,7 +15,9 @@ use crate::{
 };
 pub use crate::{
     BeaconChainError, NotifyExecutionLayer, ProduceBlockVerification,
-    beacon_chain::{BEACON_CHAIN_DB_KEY, FORK_CHOICE_DB_KEY, OP_POOL_DB_KEY},
+    beacon_chain::{
+        BEACON_CHAIN_DB_KEY, FAST_CONFIRMATION_DB_KEY, FORK_CHOICE_DB_KEY, OP_POOL_DB_KEY,
+    },
     migrate::MigratorConfig,
     single_attestation::single_attestation_to_attestation,
     sync_committee_verification::Error as SyncCommitteeError,
