@@ -68,7 +68,7 @@ impl<E: EthSpec> CellBitmap<E> {
             marker: Default::default(),
         }
     }
-    pub fn not(self) -> Self {
+    pub fn not(&self) -> Self {
         Self {
             bits: self.bits.not(),
             marker: Default::default(),
