@@ -1,0 +1,16 @@
+{
+  "trigger": {
+    "workflow_run": 45471340170,
+    "job": 138729515738,
+    "failure": "SDK apt InRelease HTTP 503; unable to locate kurtosis-cli; no chain test started"
+  },
+  "version": "1.23.0",
+  "official_release": "https://github.com/kurtosis-tech/kurtosis-cli-release-artifacts/releases/tag/1.23.0",
+  "asset_sha256": "985bffafb6c76e6a6ed12c37a6b2d52b12fe0ccea659f93be4af1e9852b9bd4c",
+  "installed_binary_sha256": "f47a59bacd5acd0b1893796e74baf2925c82d466d934653eeac2c86185478796",
+  "actual_install_and_version": "passed",
+  "missing_argument_exit": 2,
+  "corrupt_archive_rejected_before_install": true,
+  "all_five_install_steps_updated": true,
+  "workflow_yaml": "parsed"
+}
