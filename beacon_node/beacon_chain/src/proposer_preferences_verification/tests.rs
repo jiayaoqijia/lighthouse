@@ -251,7 +251,7 @@ fn proposal_slot_already_passed() {
     }
     let ctx = TestContext::new();
     ctx.slot_clock.set_current_time(
-        ctx.slot_clock.genesis_duration()
+        *ctx.slot_clock.genesis_duration()
             + ctx.spec.maximum_gossip_clock_disparity()
             + Duration::from_millis(1),
     );
