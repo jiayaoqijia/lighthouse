@@ -1490,13 +1490,11 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
 
     pub fn recompute_and_cache_light_client_updates(
         &self,
-        (parent_root, slot, sync_aggregate): LightClientProducerEvent<T::EthSpec>,
+        _event: LightClientProducerEvent<T::EthSpec>,
     ) -> Result<(), Error> {
-        self.light_client_server_cache.recompute_and_cache_updates(
+        self.light_client_server_cache.recompute_for_head(
             self.store.clone(),
-            slot,
-            &parent_root,
-            &sync_aggregate,
+            self.canonical_head.cached_head().head_block_root(),
             &self.spec,
         )
     }

@@ -16,6 +16,7 @@ pub mod historic_state_cache;
 pub mod hot_cold_store;
 mod impls;
 pub mod invariants;
+mod light_client_update;
 mod memory_store;
 pub mod metadata;
 pub mod metrics;

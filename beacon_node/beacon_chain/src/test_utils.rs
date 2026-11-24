@@ -3957,7 +3957,7 @@ where
         let _ = self
             .chain
             .light_client_server_cache
-            .recompute_and_cache_updates(
+            .cache_aggregate_for_test(
                 self.chain.store.clone(),
                 slot,
                 &block_root,

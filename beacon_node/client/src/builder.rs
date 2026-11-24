@@ -831,7 +831,7 @@ where
                 light_client_update_context.executor.spawn(
                     async move {
                         compute_light_client_updates(
-                            &inner_chain,
+                            inner_chain,
                             light_client_server_rv,
                             beacon_processor_channels.beacon_processor_tx,
                         )

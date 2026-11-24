@@ -838,15 +838,8 @@ impl<E: EthSpec, Hot: ItemStore, Cold: ItemStore> HotColdDB<E, Hot, Cold> {
         )?;
 
         if let Some(light_client_update_bytes) = res {
-            let epoch = sync_committee_period
-                .safe_mul(self.spec.epochs_per_sync_committee_period.into())?;
-
-            let fork_name = self.spec.fork_name_at_epoch(epoch.into());
-
-            let light_client_update =
-                LightClientUpdate::from_ssz_bytes(&light_client_update_bytes, &fork_name)?;
-
-            return Ok(Some(light_client_update));
+            return crate::light_client_update::decode(&light_client_update_bytes, &self.spec)
+                .map(Some);
         }
 
         Ok(None)
@@ -876,13 +869,8 @@ impl<E: EthSpec, Hot: ItemStore, Cold: ItemStore> HotColdDB<E, Hot, Cold> {
                 break;
             }
 
-            let epoch = sync_committee_period
-                .safe_mul(self.spec.epochs_per_sync_committee_period.into())?;
-
-            let fork_name = self.spec.fork_name_at_epoch(epoch.into());
-
             let light_client_update =
-                LightClientUpdate::from_ssz_bytes(&light_client_update_bytes, &fork_name)?;
+                crate::light_client_update::decode(&light_client_update_bytes, &self.spec)?;
 
             light_client_updates.push(light_client_update);
         }
@@ -897,9 +885,48 @@ impl<E: EthSpec, Hot: ItemStore, Cold: ItemStore> HotColdDB<E, Hot, Cold> {
         self.hot_db.put_bytes(
             DBColumn::LightClientUpdate,
             &sync_committee_period.to_be_bytes(),
-            &light_client_update.as_ssz_bytes(),
+            &crate::light_client_update::encode(light_client_update),
         )?;
 
+        Ok(())
+    }
+
+    /// Include the actual durable keys when reconciling an upgraded database.
+    /// Older versions could assign cross-period updates by their signature slot.
+    pub fn light_client_update_periods(&self) -> Result<Vec<u64>, Error> {
+        self.hot_db
+            .iter_column_keys::<Vec<u8>>(DBColumn::LightClientUpdate)
+            .map(|key| {
+                let key = key?;
+                let bytes = key
+                    .as_slice()
+                    .try_into()
+                    .map_err(|error: TryFromSliceError| Error::InvalidKey(error.to_string()))?;
+                Ok(u64::from_be_bytes(bytes))
+            })
+            .collect()
+    }
+
+    /// Atomically replace changed canonical period updates, including removals.
+    pub fn apply_light_client_updates(
+        &self,
+        changes: Vec<(u64, Option<LightClientUpdate<E>>)>,
+    ) -> Result<(), Error> {
+        let ops = changes
+            .into_iter()
+            .map(|(period, update)| match update {
+                Some(update) => KeyValueStoreOp::PutKeyValue(
+                    DBColumn::LightClientUpdate,
+                    period.to_be_bytes().to_vec(),
+                    crate::light_client_update::encode(&update),
+                ),
+                None => KeyValueStoreOp::DeleteKey(
+                    DBColumn::LightClientUpdate,
+                    period.to_be_bytes().to_vec(),
+                ),
+            })
+            .collect();
+        self.hot_db.do_atomically(ops)?;
         Ok(())
     }
 
