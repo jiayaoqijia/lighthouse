@@ -1,0 +1,114 @@
+{
+  "lighthouse_base": "983f62e9b08e3ee655df951909df099e80e5ad7b",
+  "independent_repository": "https://github.com/fyInALT/lodestar",
+  "independent_revision": "4e224659179dc8050344b48a397f1791450bf24c",
+  "independent_build": "isolated clean detached checkout; five libraries typechecked; unchanged beacon-node component JS emitted with noCheck; not full Lodestar CLI build or upstream approval",
+  "observed_component_identity": {
+    "dependencies": [
+      {
+        "entry_sha256": "30c5923212c3ddda3927c5bee059657802dec4a6fb0734b2a7843b46468b5bf1",
+        "name": "libp2p",
+        "version": "3.4.0"
+      },
+      {
+        "entry_sha256": "613b6f1d89a18794de6b03638e69370d23a01f3773632058407d43b6049dbcce",
+        "name": "@libp2p/tcp",
+        "version": "11.0.30"
+      },
+      {
+        "entry_sha256": "8c5fc2ebd20fe1437a8b630f0752cd47f0997fae363ec5e5b81abb4ff92ec6d7",
+        "name": "@chainsafe/libp2p-noise",
+        "version": "17.0.0"
+      },
+      {
+        "entry_sha256": "875ed927ce94fc2552170fe68d2dfe317de53aea1c102c32a7a40576f164ffb1",
+        "name": "@libp2p/mplex",
+        "version": "12.0.34"
+      },
+      {
+        "entry_sha256": "8a10f9e4ca510ebd02e635acc305eb147847254f7c68866034d43379b0853059",
+        "name": "@libp2p/identify",
+        "version": "4.1.16"
+      },
+      {
+        "entry_sha256": "a5982cb0dd544ed96707035f038ca78a4c84ae3d91c3101c18f2d8fc703ba156",
+        "name": "@libp2p/gossipsub",
+        "version": "17.1.4"
+      },
+      {
+        "entry_sha256": "8e5f65fa33aeea420eaed999aeffea2f769227d45e32f3ee1bea21e0c7510e7c",
+        "name": "@lodestar/types",
+        "version": "1.51.0"
+      },
+      {
+        "entry_sha256": "8bad7d963fceb72df58cc32eb366f9442bbf48227828df5bb7dd7a5be9116f15",
+        "name": "@lodestar/reqresp",
+        "version": "1.51.0"
+      },
+      {
+        "entry_sha256": "6b5bda2db8d269a5fc990db53239694afcb6beb502afb77dfe3d868e0fa80faa",
+        "name": "@lodestar/config",
+        "version": "1.51.0"
+      }
+    ],
+    "encoding_sha256": "2193c958e6d6a773c983849c24323f59e24a117a89952f135870800f2a54132b",
+    "event": "ready",
+    "lockfile_sha256": "fb8f26c824fc591197fe93c989c5d45065ecc606e9d5fd6720a113bde8012982",
+    "node": "v22.20.0",
+    "protocols": [
+      "/floodsub/1.0.0",
+      "/ipfs/id/1.0.0",
+      "/meshsub/1.0.0",
+      "/meshsub/1.1.0",
+      "/meshsub/1.2.0"
+    ],
+    "ssz_gloas_sha256": "1c29729dd39276f8fd8fea8e4ac38bc4f09220699f59b731d5fb72428140c4d2"
+  },
+  "checks": [
+    {
+      "log": "independent-peer-scoring-second.log",
+      "result": "pass",
+      "details": "full-only independent JS peer, actual Rust/JS TCP+Noise+mplex gossip; reverse delivery and same-identity reconnect; CGC8->16->4 MetadataV3 seq0->1->2; malformed SSZ reduces actual score1->-99"
+    },
+    {
+      "log": "independent-peer-full-network.log",
+      "result": "pass",
+      "details": "24 complete native network integration tests; one separately executed external peer test is explicitly ignored in ordinary run"
+    },
+    {
+      "log": "independent-peer-real-consumers.log",
+      "result": "pass",
+      "details": "exact delivered bytes from both directions pass real state-bound KZG; altered cell rejects; actual captured anchor BLS verifies and empty signature rejects"
+    },
+    {
+      "log": "independent-peer-existing-partial-consumer.log",
+      "result": "pass",
+      "details": "partial out-of-order/duplicates and cryptographic/context mutations; completed cells do not promote missing/unexecuted envelope"
+    },
+    {
+      "log": "independent-peer-fresh-source.log",
+      "result": "pass",
+      "details": "fresh isolated independent source build rerun3.08s"
+    }
+  ],
+  "wire_files": {
+    "js-to-rust.ssz": {
+      "bytes": 4248,
+      "sha256": "c34ce9f4d18b2d95ffc3a6ab1a8347f078591f85febdfb52780ed6b3488c6444"
+    },
+    "events.jsonl": {
+      "bytes": 15474,
+      "sha256": "bd1abd2146718c1140e37345e046728a8eded4972557f2c7483121d7c934517a"
+    },
+    "rust-to-js.ssz": {
+      "bytes": 4248,
+      "sha256": "c34ce9f4d18b2d95ffc3a6ab1a8347f078591f85febdfb52780ed6b3488c6444"
+    }
+  },
+  "boundaries": [
+    "completed full-column publication to a full-only peer and reverse native decoding; the partial-only extension is intentionally not advertised by the independent peer",
+    "metadata duty decreases with retained oversampling subscriptions; do not claim forced subscription contraction",
+    "signed captured block/post-state anchor, not full preceding-chain replay",
+    "library component probe does not qualify enclosing full-node status reannouncement, 48h scale or original-04 historical waiting-chain cause"
+  ]
+}
