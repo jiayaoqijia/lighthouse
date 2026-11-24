@@ -922,6 +922,8 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         let mut new_forkchoice_update_parameters =
             fork_choice_read_lock.get_forkchoice_update_parameters();
         let mut fast_confirmation_changed = false;
+        let mut previous_fast_confirmation_roots = None;
+        let mut finalized_fast_confirmation_slot = None;
 
         // Run the Fast Confirmation Rule (FCR) while we still hold the fork choice read lock.
         // FCR must run even when the head hasn't changed, because new attestations may advance
@@ -934,6 +936,10 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         if let Some(ref fcr_mutex) = self.canonical_head.fast_confirmation {
             let mut fcr_guard = fcr_mutex.lock();
             let BeaconFastConfirmationRule { fcr, roots } = &mut *fcr_guard;
+            previous_fast_confirmation_roots = Some(*roots);
+            finalized_fast_confirmation_slot = fork_choice_read_lock
+                .get_block(&new_view.finalized_checkpoint.root)
+                .map(|block| block.slot);
             // The safe block hash is FCR's confirmed root, or the finalized block when it has
             // none to give. Never the justified one.
             let finalized = (
@@ -1021,7 +1027,6 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
 
             if confirmed_root != roots.announced_root {
                 fast_confirmation_changed = true;
-                metrics::inc_counter(&fcr_metrics::FAST_CONFIRMATION_ROOT_CHANGES);
             }
 
             let head_root = new_view.head_block_root;
@@ -1119,8 +1124,26 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             new_forkchoice_update_parameters.justified_hash =
                 new_forkchoice_update_parameters.finalized_hash;
             if let Some(fcr) = &self.canonical_head.fast_confirmation {
-                fcr.lock().roots.announced_root = new_view.finalized_checkpoint.root;
+                let mut guard = fcr.lock();
+                guard.roots.announced_root = new_view.finalized_checkpoint.root;
+                if let Some(previous) = previous_fast_confirmation_roots {
+                    guard.roots.deepest_announced_root = previous.deepest_announced_root;
+                }
             }
+            if let Some(slot) = finalized_fast_confirmation_slot {
+                metrics::set_gauge(&fcr_metrics::FAST_CONFIRMATION_SLOT, slot.as_u64() as i64);
+                metrics::set_gauge(
+                    &fcr_metrics::FAST_CONFIRMATION_DELAY_SLOTS,
+                    current_slot.as_u64().saturating_sub(slot.as_u64()) as i64,
+                );
+            }
+        }
+        // Count the selected announcement, not a candidate that failed to persist.
+        if let Some(previous) = previous_fast_confirmation_roots
+            && let Some(fcr) = &self.canonical_head.fast_confirmation
+            && fcr.lock().roots.announced_root != previous.announced_root
+        {
+            metrics::inc_counter(&fcr_metrics::FAST_CONFIRMATION_ROOT_CHANGES);
         }
 
         // If the head has changed, update `self.canonical_head`.

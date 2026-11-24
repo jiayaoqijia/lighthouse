@@ -582,6 +582,19 @@ async fn checkpoint_write_failure_falls_back_without_poisoning_consensus() {
         finalized(&harness.chain)
     );
     assert!(!harness.chain.canonical_head.fork_choice_poisoned());
+    assert_eq!(
+        harness
+            .chain
+            .canonical_head
+            .fast_confirmation
+            .as_ref()
+            .unwrap()
+            .lock()
+            .roots
+            .deepest_announced_root,
+        before.deepest_announced_root,
+        "a failed write must not promote an unsent candidate to the historical high-water root"
+    );
     let after = harness
         .chain
         .store

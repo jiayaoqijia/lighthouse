@@ -2,12 +2,46 @@
   "base_eth2030": "dc6547450c19b7b7605b4c7b4abd1466c5addb43",
   "consensus_specs": "d2021d2719235f0df4726a1d330502cb15aa8ea3",
   "functional_blobs": {
-    "beacon_node/beacon_chain/src/canonical_head.rs": "01be5f1b3981635ad7fa101b61b6574ad5459cb0",
+    "beacon_node/beacon_chain/src/canonical_head.rs": "f6f4f362552ec4ae7b0b9e29c0b8fb5420536f81",
     "beacon_node/beacon_chain/src/test_utils.rs": "b59288d4dd8519de6f55110e5613796bbf47e0d1",
-    "beacon_node/beacon_chain/tests/fast_confirmation_restart.rs": "3d5f8786a6ddb3df8ca5603571401277e79dcb57",
+    "beacon_node/beacon_chain/tests/fast_confirmation_restart.rs": "1bc9d0417493b61c99e46190edc94349ec8a6c6b",
     "beacon_node/store/src/memory_store.rs": "d84949087edae36a3c3e80fe4e34c68876039455"
   },
   "restart_runs": [
+    {
+      "fork": "fulu",
+      "exit_code": 0,
+      "log": "/tmp/eth2030-fcr-durability-20261124/final-announcement-fulu.log",
+      "summary": [
+        "test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 224 filtered out; finished in 14.92s"
+      ]
+    },
+    {
+      "fork": "gloas",
+      "exit_code": 0,
+      "log": "/tmp/eth2030-fcr-durability-20261124/final-announcement-gloas.log",
+      "summary": [
+        "test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 224 filtered out; finished in 14.52s"
+      ]
+    }
+  ],
+  "real_bls_features": [
+    "blst",
+    "supranational"
+  ],
+  "fake_crypto_enabled": false,
+  "actual_lighthouse_binary_check_passed": true,
+  "project_policy_clippy_passed": true,
+  "baseline_crash_red_with_corrected_fixture": true,
+  "crash_observed_before": {
+    "previous_confirmed_slot": 43,
+    "restored_confirmed_slot": 39
+  },
+  "original_historical_waiter_resolved": false,
+  "actual_48h_passed": false,
+  "hosted_ci_pending": true,
+  "previous_feature_source": "6aebf82876c63a572e61972704d28da468ef8051",
+  "restart_runs_before_high_water_followup": [
     {
       "fork": "fulu",
       "exit_code": 0,
@@ -27,19 +61,6 @@
       "log": "/tmp/eth2030-fcr-durability-20261124/final-gloas-restart.log"
     }
   ],
-  "real_bls_features": [
-    "blst",
-    "supranational"
-  ],
-  "fake_crypto_enabled": false,
-  "actual_lighthouse_binary_check_passed": true,
-  "project_policy_clippy_passed": true,
-  "baseline_crash_red_with_corrected_fixture": true,
-  "crash_observed_before": {
-    "previous_confirmed_slot": 43,
-    "restored_confirmed_slot": 39
-  },
-  "original_historical_waiter_resolved": false,
-  "actual_48h_passed": false,
-  "hosted_ci_pending": true
+  "failed_candidate_never_promoted_to_sent_high_water": true,
+  "fallback_metrics_track_selected_finalized_announcement": true
 }
