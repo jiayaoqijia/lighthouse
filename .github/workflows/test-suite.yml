@@ -390,9 +390,10 @@ jobs:
     - name: Create log dir
       run: mkdir ${{ runner.temp }}/basic_simulator_logs
     - name: Run a basic beacon chain sim
-      # The minimal preset has 6s slots; halving them leaves only750ms before the
-      # Gloas sync-message deadline. Keep full-aggregate assertions on full slots;
-      # accelerated runs are a separate latency/stress profile.
+      # The full-cryptography baseline uses production 12s timing with minimal
+      # state. Six-second slots admitted an observed late valid block, then a
+      # legitimate proposer reorg broke the all-canonical-slots assertion.
+      # Keep the assertion, real BLS/KZG and proposer reorg policy enabled.
       run: cargo run --release --bin simulator basic-sim --speed-up-factor 1 --disable-stdout-logging --log-dir ${{ runner.temp }}/basic_simulator_logs
     - name: Upload logs
       if: always()

@@ -1,0 +1,46 @@
+{
+  "job": 138808194067,
+  "run": 45496369281,
+  "functional_source": "1c05624859eebdc5f35996bef771a3271318a4c6",
+  "artifact": 14969828800,
+  "observations": [
+    {
+      "log": "basic-sim.log",
+      "line": 5405,
+      "event": "slot6 unsigned block received at22:09:42.010"
+    },
+    {
+      "log": "basic-sim.log",
+      "line": 5603,
+      "event": "valid slot6 block imported by HTTP API after2.722s"
+    },
+    {
+      "log": "basic-sim.log",
+      "line": 5917,
+      "event": "peer imports same valid block after3.030s"
+    },
+    {
+      "log": "basic-sim.log",
+      "line": 6101,
+      "event": "slot7 proposer legitimately reorgs weak late slot6 head; weight0 vs threshold32ETH"
+    },
+    {
+      "log": "basic-sim.log",
+      "line": 6246,
+      "event": "one-block canonical reorg; slot6 existed but is orphaned"
+    }
+  ],
+  "diagnosis": "all-canonical/full-aggregate qualification profile used minimal6s clock with2s pre-Gloas window; observed publication exceeded window and optional valid proposer reorg removed slot6",
+  "unattributed": "exact cause of the2.7s unsigned-to-published delay is not proven; no claim this is original-04 or a fixed node wait chain",
+  "repair": "baseline uses production12s timing, minimal state, existing speed-up factor2 for6s stress; all assertions, real cryptography and proposer reorg policy remain enabled",
+  "required": "fresh full local/CI basic simulation; not counted passed yet",
+  "local_followup": {
+    "result": "pass",
+    "log": "pr21-basic-production-clock.log",
+    "clock_ms": 12000,
+    "beacon_nodes": 4,
+    "validator_clients": 2,
+    "unchanged_assertions": "all original simulator checks, real cryptography and proposer reorg policy",
+    "scope": "full bounded simulator acceptance, not original-04 attribution or48h/scale"
+  }
+}

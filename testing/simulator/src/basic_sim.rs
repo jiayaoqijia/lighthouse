@@ -22,7 +22,7 @@ use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitEx
 use logging::build_workspace_filter;
 use tokio::time::sleep;
 use tracing::Level;
-use types::{Epoch, EthSpec, MinimalEthSpec};
+use types::{Epoch, EthSpec, MainnetEthSpec, MinimalEthSpec};
 
 const END_EPOCH: u64 = 16;
 const GENESIS_DELAY: u64 = 38;
@@ -174,7 +174,13 @@ pub fn run_basic_sim(matches: &ArgMatches) -> Result<(), String> {
     let latest_fork_version = spec.gloas_fork_version;
     let latest_fork_start_epoch = GLOAS_FORK_EPOCH;
 
-    let mut slot_duration_ms = spec.get_slot_duration().as_millis() as u64;
+    // Preserve the minimal state preset with production timing for complete
+    // cryptographic/all-canonical-slot qualification. The observed 2.7s valid
+    // publication exceeded the 6s profile's 2s pre-Gloas window and triggered
+    // a legitimate proposer reorg. Factor two retains that accelerated profile.
+    let mut slot_duration_ms = MainnetEthSpec::default_spec()
+        .get_slot_duration()
+        .as_millis() as u64;
     slot_duration_ms /= speed_up_factor;
     slot_duration_ms = max(1_000, slot_duration_ms);
     spec = spec.set_slot_duration_ms::<MinimalEthSpec>(slot_duration_ms);
