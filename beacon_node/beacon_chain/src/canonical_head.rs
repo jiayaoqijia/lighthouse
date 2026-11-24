@@ -921,6 +921,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         // a moved safe block hash even when the head/checkpoints are unchanged.
         let mut new_forkchoice_update_parameters =
             fork_choice_read_lock.get_forkchoice_update_parameters();
+        let mut fast_confirmation_changed = false;
 
         // Run the Fast Confirmation Rule (FCR) while we still hold the fork choice read lock.
         // FCR must run even when the head hasn't changed, because new attestations may advance
@@ -1019,6 +1020,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
             }
 
             if confirmed_root != roots.announced_root {
+                fast_confirmation_changed = true;
                 metrics::inc_counter(&fcr_metrics::FAST_CONFIRMATION_ROOT_CHANGES);
             }
 
@@ -1088,6 +1090,7 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         if new_view == old_view
             && new_payload_status == old_payload_status
             && new_forkchoice_update_parameters == old_forkchoice_update_parameters
+            && !fast_confirmation_changed
         {
             debug!(
                 head = ?new_view.head_block_root,
@@ -1101,6 +1104,24 @@ impl<T: BeaconChainTypes> BeaconChain<T> {
         // Drop the read lock, it's no longer required and holding it any longer than necessary
         // will just cause lock contention.
         drop(fork_choice_read_lock);
+
+        // A root announced between epoch snapshots must survive a crash together
+        // with the fork choice that knows its block. The existing atomic batch
+        // persists both. Re-enter its documented lock order only after releasing
+        // the fork-choice read lock and FCR guard; disk I/O runs on this blocking
+        // worker, before the cached head/Engine publication below.
+        if fast_confirmation_changed && let Err(error) = self.persist_fork_choice() {
+            error!(
+                ?error,
+                "Unable to persist fast confirmation; using finalized block"
+            );
+            metrics::inc_counter_vec(&fcr_metrics::FAST_CONFIRMATION_ERRORS, &["persistence"]);
+            new_forkchoice_update_parameters.justified_hash =
+                new_forkchoice_update_parameters.finalized_hash;
+            if let Some(fcr) = &self.canonical_head.fast_confirmation {
+                fcr.lock().roots.announced_root = new_view.finalized_checkpoint.root;
+            }
+        }
 
         // If the head has changed, update `self.canonical_head`.
         let new_cached_head = if new_view.head_block_root != old_view.head_block_root

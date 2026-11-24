@@ -13,6 +13,7 @@ pub struct MemoryStore {
     db: RwLock<DBMap>,
     fault: AtomicBool,
     fault_armed: AtomicBool,
+    fail_next_atomic_write: AtomicBool,
 }
 
 impl MemoryStore {
@@ -22,6 +23,7 @@ impl MemoryStore {
             db: RwLock::new(BTreeMap::new()),
             fault: AtomicBool::new(false),
             fault_armed: AtomicBool::new(false),
+            fail_next_atomic_write: AtomicBool::new(false),
         }
     }
 
@@ -41,6 +43,12 @@ impl MemoryStore {
     /// Simulates resource exhaustion during a block write.
     pub fn inject_faults_on_next_block_write(&self) {
         self.fault_armed.store(true, Ordering::SeqCst);
+    }
+
+    /// Fail exactly one atomic write, leaving reads and subsequent operations
+    /// available. This isolates checkpoint failure from block-import failures.
+    pub fn inject_fault_on_next_atomic_write(&self) {
+        self.fail_next_atomic_write.store(true, Ordering::SeqCst);
     }
 
     fn check_fault(&self) -> Result<(), Error> {
@@ -96,6 +104,11 @@ impl KeyValueStore for MemoryStore {
 
     fn do_atomically(&self, batch: Vec<KeyValueStoreOp>) -> Result<(), Error> {
         self.check_fault()?;
+        if self.fail_next_atomic_write.swap(false, Ordering::SeqCst) {
+            return Err(Error::DBError {
+                message: "Injected atomic write failure".to_string(),
+            });
+        }
         let writes_block = batch.iter().any(|op| {
             matches!(
                 op,

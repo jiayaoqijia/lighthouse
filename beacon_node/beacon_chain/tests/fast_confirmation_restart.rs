@@ -1,11 +1,12 @@
 #![cfg(not(debug_assertions))]
 
 use beacon_chain::{
-    BeaconChain, BeaconChainTypes, ChainConfig,
+    BeaconChain, BeaconChainTypes, ChainConfig, NotifyExecutionLayer,
+    block_verification_types::LookupBlock,
     chain_config::FastConfirmationMode,
     test_utils::{
         AttestationStrategy, BeaconChainHarness, BlockStrategy, DiskHarnessType,
-        fork_name_from_env, test_spec,
+        EphemeralHarnessType, FAST_CONFIRMATION_DB_KEY, fork_name_from_env, test_spec,
     },
 };
 use bls::Keypair;
@@ -14,9 +15,11 @@ use proto_array::PayloadBlockHash;
 use slot_clock::SlotClock;
 use std::sync::{Arc, LazyLock};
 use store::database::interface::BeaconNodeBackend;
-use store::{HotColdDB, StoreConfig};
+use store::{HotColdDB, ItemStore, StoreConfig};
 use tempfile::{TempDir, tempdir};
-use types::{BeaconState, EthSpec, Hash256, SignedExecutionPayloadEnvelope, Slot, Spec};
+use types::{
+    BeaconState, BlockImportSource, EthSpec, Hash256, SignedExecutionPayloadEnvelope, Slot, Spec,
+};
 
 type E = Spec;
 type Harness = BeaconChainHarness<DiskHarnessType<E>>;
@@ -212,9 +215,26 @@ impl Rig {
     }
 
     async fn import(node: &Harness, block: &Produced) {
-        node.process_block_result(block.contents.clone())
+        if block.envelope.is_some() {
+            // A crash may leave an envelope on disk beyond the fork-choice
+            // snapshot. Replay the signed beacon block via lookup, then import
+            // its independently supplied envelope below. The range-sync helper
+            // otherwise combines that old envelope with absent custody columns.
+            Box::pin(node.chain.process_block(
+                block.root,
+                LookupBlock::new(block.root, block.contents.0.clone()),
+                NotifyExecutionLayer::Yes,
+                BlockImportSource::Lookup,
+                || Ok(()),
+            ))
             .await
             .unwrap();
+            node.chain.recompute_head_at_current_slot().await;
+        } else {
+            node.process_block_result(block.contents.clone())
+                .await
+                .unwrap();
+        }
         if let Some(envelope) = &block.envelope {
             let state_root = block.contents.0.state_root();
             node.process_envelope(block.root, envelope.clone(), &block.post_state, state_root)
@@ -510,11 +530,84 @@ async fn two_restarts_in_a_row() {
     Scenario::default().down(1).restarts(2).run().await;
 }
 
-/// Boots from the last epoch-transition persist, with the confirmed root it had then.
-#[ignore = "needs fork choice persisted every slot: a root newer than its snapshot is not in it"]
+/// Announcements between epoch transitions persist a compatible fork-choice
+/// snapshot before the Engine update, so a crash retains the confirmed root.
 #[tokio::test]
 async fn crash_instead_of_graceful_shutdown() {
     Scenario::default().down(1).crash().run().await;
+}
+
+#[tokio::test]
+async fn checkpoint_write_failure_falls_back_without_poisoning_consensus() {
+    if pre_bellatrix() {
+        return;
+    }
+    let harness = BeaconChainHarness::<EphemeralHarnessType<E>>::builder(Spec::default())
+        .default_spec()
+        .keypairs(KEYPAIRS.to_vec())
+        .fresh_ephemeral_store()
+        .mock_execution_layer()
+        .chain_config(config(true, false))
+        .build();
+    harness.advance_slot();
+    harness
+        .extend_chain(
+            WARMUP_SLOTS.max(3 * E::slots_per_epoch()) as usize,
+            BlockStrategy::OnCanonicalHead,
+            AttestationStrategy::AllValidators,
+        )
+        .await;
+    let head = harness.chain.canonical_head.cached_head().head_block_root();
+    let before = harness
+        .chain
+        .store
+        .hot_db
+        .get::<beacon_chain::canonical_head::FastConfirmationRoots>(&FAST_CONFIRMATION_DB_KEY)
+        .unwrap()
+        .unwrap();
+    assert_ne!(before.announced_root, finalized(&harness.chain));
+    harness.advance_slot();
+    harness
+        .chain
+        .store
+        .hot_db
+        .inject_fault_on_next_atomic_write();
+    harness.chain.recompute_head_at_current_slot().await;
+    let cached = harness.chain.canonical_head.cached_head();
+    assert_eq!(cached.head_block_root(), head);
+    let parameters = cached.forkchoice_update_parameters();
+    assert_eq!(parameters.justified_hash, parameters.finalized_hash);
+    assert_eq!(
+        confirmed(&harness.chain).unwrap().0,
+        finalized(&harness.chain)
+    );
+    assert!(!harness.chain.canonical_head.fork_choice_poisoned());
+    let after = harness
+        .chain
+        .store
+        .hot_db
+        .get::<beacon_chain::canonical_head::FastConfirmationRoots>(&FAST_CONFIRMATION_DB_KEY)
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        before.announced_root, after.announced_root,
+        "failed batch changed durable roots"
+    );
+    // The next update retries persistence; it can recover confidence without a
+    // new head or a new slot. Import remains live after the transient fault.
+    harness.chain.recompute_head_at_current_slot().await;
+    assert_eq!(confirmed(&harness.chain).unwrap().0, head);
+    harness
+        .extend_chain(
+            1,
+            BlockStrategy::OnCanonicalHead,
+            AttestationStrategy::AllValidators,
+        )
+        .await;
+    assert_ne!(
+        harness.chain.canonical_head.cached_head().head_block_root(),
+        head
+    );
 }
 
 /// FCR off leaves the persisted root alone. With the chain stalled meanwhile, finality never passes
