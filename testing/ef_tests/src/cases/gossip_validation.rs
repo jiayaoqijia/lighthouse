@@ -110,6 +110,7 @@ enum Topic {
     BeaconAttestation,
     BeaconAggregateAndProof,
     BlsToExecutionChange,
+    #[serde(alias = "sync_committee_message")]
     SyncCommittee,
     SyncCommitteeContributionAndProof,
     ExecutionPayloadBid,
@@ -236,7 +237,16 @@ impl<E: EthSpec> GossipTester<E> {
         let genesis_time = case.state.genesis_time();
         let blocks = case.load_beacon_blocks(&spec)?;
         let current_time_ms = case.current_time_ms(&blocks, &spec)?;
-        let spec = Arc::new(spec);
+        let validation_spec = spec.clone();
+        let mut structural_spec = spec;
+        if case.state.fork_name_unchecked().gloas_enabled()
+            && !structural_spec
+                .fork_name_at_slot::<E>(case.state.slot())
+                .gloas_enabled()
+        {
+            structural_spec.gloas_fork_epoch = Some(types::Epoch::new(0));
+        }
+        let spec = Arc::new(structural_spec);
 
         let (harness, initial_block_index) =
             Self::build_harness(case, spec.clone(), &blocks, genesis_time, current_time_ms)?;
@@ -247,7 +257,7 @@ impl<E: EthSpec> GossipTester<E> {
             harness,
             network_beacon_processor: Arc::new(network_beacon_processor),
             network_rx: Mutex::new(network_rx),
-            spec: spec.as_ref().clone(),
+            spec: validation_spec,
             genesis_time,
             current_time_ms,
         };
@@ -255,6 +265,58 @@ impl<E: EthSpec> GossipTester<E> {
         tester.set_time_ms(current_time_ms)?;
         tester.import_setup_blocks(case, &blocks, initial_block_index)?;
         tester.set_finalized_checkpoint(case.finalized_checkpoint(&blocks)?);
+        // helpers/gloas/bid.py::activate_builders explicitly overrides the
+        // head state's checkpoint as well as the store's. The metadata must
+        // initialize both parts of that synthetic precondition, not only FC.
+        if case.meta.finalized_checkpoint.is_some() && case.meta.topic == Topic::ExecutionPayloadBid
+        {
+            let checkpoint = case.finalized_checkpoint(&blocks)?.ok_or_else(|| {
+                Error::FailedToParseTest("missing explicit finality override".into())
+            })?;
+            tester
+                .harness
+                .chain
+                .canonical_head
+                .testing_set_head_state_finalized_checkpoint(checkpoint);
+            let mut roots = HashSet::new();
+            roots.insert(
+                tester
+                    .harness
+                    .chain
+                    .canonical_head
+                    .cached_head()
+                    .head_block_root(),
+            );
+            for message in &case.meta.messages {
+                if message.message.starts_with("execution_payload_bid_") {
+                    let bid: types::SignedExecutionPayloadBidGloas<E> = ssz_decode_file(
+                        &case.path.join(format!("{}.ssz_snappy", message.message)),
+                    )?;
+                    roots.insert(bid.message.parent_block_root);
+                }
+            }
+            for root in roots {
+                if let Some(block) = blocks.values().find(|block| block.canonical_root() == root) {
+                    if let Some(mut state) = tester
+                        .harness
+                        .chain
+                        .store
+                        .get_state(&block.state_root(), Some(block.slot()), true)
+                        .map_err(|e| Error::InternalError(format!("fixture head state: {e:?}")))?
+                    {
+                        *state.finalized_checkpoint_mut() = checkpoint;
+                        tester
+                            .harness
+                            .chain
+                            .store
+                            .put_state(&block.state_root(), &state)
+                            .map_err(|e| {
+                                Error::InternalError(format!("fixture finality override: {e:?}"))
+                            })?;
+                    }
+                }
+            }
+        }
 
         Ok(tester)
     }
@@ -406,6 +468,36 @@ impl<E: EthSpec> GossipTester<E> {
     ) -> Result<MessageAcceptance, Error> {
         let message_id = MessageId::new(message_meta.message.as_bytes());
         let peer_id = PeerId::random();
+
+        // These two fixtures deliberately construct an already-Gloas chain
+        // before a future configured activation (activate_at_genesis=True).
+        // Use the actual native preference validator with its original rule
+        // config; record this synthetic component scope separately from normal
+        // network admission. Any unexpected native error remains a failure.
+        if self.spec.gloas_fork_epoch != self.harness.spec.gloas_fork_epoch
+            && *topic == Topic::ProposerPreferences
+        {
+            use beacon_chain::proposer_preferences_verification::{
+                ProposerPreferencesError,
+                gossip_verified_proposer_preferences::GossipVerifiedProposerPreferences,
+            };
+            let preferences: types::SignedProposerPreferences =
+                ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+            let mut ctx = self
+                .harness
+                .chain
+                .proposer_preferences_gossip_verification_context();
+            ctx.spec = &self.spec;
+            return match GossipVerifiedProposerPreferences::new(Arc::new(preferences), &ctx) {
+                Ok(_) => Ok(MessageAcceptance::Accept),
+                Err(ProposerPreferencesError::ProposalEpochPreGloas { .. }) => {
+                    Ok(MessageAcceptance::Ignore)
+                }
+                Err(e) => Err(Error::InternalError(format!(
+                    "synthetic future-activation preference: {e:?}"
+                ))),
+            };
+        }
 
         // Setup messages may use another Gloas gossip topic in the same ordered trace.
         let topic = if message_meta.message.starts_with("proposer_preferences_") {
@@ -1115,7 +1207,7 @@ impl<E: EthSpec> GossipValidation<E> {
 
     fn load_beacon_blocks(
         &self,
-        spec: &ChainSpec,
+        _spec: &ChainSpec,
     ) -> Result<HashMap<String, SignedBeaconBlock<E>>, Error> {
         let mut block_names = HashSet::new();
         block_names.extend(self.meta.blocks.iter().map(|block| block.block.clone()));
@@ -1129,7 +1221,13 @@ impl<E: EthSpec> GossipValidation<E> {
         block_names
             .into_iter()
             .map(|name| {
-                let block = load_beacon_block(&self.path, &name, spec)?;
+                let block =
+                    ssz_decode_file_with(&self.path.join(format!("{name}.ssz_snappy")), |bytes| {
+                        SignedBeaconBlock::from_ssz_bytes_by_fork(
+                            bytes,
+                            self.state.fork_name_unchecked(),
+                        )
+                    })?;
                 Ok((name, block))
             })
             .collect()

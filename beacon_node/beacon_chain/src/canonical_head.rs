@@ -492,6 +492,16 @@ pub struct FastConfirmationRoots {
 }
 
 impl<T: BeaconChainTypes> CanonicalHead<T> {
+    /// Apply the independent gossip fixture's explicit synthetic head-state
+    /// finality override. This is not a production state transition or import API.
+    #[cfg(feature = "ef_tests")]
+    pub fn testing_set_head_state_finalized_checkpoint(&self, checkpoint: Checkpoint) {
+        let mut head = self.cached_head_write_lock();
+        *Arc::make_mut(&mut head.snapshot)
+            .beacon_state
+            .finalized_checkpoint_mut() = checkpoint;
+    }
+
     /// Instantiate `Self`.
     pub fn new(
         fork_choice: BeaconForkChoice<T>,

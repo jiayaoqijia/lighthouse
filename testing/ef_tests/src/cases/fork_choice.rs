@@ -216,6 +216,7 @@ pub struct ForkChoiceTest<E: EthSpec> {
     pub config: Option<types::Config>,
     /// True when the case comes from the `fast_confirmation` runner.
     pub fast_confirmation: bool,
+    strict_snapshot: bool,
     pub anchor_state: BeaconState<E>,
     pub anchor_block: BeaconBlock<E>,
     #[allow(clippy::type_complexity)]
@@ -423,6 +424,7 @@ impl<E: EthSpec> LoadCase for ForkChoiceTest<E> {
             description,
             config,
             fast_confirmation,
+            strict_snapshot: false,
             anchor_state,
             anchor_block,
             steps,
@@ -431,6 +433,9 @@ impl<E: EthSpec> LoadCase for ForkChoiceTest<E> {
 }
 
 impl<E: EthSpec> Case for ForkChoiceTest<E> {
+    fn prepare_for_snapshot(&mut self) {
+        self.strict_snapshot = true;
+    }
     fn description(&self) -> String {
         self.description.clone()
     }
@@ -448,9 +453,10 @@ impl<E: EthSpec> Case for ForkChoiceTest<E> {
         // See: https://github.com/ethereum/consensus-specs/pull/5547
         const IGNORED_PRE_FULU_CASES: &[&str] = &["epoch_boundary"];
 
-        if IGNORED_FAST_CONFIRMATION_CASES.contains(&self.description.as_str())
-            || (!fork_name.fulu_enabled()
-                && IGNORED_PRE_FULU_CASES.contains(&self.description.as_str()))
+        if !self.strict_snapshot
+            && (IGNORED_FAST_CONFIRMATION_CASES.contains(&self.description.as_str())
+                || (!fork_name.fulu_enabled()
+                    && IGNORED_PRE_FULU_CASES.contains(&self.description.as_str())))
         {
             return Err(Error::SkippedKnownFailure);
         }

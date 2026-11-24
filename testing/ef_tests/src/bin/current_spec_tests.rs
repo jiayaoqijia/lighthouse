@@ -33,6 +33,7 @@ fn consume<E: EthSpec + TypeName>(
         ("operations", "attestation") => operation!(Attestation<E>),
         ("operations", "attester_slashing") => operation!(AttesterSlashing<E>),
         ("operations", "block_header") => operation!(BeaconBlock<E>),
+        ("operations", "bls_to_execution_change") => operation!(SignedBlsToExecutionChange),
         ("operations", "builder_deposit_request") => operation!(BuilderDepositRequest),
         ("operations", "builder_exit_request") => operation!(BuilderExitRequest),
         ("operations", "consolidation_request") => operation!(ConsolidationRequest),
@@ -58,14 +59,41 @@ fn consume<E: EthSpec + TypeName>(
         ("epoch_processing", "proposer_lookahead") => epoch!(ProposerLookahead),
         ("epoch_processing", "ptc_window") => epoch!(PtcWindow),
         ("epoch_processing", "registry_updates") => epoch!(RegistryUpdates),
+        ("epoch_processing", "justification_and_finalization") => {
+            epoch!(JustificationAndFinalization)
+        }
+        ("epoch_processing", "randao_mixes_reset") => epoch!(RandaoMixesReset),
+        ("epoch_processing", "rewards_and_penalties") => epoch!(RewardsAndPenalties),
+        ("epoch_processing", "slashings") => epoch!(Slashings),
+        ("epoch_processing", "slashings_reset") => epoch!(SlashingsReset),
+        ("epoch_processing", "sync_committee_updates") => epoch!(SyncCommitteeUpdates),
+        ("rewards", _) => {
+            let name = match handler {
+                "basic" => "basic",
+                "inactivity_scores" => "inactivity_scores",
+                "leak" => "leak",
+                "random" => "random",
+                _ => return Err(format!("unsupported rewards handler {handler}")),
+            };
+            run!(RewardsHandler::<E>::new(name))
+        }
+        ("finality", "finality") => run!(FinalityHandler::<E>::default()),
+        ("networking", "get_custody_groups") => run!(GetCustodyGroupsHandler::<E>::default()),
+        ("networking", "compute_columns_for_custody_group") => {
+            run!(ComputeColumnsForCustodyGroupHandler::<E>::default())
+        }
         ("fork", "fork") => run!(ForkHandler::<E>::default()),
         ("transition", "core") => run!(TransitionHandler::<E>::default()),
         ("sanity", "blocks") => run!(SanityBlocksHandler::<E>::default()),
         ("sanity", "slots") => run!(SanitySlotsHandler::<E>::default()),
         ("random", "random") => run!(RandomHandler::<E>::default()),
+        ("light_client", "update_ranking") => run!(LightClientUpdateHandler::<E>::default()),
         ("light_client", "single_merkle_proof") => run!(MerkleProofValidityHandler::<E>::default()),
         ("fork_choice", _) => {
             let name: &'static str = match handler {
+                "ex_ante" => "ex_ante",
+                "reorg" => "reorg",
+                "withholding" => "withholding",
                 "get_head" => "get_head",
                 "get_parent_payload_status" => "get_parent_payload_status",
                 "on_attestation" => "on_attestation",
@@ -83,6 +111,13 @@ fn consume<E: EthSpec + TypeName>(
         }
         ("networking", _) => {
             let name = match handler {
+                "gossip_proposer_slashing" => "gossip_proposer_slashing",
+                "gossip_attester_slashing" => "gossip_attester_slashing",
+                "gossip_sync_committee_contribution_and_proof" => {
+                    "gossip_sync_committee_contribution_and_proof"
+                }
+                "gossip_sync_committee_message" => "gossip_sync_committee_message",
+                "gossip_partial_data_column_sidecar" => "gossip_partial_data_column_sidecar",
                 "gossip_beacon_aggregate_and_proof" => "gossip_beacon_aggregate_and_proof",
                 "gossip_beacon_attestation" => "gossip_beacon_attestation",
                 "gossip_beacon_block" => "gossip_beacon_block",
@@ -99,6 +134,12 @@ fn consume<E: EthSpec + TypeName>(
         }
         ("fast_confirmation", _) => {
             let name = match handler {
+                "basic" => "basic",
+                "current_epoch" => "current_epoch",
+                "empty_slots" => "empty_slots",
+                "ffg" => "ffg",
+                "revert_finality" => "revert_finality",
+                "variables" => "variables",
                 "is_one_confirmed" => "is_one_confirmed",
                 "previous_epoch" => "previous_epoch",
                 "reconfirmation" => "reconfirmation",
