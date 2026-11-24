@@ -1747,6 +1747,7 @@ mod tests {
         }
         // Compare a cross-epoch union against independently enumerated native
         // committees, with the older balance source excluding later activations.
+        let checkpoint_state = state.clone();
         let target = Slot::new(2 * E::slots_per_epoch());
         while state.slot() < target {
             state_processing::per_slot_processing(
@@ -1762,7 +1763,7 @@ mod tests {
             root,
             &state,
             cp,
-            &state,
+            &checkpoint_state,
             None,
             25,
             spec.proposer_score_boost,
