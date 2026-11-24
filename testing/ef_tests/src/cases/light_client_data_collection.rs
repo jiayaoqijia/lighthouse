@@ -1,4 +1,5 @@
 //! Replay independent full-node light-client collection vectors through the native store/cache.
+use super::common::{load_config, testing_spec_with_config};
 use super::*;
 use crate::decode::{ssz_decode_file_with, ssz_decode_state, yaml_decode_file};
 use beacon_chain::block_verification_types::LookupBlock;
@@ -55,18 +56,19 @@ enum Step {
 #[derive(Debug, Clone)]
 pub struct LightClientDataCollection<E: EthSpec> {
     path: PathBuf,
+    config: Option<types::Config>,
     state: BeaconState<E>,
     steps: Vec<Step>,
 }
 impl<E: EthSpec> LoadCase for LightClientDataCollection<E> {
     fn load_from_dir(path: &Path, fork: ForkName) -> Result<Self, Error> {
+        let config = load_config(path)?;
+        let spec = testing_spec_with_config::<E>(fork, config.as_ref())?;
         Ok(Self {
             path: path.to_owned(),
-            state: ssz_decode_state(
-                &path.join("initial_state.ssz_snappy"),
-                &testing_spec::<E>(fork),
-            )?,
+            state: ssz_decode_state(&path.join("initial_state.ssz_snappy"), &spec)?,
             steps: yaml_decode_file(&path.join("steps.yaml"))?,
+            config,
         })
     }
 }
@@ -79,14 +81,15 @@ impl<E: EthSpec> LightClientDataCollection<E> {
         actual: Option<T>,
         expected: Option<&Object>,
         label: &str,
+        context_slot: types::Slot,
     ) -> Result<(), Error> {
         match (actual, expected) {
             (None, None) => Ok(()),
             (Some(actual), Some(expected)) => {
-                let spec = testing_spec::<E>(ForkName::Gloas);
+                let spec = testing_spec_with_config::<E>(ForkName::Gloas, self.config.as_ref())?;
                 let digest = spec.compute_fork_digest(
                     self.state.genesis_validators_root(),
-                    self.state.current_epoch(),
+                    context_slot.epoch(E::slots_per_epoch()),
                 );
                 if expected.fork_digest != format!("0x{}", hex::encode(digest)) {
                     return Err(Error::FailedToParseTest(
@@ -120,7 +123,7 @@ impl<E: EthSpec> Case for LightClientDataCollection<E> {
         self.path.display().to_string()
     }
     fn result(&self, _: usize, fork: ForkName) -> Result<(), Error> {
-        let spec = Arc::new(testing_spec::<E>(fork));
+        let spec = Arc::new(testing_spec_with_config::<E>(fork, self.config.as_ref())?);
         let harness = BeaconChainHarness::<EphemeralHarnessType<E>>::builder(E::default())
             .spec(spec.clone())
             .keypairs(vec![])
@@ -222,7 +225,11 @@ impl<E: EthSpec> Case for LightClientDataCollection<E> {
                             )
                             .map_err(internal)?
                             .map(|(bootstrap, _)| bootstrap);
-                        self.compare(actual, expected.bootstrap.as_ref(), "bootstrap")?;
+                        let slot = actual
+                            .as_ref()
+                            .map(|value| value.get_slot())
+                            .unwrap_or_default();
+                        self.compare(actual, expected.bootstrap.as_ref(), "bootstrap", slot)?;
                     }
                     for expected in &new_head.checks.best_updates {
                         let mut actual = harness
@@ -232,23 +239,40 @@ impl<E: EthSpec> Case for LightClientDataCollection<E> {
                         if actual.len() > 1 {
                             return Err(internal("too many period updates"));
                         }
-                        self.compare(actual.pop(), expected.update.as_ref(), "best update")?;
+                        let actual = actual.pop();
+                        let slot = actual
+                            .as_ref()
+                            .map(|value| value.attested_header_slot())
+                            .unwrap_or_default();
+                        self.compare(actual, expected.update.as_ref(), "best update", slot)?;
                     }
+                    let finality = harness
+                        .chain
+                        .light_client_server_cache
+                        .get_latest_finality_update();
+                    let slot = finality
+                        .as_ref()
+                        .map(|value| value.get_attested_header_slot())
+                        .unwrap_or_default();
                     self.compare(
-                        harness
-                            .chain
-                            .light_client_server_cache
-                            .get_latest_finality_update(),
+                        finality,
                         new_head.checks.latest_finality_update.as_ref(),
                         "latest finality",
+                        slot,
                     )?;
+                    let optimistic = harness
+                        .chain
+                        .light_client_server_cache
+                        .get_latest_optimistic_update();
+                    let slot = optimistic
+                        .as_ref()
+                        .map(|value| value.get_slot())
+                        .unwrap_or_default();
                     self.compare(
-                        harness
-                            .chain
-                            .light_client_server_cache
-                            .get_latest_optimistic_update(),
+                        optimistic,
                         new_head.checks.latest_optimistic_update.as_ref(),
                         "latest optimistic",
+                        slot,
                     )?;
                 }
             }

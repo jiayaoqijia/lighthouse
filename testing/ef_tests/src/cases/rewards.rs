@@ -9,7 +9,7 @@ use state_processing::per_epoch_processing::base::rewards_and_penalties::Propose
 use state_processing::{
     EpochProcessingError,
     per_epoch_processing::{
-        Delta, altair,
+        Delta,
         base::{self, ValidatorStatuses, rewards_and_penalties::AttestationDelta},
     },
 };
@@ -213,18 +213,11 @@ fn compute_altair_deltas<E: EthSpec>(
     state: &mut BeaconState<E>,
     spec: &ChainSpec,
 ) -> Result<TotalDeltas, EpochProcessingError> {
-    // Initialise deltas to pre-state balances.
-    let mut deltas = state
-        .balances()
-        .iter()
-        .map(|x| *x as i64)
-        .collect::<Vec<_>>();
-    altair::process_rewards_and_penalties_slow(state, spec)?;
-
-    for (delta, new_balance) in deltas.iter_mut().zip(state.balances()) {
-        let old_balance = *delta;
-        *delta = *new_balance as i64 - old_balance;
-    }
-
-    Ok(TotalDeltas { deltas })
+    let components = state_processing::per_epoch_processing::single_pass::compute_rewards_and_penalties_deltas_slow(state, spec)?;
+    Ok(TotalDeltas {
+        deltas: components
+            .into_iter()
+            .map(|delta| delta.rewards as i64 - delta.penalties as i64)
+            .collect(),
+    })
 }

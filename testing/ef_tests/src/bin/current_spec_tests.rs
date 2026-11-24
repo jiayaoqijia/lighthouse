@@ -12,6 +12,7 @@ fn consume<E: EthSpec + TypeName>(
     runner: &str,
     handler: &str,
     path: &Path,
+    fork: ForkName,
 ) -> Result<Vec<CaseResult>, String> {
     macro_rules! run {
         ($handler:expr) => {
@@ -149,7 +150,7 @@ fn consume<E: EthSpec + TypeName>(
                 "restart_gu" => "restart_gu",
                 _ => return Err(format!("unsupported fast-confirmation handler {handler}")),
             };
-            run!(FastConfirmationHandler::<E>::new(name))
+            Ok(FastConfirmationHandler::<E>::new(name).snapshot_results(path, fork))
         }
         _ => Err(format!("unsupported snapshot consumer {runner}/{handler}")),
     }
@@ -157,10 +158,9 @@ fn consume<E: EthSpec + TypeName>(
 
 fn main() {
     let args: Vec<_> = std::env::args().skip(1).collect();
-    assert_eq!(
-        args.len(),
-        3,
-        "usage: current_spec_tests mainnet|minimal RUNNER HANDLER_DIRECTORY"
+    assert!(
+        (3..=4).contains(&args.len()),
+        "usage: current_spec_tests mainnet|minimal RUNNER HANDLER_DIRECTORY [FCR_FORK]"
     );
     assert!(
         !cfg!(feature = "fake_crypto")
@@ -175,6 +175,14 @@ fn main() {
             && COMPILED_DIRTY == Some("false"),
         "build the snapshot executable with the verified clean source revision and dirty=false stamps"
     );
+    let fork = args
+        .get(3)
+        .map(|value| value.parse::<ForkName>().expect("known FCR fork"))
+        .unwrap_or(ForkName::Gloas);
+    assert!(
+        fork == ForkName::Gloas || args[1] == "fast_confirmation",
+        "historical fork selection is only qualified for FCR"
+    );
     let path = Path::new(&args[2]);
     let handler = path
         .file_name()
@@ -182,8 +190,8 @@ fn main() {
         .to_str()
         .expect("UTF-8 handler");
     let results = match args[0].as_str() {
-        "mainnet" => consume::<MainnetEthSpec>(&args[1], handler, path),
-        "minimal" => consume::<MinimalEthSpec>(&args[1], handler, path),
+        "mainnet" => consume::<MainnetEthSpec>(&args[1], handler, path, fork),
+        "minimal" => consume::<MinimalEthSpec>(&args[1], handler, path, fork),
         _ => Err("unsupported preset".into()),
     }
     .unwrap_or_else(|error| panic!("{error}"));
@@ -194,7 +202,7 @@ fn main() {
         }
         println!(
             "{}",
-            serde_json::json!({"path":case.path,"source_revision":COMPILED_REVISION,"source_dirty":false,"passed":case.result.is_ok(),"error":case.result.err().map(|error|format!("{}: {}",error.name(),error.message())),"crypto":if cfg!(feature="fake_crypto") {"fixture_fake"} else {"real"}})
+            serde_json::json!({"path":case.path,"fork":fork.to_string(),"source_revision":COMPILED_REVISION,"source_dirty":false,"passed":case.result.is_ok(),"error":case.result.err().map(|error|format!("{}: {}",error.name(),error.message())),"crypto":if cfg!(feature="fake_crypto") {"fixture_fake"} else {"real"}})
         );
     }
     assert_eq!(failed, 0, "snapshot cases failed or were skipped");

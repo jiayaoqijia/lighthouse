@@ -672,8 +672,32 @@ fn process_single_reward_and_penalty(
     state_ctxt: &StateContext,
     spec: &ChainSpec,
 ) -> Result<(), Error> {
+    let delta = compute_single_reward_and_penalty(
+        inactivity_score,
+        validator_info,
+        rewards_ctxt,
+        state_ctxt,
+        spec,
+    )?;
+
+    if delta.rewards != 0 || delta.penalties != 0 {
+        let balance = balance.make_mut()?;
+        balance.safe_add_assign(delta.rewards)?;
+        *balance = balance.saturating_sub(delta.penalties);
+    }
+
+    Ok(())
+}
+
+fn compute_single_reward_and_penalty(
+    inactivity_score: &u64,
+    validator_info: &ValidatorInfo,
+    rewards_ctxt: &RewardsAndPenaltiesContext,
+    state_ctxt: &StateContext,
+    spec: &ChainSpec,
+) -> Result<Delta, Error> {
     if !validator_info.is_eligible {
-        return Ok(());
+        return Ok(Delta::default());
     }
 
     let mut delta = Delta::default();
@@ -694,13 +718,75 @@ fn process_single_reward_and_penalty(
         spec,
     )?;
 
-    if delta.rewards != 0 || delta.penalties != 0 {
-        let balance = balance.make_mut()?;
-        balance.safe_add_assign(delta.rewards)?;
-        *balance = balance.saturating_sub(delta.penalties);
-    }
+    Ok(delta)
+}
 
-    Ok(())
+/// Compute the Altair-and-later *component* deltas without applying them.
+/// Unlike process_rewards_and_penalties, these mathematical components are
+/// defined at genesis too. The consensus genesis-epoch no-op stays unchanged.
+/// This slow helper is intended for independent spec-vector qualification.
+pub fn compute_rewards_and_penalties_deltas_slow<E: EthSpec>(
+    state: &mut BeaconState<E>,
+    spec: &ChainSpec,
+) -> Result<Vec<Delta>, Error> {
+    state.build_all_committee_caches(spec)?;
+    initialize_epoch_cache(state, spec)?;
+    initialize_progressive_balances_cache(state, spec)?;
+    let previous_epoch = state.previous_epoch();
+    let current_epoch = state.current_epoch();
+    let context = StateContext {
+        current_epoch,
+        next_epoch: state.next_epoch()?,
+        finalized_checkpoint: state.finalized_checkpoint(),
+        is_in_inactivity_leak: state.is_in_inactivity_leak(previous_epoch, spec)?,
+        total_active_balance: state.get_total_active_balance()?,
+        churn_limit: state.get_validator_churn_limit(spec)?,
+        fork_name: state.fork_name_unchecked(),
+    };
+    let rewards =
+        RewardsAndPenaltiesContext::new(state.progressive_balances_cache(), &context, spec)?;
+    let previous = state.previous_epoch_participation()?;
+    let current = state.current_epoch_participation()?;
+    let inactivity = state.inactivity_scores()?;
+    state
+        .validators()
+        .iter()
+        .enumerate()
+        .map(|(index, validator)| {
+            let is_active_previous_epoch = validator.is_active_at(previous_epoch);
+            let is_eligible = is_active_previous_epoch
+                || (validator.slashed
+                    && previous_epoch.safe_add(1)? < validator.withdrawable_epoch);
+            let info = ValidatorInfo {
+                index,
+                effective_balance: validator.effective_balance,
+                base_reward: if is_eligible {
+                    state.epoch_cache().get_base_reward(index)?
+                } else {
+                    0
+                },
+                is_eligible,
+                is_slashed: validator.slashed,
+                is_active_current_epoch: validator.is_active_at(current_epoch),
+                is_active_previous_epoch,
+                previous_epoch_participation: *previous
+                    .get(index)
+                    .ok_or(BeaconStateError::UnknownValidator(index))?,
+                current_epoch_participation: *current
+                    .get(index)
+                    .ok_or(BeaconStateError::UnknownValidator(index))?,
+            };
+            compute_single_reward_and_penalty(
+                inactivity
+                    .get(index)
+                    .ok_or(BeaconStateError::UnknownValidator(index))?,
+                &info,
+                &rewards,
+                &context,
+                spec,
+            )
+        })
+        .collect()
 }
 
 fn get_flag_index_delta(
@@ -1428,3 +1514,99 @@ fn process_single_effective_balance_update(
 #[cfg(test)]
 #[path = "builder_payment_tests.rs"]
 mod builder_payment_tests;
+
+#[cfg(test)]
+mod reward_component_reference_tests {
+    use super::*;
+    use ssz::{Decode, Encode};
+    use ssz_derive::Decode;
+    type E = types::MinimalEthSpec;
+    #[derive(Decode)]
+    struct Expected {
+        rewards: Vec<u64>,
+        penalties: Vec<u64>,
+    }
+    fn check(pre: &[u8], components: [&[u8]; 4], genesis: bool) {
+        let spec = ForkName::Gloas.make_genesis_spec(E::default_spec());
+        let mut state = BeaconState::<E>::from_ssz_bytes(pre, &spec).unwrap();
+        assert_eq!(state.current_epoch() == E::genesis_epoch(), genesis);
+        let before = state.as_ssz_bytes();
+        let actual = compute_rewards_and_penalties_deltas_slow(&mut state, &spec).unwrap();
+        assert_eq!(
+            state.as_ssz_bytes(),
+            before,
+            "component inspection changed the supplied state"
+        );
+        let expected: Vec<_> = components
+            .into_iter()
+            .map(|bytes| Expected::from_ssz_bytes(bytes).unwrap())
+            .collect();
+        assert_eq!(actual.len(), state.validators().len());
+        for (index, delta) in actual.iter().enumerate() {
+            assert_eq!(
+                delta.rewards,
+                expected.iter().map(|item| item.rewards[index]).sum::<u64>(),
+                "reward for {index}"
+            );
+            assert_eq!(
+                delta.penalties,
+                expected
+                    .iter()
+                    .map(|item| item.penalties[index])
+                    .sum::<u64>(),
+                "penalty for {index}"
+            );
+        }
+        if genesis {
+            assert!(actual.iter().any(|delta| delta.penalties > 0));
+            crate::per_epoch_processing::altair::rewards_and_penalties::process_rewards_and_penalties_slow(&mut state, &spec).unwrap();
+            assert_eq!(
+                state.as_ssz_bytes(),
+                before,
+                "consensus genesis epoch no-op was weakened"
+            );
+        }
+    }
+    #[test]
+    fn genesis_component_deltas_and_consensus_no_op_are_distinct() {
+        check(
+            include_bytes!("../../tests/testdata/gloas-reward-components/genesis/pre.ssz"),
+            [
+                include_bytes!(
+                    "../../tests/testdata/gloas-reward-components/genesis/source_deltas.ssz"
+                ),
+                include_bytes!(
+                    "../../tests/testdata/gloas-reward-components/genesis/target_deltas.ssz"
+                ),
+                include_bytes!(
+                    "../../tests/testdata/gloas-reward-components/genesis/head_deltas.ssz"
+                ),
+                include_bytes!(
+                    "../../tests/testdata/gloas-reward-components/genesis/inactivity_penalty_deltas.ssz"
+                ),
+            ],
+            true,
+        );
+    }
+    #[test]
+    fn eligible_epoch_components_match_independent_reference() {
+        check(
+            include_bytes!("../../tests/testdata/gloas-reward-components/eligible/pre.ssz"),
+            [
+                include_bytes!(
+                    "../../tests/testdata/gloas-reward-components/eligible/source_deltas.ssz"
+                ),
+                include_bytes!(
+                    "../../tests/testdata/gloas-reward-components/eligible/target_deltas.ssz"
+                ),
+                include_bytes!(
+                    "../../tests/testdata/gloas-reward-components/eligible/head_deltas.ssz"
+                ),
+                include_bytes!(
+                    "../../tests/testdata/gloas-reward-components/eligible/inactivity_penalty_deltas.ssz"
+                ),
+            ],
+            false,
+        );
+    }
+}
