@@ -1,0 +1,3 @@
+# Status
+
+The current independent converted-type replay found all 128 emitted PartialDataColumnSidecar cases and all 128 PartialDataColumnPartsMetadata cases produce mismatching tree roots. Their wire bytes match. The native common CellBitmap alias is a bounded BitList, while current Gloas uses ProgressiveBitList (EIP-7916 via EIP-7688). Fulu must retain its original bounded semantics. This is a real type/hash gap; correcting the test's expected root or relabelling the bounded root is not a fix. Implement the actual Gloas bitmap type and update its native publishers, metadata, filters and consumers together. Final counts must be refreshed after inherited generation completes.
