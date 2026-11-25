@@ -1,9 +1,10 @@
 use super::*;
 use crate::bls_setting::BlsSetting;
-use crate::decode::{ssz_decode_file, ssz_decode_file_with, ssz_decode_state, yaml_decode_file};
+use crate::decode::{ssz_decode_file, ssz_decode_file_with, yaml_decode_file};
 use crate::type_name::TypeName;
 use ::fork_choice::InvalidationOperation;
 use beacon_chain::block_verification_types::LookupBlock;
+use beacon_chain::payload_envelope_verification::EnvelopeSource;
 use beacon_chain::slot_clock::{SlotClock, TestingSlotClock};
 use beacon_chain::test_utils::{BeaconChainHarness, EphemeralHarnessType};
 use beacon_chain::{BlockError, NotifyExecutionLayer};
@@ -18,8 +19,8 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use types::{
-    AttesterSlashing, BeaconBlock, BeaconState, BlobSchedule, BlockImportSource, ChainSpec,
-    Checkpoint, EthSpec, ExecPayload, ForkName, Hash256, ProposerSlashing, SignedAggregateAndProof,
+    AttesterSlashing, BeaconBlock, BeaconState, BlockImportSource, ChainSpec, Checkpoint, EthSpec,
+    ExecPayload, ForkName, ForkVersionDecode, Hash256, ProposerSlashing, SignedAggregateAndProof,
     SignedAggregateAndProofElectra, SignedBeaconBlock, SignedBlsToExecutionChange,
     SignedContributionAndProof, SignedVoluntaryExit, SingleAttestation, Slot, SubnetId,
     SyncCommitteeMessage, SyncSubnetId,
@@ -58,18 +59,15 @@ struct Meta {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "UPPERCASE")]
-struct CaseConfig {
-    #[serde(default)]
-    blob_schedule: Option<BlobSchedule>,
-}
-
-#[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct SetupBlock {
     block: String,
     #[serde(default)]
     failed: bool,
+    #[serde(default)]
+    payload: Option<String>,
+    #[serde(default)]
+    pending: bool,
     #[serde(default)]
     payload_status: Option<PayloadStatus>,
 }
@@ -100,6 +98,10 @@ struct MessageMeta {
     subnet_id: Option<u64>,
     #[serde(default)]
     current_time_ms: Option<u64>,
+    #[serde(default)]
+    group_id: Option<String>,
+    #[serde(default)]
+    column_index: Option<u64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -112,8 +114,15 @@ enum Topic {
     BeaconAttestation,
     BeaconAggregateAndProof,
     BlsToExecutionChange,
+    #[serde(alias = "sync_committee_message")]
     SyncCommittee,
     SyncCommitteeContributionAndProof,
+    ExecutionPayloadBid,
+    ExecutionPayload,
+    ProposerPreferences,
+    PayloadAttestationMessage,
+    DataColumnSidecar,
+    PartialDataColumnSidecar,
 }
 
 #[derive(Debug)]
@@ -121,23 +130,31 @@ pub struct GossipValidation<E: EthSpec> {
     path: PathBuf,
     meta: Meta,
     state: BeaconState<E>,
+    strict_snapshot: bool,
 }
 
 impl<E: EthSpec> LoadCase for GossipValidation<E> {
     fn load_from_dir(path: &Path, fork_name: ForkName) -> Result<Self, Error> {
         let meta: Meta = yaml_decode_file(&path.join("meta.yaml"))?;
-        let spec = &Self::testing_spec(path, fork_name)?;
-        let state = ssz_decode_state(&path.join("state.ssz_snappy"), spec)?;
+        // The vector's fork selects the pre-state schema, independently of a
+        // deliberately future activation epoch in its rule configuration.
+        let state = ssz_decode_file_with(&path.join("state.ssz_snappy"), |bytes| {
+            BeaconState::from_ssz_bytes_by_fork(bytes, fork_name)
+        })?;
 
         Ok(Self {
             path: path.to_path_buf(),
             meta,
             state,
+            strict_snapshot: false,
         })
     }
 }
 
 impl<E: EthSpec + TypeName> Case for GossipValidation<E> {
+    fn prepare_for_snapshot(&mut self) {
+        self.strict_snapshot = true;
+    }
     fn description(&self) -> String {
         self.path
             .iter()
@@ -147,7 +164,7 @@ impl<E: EthSpec + TypeName> Case for GossipValidation<E> {
     }
 
     fn result(&self, _case_index: usize, fork_name: ForkName) -> Result<(), Error> {
-        if self.has_known_harness_limitation() {
+        if !self.strict_snapshot && self.has_known_harness_limitation() {
             return Err(Error::SkippedKnownFailure);
         }
 
@@ -159,10 +176,40 @@ impl<E: EthSpec + TypeName> Case for GossipValidation<E> {
         let tester = GossipTester::new(self, spec)?;
 
         for message_meta in &self.meta.messages {
-            let actual =
-                tester.validate_message(&self.path, &self.meta.topic, message_meta, fork_name)?;
+            let actual = match tester.validate_message(
+                &self.path,
+                &self.meta.topic,
+                message_meta,
+                fork_name,
+            ) {
+                Ok(actual) => actual,
+                Err(Error::FailedToParseTest(error))
+                    if error.contains("Unable to parse SSZ")
+                        && error.contains("exceeds maximum") =>
+                {
+                    MessageAcceptance::Reject
+                }
+                Err(error) => return Err(error),
+            };
 
             if message_meta.expected != actual {
+                if message_meta.message.starts_with("proposer_preferences_") {
+                    let preferences: types::SignedProposerPreferences = ssz_decode_file(
+                        &self
+                            .path
+                            .join(format!("{}.ssz_snappy", message_meta.message)),
+                    )?;
+                    return Err(Error::NotEqual(format!(
+                        "{}: expected {:?}, got {:?}; native preference detail {:?}",
+                        self.path.display(),
+                        message_meta.expected,
+                        actual,
+                        tester
+                            .harness
+                            .chain
+                            .verify_proposer_preferences_for_gossip(Arc::new(preferences))
+                    )));
+                }
                 return Err(Error::NotEqual(format!(
                     "{}: expected {:?}, got {:?}{}",
                     self.path.display(),
@@ -195,7 +242,16 @@ impl<E: EthSpec> GossipTester<E> {
         let genesis_time = case.state.genesis_time();
         let blocks = case.load_beacon_blocks(&spec)?;
         let current_time_ms = case.current_time_ms(&blocks, &spec)?;
-        let spec = Arc::new(spec);
+        let validation_spec = spec.clone();
+        let mut structural_spec = spec;
+        if case.state.fork_name_unchecked().gloas_enabled()
+            && !structural_spec
+                .fork_name_at_slot::<E>(case.state.slot())
+                .gloas_enabled()
+        {
+            structural_spec.gloas_fork_epoch = Some(types::Epoch::new(0));
+        }
+        let spec = Arc::new(structural_spec);
 
         let (harness, initial_block_index) =
             Self::build_harness(case, spec.clone(), &blocks, genesis_time, current_time_ms)?;
@@ -206,7 +262,7 @@ impl<E: EthSpec> GossipTester<E> {
             harness,
             network_beacon_processor: Arc::new(network_beacon_processor),
             network_rx: Mutex::new(network_rx),
-            spec: spec.as_ref().clone(),
+            spec: validation_spec,
             genesis_time,
             current_time_ms,
         };
@@ -214,6 +270,74 @@ impl<E: EthSpec> GossipTester<E> {
         tester.set_time_ms(current_time_ms)?;
         tester.import_setup_blocks(case, &blocks, initial_block_index)?;
         tester.set_finalized_checkpoint(case.finalized_checkpoint(&blocks)?);
+        // helpers/gloas/bid.py::activate_builders explicitly overrides the
+        // head state's checkpoint as well as the store's. The metadata must
+        // initialize both parts of that synthetic precondition, not only FC.
+        if case.meta.finalized_checkpoint.is_some() && case.meta.topic == Topic::ExecutionPayloadBid
+        {
+            let checkpoint = case.finalized_checkpoint(&blocks)?.ok_or_else(|| {
+                Error::FailedToParseTest("missing explicit finality override".into())
+            })?;
+            tester
+                .harness
+                .chain
+                .canonical_head
+                .testing_set_head_state_finalized_checkpoint(checkpoint);
+            let mut roots = HashSet::new();
+            roots.insert(
+                tester
+                    .harness
+                    .chain
+                    .canonical_head
+                    .cached_head()
+                    .head_block_root(),
+            );
+            for message in &case.meta.messages {
+                if message.message.starts_with("execution_payload_bid_") {
+                    let bid: types::SignedExecutionPayloadBidGloas<E> = ssz_decode_file(
+                        &case.path.join(format!("{}.ssz_snappy", message.message)),
+                    )?;
+                    roots.insert(bid.message.parent_block_root);
+                }
+            }
+            for root in roots {
+                if let Some(block) = blocks.values().find(|block| block.canonical_root() == root)
+                    && let Some(mut state) = tester
+                        .harness
+                        .chain
+                        .store
+                        .get_state(&block.state_root(), Some(block.slot()), true)
+                        .map_err(|e| Error::InternalError(format!("fixture head state: {e:?}")))?
+                {
+                    *state.finalized_checkpoint_mut() = checkpoint;
+                    state.apply_pending_mutations().map_err(|e| {
+                        Error::InternalError(format!("fixture checkpoint mutation: {e:?}"))
+                    })?;
+                    tester
+                        .harness
+                        .chain
+                        .store
+                        .state_cache
+                        .lock()
+                        .delete_block_states(&root);
+                    tester
+                        .harness
+                        .chain
+                        .store
+                        .state_cache
+                        .lock()
+                        .delete_state(&block.state_root());
+                    tester
+                        .harness
+                        .chain
+                        .store
+                        .put_state(&block.state_root(), &state)
+                        .map_err(|e| {
+                            Error::InternalError(format!("fixture finality override: {e:?}"))
+                        })?;
+                }
+            }
+        }
 
         Ok(tester)
     }
@@ -237,6 +361,10 @@ impl<E: EthSpec> GossipTester<E> {
         let harness_builder = || {
             BeaconChainHarness::<EphemeralHarnessType<E>>::builder(E::default())
                 .spec(spec.clone())
+                .chain_config(beacon_chain::ChainConfig {
+                    enable_partial_columns: case.meta.topic == Topic::PartialDataColumnSidecar,
+                    ..Default::default()
+                })
                 .keypairs(vec![])
                 .mock_execution_layer()
                 .recalculate_fork_times_with_genesis(genesis_time)
@@ -308,15 +436,68 @@ impl<E: EthSpec> GossipTester<E> {
     ) -> Result<(), Error> {
         for (index, setup_block) in case.meta.blocks.iter().enumerate() {
             if setup_block.failed {
+                let block = blocks
+                    .get(&setup_block.block)
+                    .ok_or_else(|| Error::FailedToParseTest("missing failed block".into()))?;
+                let root = block.canonical_root();
+                let outcome = self.block_on_dangerous(self.harness.chain.process_block(
+                    root,
+                    LookupBlock::new(root, Arc::new(block.clone())),
+                    NotifyExecutionLayer::Yes,
+                    BlockImportSource::Lookup,
+                    || Ok(()),
+                ))?;
+                match outcome {
+                    Err(BlockError::StateRootMismatch { .. }) => {}
+                    Ok(_)
+                        if matches!(
+                            case.meta.topic,
+                            Topic::BeaconAttestation | Topic::BeaconAggregateAndProof
+                        ) =>
+                    {
+                        // Inherited helpers/gossip.py deliberately remove a valid
+                        // block's abstract store state. This is an explicit
+                        // synthetic known-failed context, not a claim the native
+                        // block failed consensus. The wrong-state-root Gloas
+                        // fixtures above separately prove real failure capture.
+                        self.harness
+                            .chain
+                            .canonical_head
+                            .testing_mark_consensus_failed(root);
+                    }
+                    other => {
+                        return Err(Error::InternalError(format!(
+                            "failed setup native outcome: {other:?}"
+                        )));
+                    }
+                }
+                continue;
+            }
+            if setup_block.pending {
+                let block = blocks
+                    .get(&setup_block.block)
+                    .ok_or_else(|| Error::FailedToParseTest("missing pending block".into()))?;
+                self.harness.chain.pending_payload_cache.insert_block(
+                    block.canonical_root(),
+                    Arc::new(block.clone()),
+                    BlockImportSource::Lookup,
+                );
                 continue;
             }
             if initial_block_index == Some(index) {
+                if let Some(payload) = &setup_block.payload {
+                    self.import_setup_payload(&case.path, payload, setup_block.payload_status)?;
+                }
                 continue;
             }
             let block = blocks.get(&setup_block.block).ok_or_else(|| {
                 Error::FailedToParseTest(format!("unknown block file {}", setup_block.block))
             })?;
             self.import_setup_block(block.clone(), setup_block.payload_status)?;
+            self.block_on_dangerous(self.harness.chain.recompute_head_at_current_slot())?;
+            if let Some(payload) = &setup_block.payload {
+                self.import_setup_payload(&case.path, payload, setup_block.payload_status)?;
+            }
         }
 
         Ok(())
@@ -331,8 +512,197 @@ impl<E: EthSpec> GossipTester<E> {
     ) -> Result<MessageAcceptance, Error> {
         let message_id = MessageId::new(message_meta.message.as_bytes());
         let peer_id = PeerId::random();
+        if *topic == Topic::PartialDataColumnSidecar {
+            let group: types::PartialDataColumnGroupId = ssz_decode_file(&path.join(format!(
+                    "{}.ssz_snappy",
+                    message_meta
+                        .group_id
+                        .as_ref()
+                        .ok_or_else(|| Error::FailedToParseTest(
+                            "missing partial group id".into()
+                        ))?
+                )))?;
+            let sidecar: types::PartialDataColumnSidecarGloas<E> =
+                ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+            let index = message_meta
+                .column_index
+                .ok_or_else(|| Error::FailedToParseTest("missing partial column index".into()))?;
+            let column = types::PartialDataColumnGloas::<E> {
+                block_root: group.beacon_block_root,
+                slot: group.slot,
+                index,
+                sidecar,
+            };
+            let subnet = types::DataColumnSubnetId::from_column_index(index, &self.harness.spec);
+            let gossip = lighthouse_network::types::GossipTopic::new(
+                lighthouse_network::types::GossipKind::DataColumnSidecar(subnet),
+                lighthouse_network::types::GossipEncoding::default(),
+                [0; 4],
+            );
+            let seen = self.set_message_time(message_meta)?;
+            self.block_on_dangerous(
+                self.network_beacon_processor
+                    .process_gossip_partial_data_column_sidecar(
+                        peer_id,
+                        Box::new(column.into()),
+                        seen,
+                        gossip,
+                    ),
+            )?;
+            let mut receiver = self
+                .network_rx
+                .lock()
+                .map_err(|_| Error::InternalError("network receiver lock".into()))?;
+            let mut acceptance = MessageAcceptance::Ignore;
+            while let Ok(message) = receiver.try_recv() {
+                match message {
+                    NetworkMessage::PartialValidationFailure {
+                        propagation_source, ..
+                    } if propagation_source == peer_id => return Ok(MessageAcceptance::Reject),
+                    NetworkMessage::PublishPartialColumns { messages } if !messages.is_empty() => {
+                        acceptance = MessageAcceptance::Accept
+                    }
+                    _ => {}
+                }
+            }
+            return Ok(acceptance);
+        }
 
+        // These two fixtures deliberately construct an already-Gloas chain
+        // before a future configured activation (activate_at_genesis=True).
+        // Use the actual native preference validator with its original rule
+        // config; record this synthetic component scope separately from normal
+        // network admission. Any unexpected native error remains a failure.
+        if self.spec.gloas_fork_epoch != self.harness.spec.gloas_fork_epoch
+            && *topic == Topic::ProposerPreferences
+        {
+            use beacon_chain::proposer_preferences_verification::{
+                ProposerPreferencesError,
+                gossip_verified_proposer_preferences::testing_verify_preferences_consistency,
+            };
+            let preferences: types::SignedProposerPreferences =
+                ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+            match testing_verify_preferences_consistency::<E>(
+                &preferences.message,
+                &self.harness.chain.slot_clock,
+                &self.spec,
+            ) {
+                Err(ProposerPreferencesError::ProposalEpochPreGloas { .. }) => {
+                    return Ok(MessageAcceptance::Ignore);
+                }
+                Err(e) => {
+                    return Err(Error::InternalError(format!(
+                        "synthetic preference timing: {e:?}"
+                    )));
+                }
+                Ok(()) => {}
+            }
+            return match self
+                .harness
+                .chain
+                .verify_proposer_preferences_for_gossip(Arc::new(preferences))
+            {
+                Ok(_) => Ok(MessageAcceptance::Accept),
+                Err(ProposerPreferencesError::ProposalEpochPreGloas { .. }) => {
+                    Ok(MessageAcceptance::Ignore)
+                }
+                Err(e) => Err(Error::InternalError(format!(
+                    "synthetic future-activation preference: {e:?}"
+                ))),
+            };
+        }
+
+        // Setup messages may use another Gloas gossip topic in the same ordered trace.
+        let topic = if message_meta.message.starts_with("proposer_preferences_") {
+            &Topic::ProposerPreferences
+        } else if message_meta
+            .message
+            .starts_with("execution_payload_envelope_")
+        {
+            &Topic::ExecutionPayload
+        } else if message_meta.message.starts_with("execution_payload_bid_") {
+            &Topic::ExecutionPayloadBid
+        } else if message_meta
+            .message
+            .starts_with("payload_attestation_message_")
+        {
+            &Topic::PayloadAttestationMessage
+        } else {
+            topic
+        };
         match topic {
+            Topic::ExecutionPayloadBid => {
+                let signed: types::SignedExecutionPayloadBidGloas<E> =
+                    ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+                self.set_message_time(message_meta)?;
+                self.network_beacon_processor
+                    .process_gossip_execution_payload_bid(
+                        message_id.clone(),
+                        peer_id,
+                        Arc::new(types::SignedExecutionPayloadBid::Gloas(signed)),
+                    );
+            }
+            Topic::ExecutionPayload => {
+                let signed: types::SignedExecutionPayloadEnvelope<E> =
+                    ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+                let seen = self.set_message_time(message_meta)?;
+                self.block_on_dangerous(
+                    self.network_beacon_processor
+                        .clone()
+                        .process_gossip_execution_payload_envelope(
+                            message_id.clone(),
+                            peer_id,
+                            Arc::new(signed),
+                            seen,
+                        ),
+                )?;
+            }
+            Topic::ProposerPreferences => {
+                let signed: types::SignedProposerPreferences =
+                    ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+                self.set_message_time(message_meta)?;
+                self.network_beacon_processor
+                    .process_gossip_proposer_preferences(
+                        message_id.clone(),
+                        peer_id,
+                        Arc::new(signed),
+                    );
+            }
+            Topic::PayloadAttestationMessage => {
+                let signed: types::PayloadAttestationMessage =
+                    ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+                self.set_message_time(message_meta)?;
+                self.network_beacon_processor
+                    .process_gossip_payload_attestation(
+                        message_id.clone(),
+                        peer_id,
+                        Box::new(signed),
+                        ReprocessAllowance::None,
+                    );
+            }
+            Topic::PartialDataColumnSidecar => unreachable!("partial admission returned above"),
+            Topic::DataColumnSidecar => {
+                let sidecar: types::DataColumnSidecarGloas<E> =
+                    ssz_decode_file(&path.join(format!("{}.ssz_snappy", message_meta.message)))?;
+                let seen = self.set_message_time(message_meta)?;
+                let subnet = types::DataColumnSubnetId::new(
+                    message_meta
+                        .subnet_id
+                        .ok_or_else(|| Error::FailedToParseTest("missing column subnet".into()))?,
+                );
+                self.block_on_dangerous(
+                    self.network_beacon_processor
+                        .clone()
+                        .process_gossip_data_column_sidecar(
+                            message_id.clone(),
+                            peer_id,
+                            subnet,
+                            Arc::new(types::DataColumnSidecar::Gloas(sidecar)),
+                            seen,
+                            false,
+                        ),
+                )?;
+            }
             Topic::ProposerSlashing => {
                 self.process_proposer_slashing(path, message_meta, message_id.clone(), peer_id)?
             }
@@ -388,6 +758,73 @@ impl<E: EthSpec> GossipTester<E> {
         }
 
         self.validation_result(&message_id, &peer_id)
+    }
+
+    fn import_setup_payload(
+        &self,
+        path: &Path,
+        name: &str,
+        status: Option<PayloadStatus>,
+    ) -> Result<(), Error> {
+        let envelope: types::SignedExecutionPayloadEnvelope<E> =
+            ssz_decode_file(&path.join(format!("{name}.ssz_snappy")))?;
+        let block_root = envelope.message.beacon_block_root;
+        let head_hash = envelope.message.payload.block_hash;
+        self.set_time_ms(self.current_time_ms)?;
+        // Setup payloads arrive via a non-gossip source in the independent
+        // reference. Use the same verification/import calls as lookup sync so
+        // the fixture does not accidentally prepopulate the gossip seen cache.
+        if let Some(mock) = self.harness.mock_execution_layer.as_ref() {
+            if status == Some(PayloadStatus::NotValidated)
+                || status == Some(PayloadStatus::Invalidated)
+            {
+                mock.server.all_payloads_syncing(true);
+                mock.server.set_payload_statuses(
+                    head_hash,
+                    PayloadStatusV1 {
+                        status: PayloadStatusV1Status::Syncing,
+                        latest_valid_hash: None,
+                        validation_error: None,
+                        inclusion_list_satisfied: None,
+                    },
+                );
+            } else {
+                mock.server.all_payloads_valid();
+            }
+        }
+        let result = self.block_on_dangerous(async {
+            let verified = self
+                .harness
+                .chain
+                .verify_envelope_for_gossip(Arc::new(envelope), EnvelopeSource::Rpc)
+                .await
+                .map_err(|e| {
+                    Error::InternalError(format!("setup payload {name} verification: {e:?}"))
+                })?;
+            self.harness
+                .chain
+                .process_execution_payload_envelope(
+                    block_root,
+                    verified,
+                    NotifyExecutionLayer::Yes,
+                    BlockImportSource::Lookup,
+                    || Ok(()),
+                )
+                .await
+                .map_err(|e| Error::InternalError(format!("setup payload {name} import: {e:?}")))
+        })?;
+        self.configure_payload_status_for_default();
+        result?;
+        if status == Some(PayloadStatus::Invalidated) {
+            self.block_on_dangerous(self.harness.chain.process_invalid_execution_payload(
+                &InvalidationOperation::InvalidateOne { head_hash },
+            ))?
+            .map_err(|e| {
+                Error::InternalError(format!("setup payload {name} invalidation: {e:?}"))
+            })?;
+        }
+        self.block_on_dangerous(self.harness.chain.recompute_head_at_current_slot())?;
+        Ok(())
     }
 
     fn process_proposer_slashing(
@@ -506,10 +943,18 @@ impl<E: EthSpec> GossipTester<E> {
         message_id: MessageId,
         peer_id: PeerId,
     ) -> Result<(), Error> {
-        let aggregate = ssz_decode_file::<SignedAggregateAndProofElectra<E>>(
-            &path.join(format!("{}.ssz_snappy", message_meta.message)),
-        )
-        .map(SignedAggregateAndProof::Electra)?;
+        let ssz_path = path.join(format!("{}.ssz_snappy", message_meta.message));
+        let aggregate = if self
+            .spec
+            .gloas_fork_epoch
+            .is_some_and(|epoch| epoch <= self.harness.chain.epoch().unwrap_or_default())
+        {
+            ssz_decode_file::<types::SignedAggregateAndProofGloas<E>>(&ssz_path)
+                .map(SignedAggregateAndProof::Gloas)?
+        } else {
+            ssz_decode_file::<SignedAggregateAndProofElectra<E>>(&ssz_path)
+                .map(SignedAggregateAndProof::Electra)?
+        };
         let seen_timestamp = self.set_message_time(message_meta)?;
 
         self.network_beacon_processor
@@ -638,7 +1083,9 @@ impl<E: EthSpec> GossipTester<E> {
 
         match result {
             Ok(_) => {
-                if payload_status == Some(PayloadStatus::Invalidated) {
+                if payload_status == Some(PayloadStatus::Invalidated)
+                    && !block.fork_name_unchecked().gloas_enabled()
+                {
                     // The block has been imported optimistically. Mark its payload invalid in fork
                     // choice so descendants observe an invalid execution parent.
                     let head_hash = block
@@ -762,12 +1209,10 @@ impl<E: EthSpec> GossipValidation<E> {
             return Ok(spec);
         }
 
-        let case_config: CaseConfig = yaml_decode_file(&config_path)?;
-        let Some(blob_schedule) = case_config.blob_schedule else {
-            return Ok(spec);
-        };
-
-        spec.blob_schedule = blob_schedule;
+        let case_config: types::Config = yaml_decode_file(&config_path)?;
+        spec = case_config
+            .apply_to_chain_spec::<E>(&spec)
+            .ok_or_else(|| Error::FailedToParseTest("snapshot config preset mismatch".into()))?;
         Ok(spec)
     }
 
@@ -885,17 +1330,13 @@ impl<E: EthSpec> GossipValidation<E> {
 
     fn load_beacon_blocks(
         &self,
-        spec: &ChainSpec,
+        _spec: &ChainSpec,
     ) -> Result<HashMap<String, SignedBeaconBlock<E>>, Error> {
         let mut block_names = HashSet::new();
         block_names.extend(self.meta.blocks.iter().map(|block| block.block.clone()));
-        block_names.extend(
-            self.meta
-                .messages
-                .iter()
-                .filter(|_| self.meta.topic == Topic::BeaconBlock)
-                .map(|message| message.message.clone()),
-        );
+        // Message blocks must be decoded at admission, where an over-limit
+        // SSZ message is rejected. Preloading them turns that correct rejection
+        // into a fixture setup error before the production decoder is called.
         if let Some(FinalizedCheckpoint::Block { block, .. }) = &self.meta.finalized_checkpoint {
             block_names.insert(block.clone());
         }
@@ -903,7 +1344,13 @@ impl<E: EthSpec> GossipValidation<E> {
         block_names
             .into_iter()
             .map(|name| {
-                let block = load_beacon_block(&self.path, &name, spec)?;
+                let block =
+                    ssz_decode_file_with(&self.path.join(format!("{name}.ssz_snappy")), |bytes| {
+                        SignedBeaconBlock::from_ssz_bytes_by_fork(
+                            bytes,
+                            self.state.fork_name_unchecked(),
+                        )
+                    })?;
                 Ok((name, block))
             })
             .collect()

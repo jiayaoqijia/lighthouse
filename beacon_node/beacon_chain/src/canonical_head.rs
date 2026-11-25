@@ -492,6 +492,23 @@ pub struct FastConfirmationRoots {
 }
 
 impl<T: BeaconChainTypes> CanonicalHead<T> {
+    /// Apply the independent gossip fixture's explicit synthetic head-state
+    /// finality override. This is not a production state transition or import API.
+    #[cfg(feature = "ef_tests")]
+    pub fn testing_set_head_state_finalized_checkpoint(&self, checkpoint: Checkpoint) {
+        let mut head = self.cached_head_write_lock();
+        *Arc::make_mut(&mut head.snapshot)
+            .beacon_state
+            .finalized_checkpoint_mut() = checkpoint;
+    }
+
+    /// Mirror an explicitly declared abstract-store failed context in inherited
+    /// gossip vectors. Actual wrong-state-root failures are qualified separately.
+    #[cfg(feature = "ef_tests")]
+    pub fn testing_mark_consensus_failed(&self, root: Hash256) {
+        self.mark_consensus_failed(root);
+    }
+
     /// Instantiate `Self`.
     pub fn new(
         fork_choice: BeaconForkChoice<T>,

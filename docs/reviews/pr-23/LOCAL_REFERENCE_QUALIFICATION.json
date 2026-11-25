@@ -1,0 +1,2640 @@
+{
+  "reference": "d2021d2719235f0df4726a1d330502cb15aa8ea3",
+  "qualified_client_revision": "7c38f3d0f905ae1f8a9c7903d141f4a0ff3f72af",
+  "expected_current_cases": 12065,
+  "additional_historical_fcr_compatibility_cases": 134,
+  "qualified_full_node_and_compatibility_cases": 12195,
+  "passed": 12195,
+  "failed_jobs": 0,
+  "crypto_scope": {
+    "real_profile_dynamic": 2515,
+    "explicit_ignored_bls_operations": 6,
+    "ssz_fixture_profile": 9344,
+    "synthetic_signature_fcr_real_public_keys": {
+      "gloas": 196,
+      "historical_compatibility": 134
+    }
+  },
+  "client_role_unrun": [
+    {
+      "path": "tests/minimal/gloas/light_client/sync/pyspec_tests/advance_finality_without_sync_committee",
+      "status": "unrun_client_role",
+      "reason": "This client is a full-node LC server; wallet/store sync is a separate role."
+    },
+    {
+      "path": "tests/minimal/gloas/light_client/sync/pyspec_tests/light_client_sync",
+      "status": "unrun_client_role",
+      "reason": "This client is a full-node LC server; wallet/store sync is a separate role."
+    },
+    {
+      "path": "tests/minimal/gloas/light_client/sync/pyspec_tests/light_client_sync_no_force_update",
+      "status": "unrun_client_role",
+      "reason": "This client is a full-node LC server; wallet/store sync is a separate role."
+    },
+    {
+      "path": "tests/minimal/gloas/light_client/sync/pyspec_tests/supply_sync_committee_from_past_update",
+      "status": "unrun_client_role",
+      "reason": "This client is a full-node LC server; wallet/store sync is a separate role."
+    }
+  ],
+  "binary_receipts": {
+    "real": {
+      "revision": "7c38f3d0f905ae1f8a9c7903d141f4a0ff3f72af",
+      "tree": "0f48850f088748e820377b5ec91a6021e6789720",
+      "dirty": false,
+      "features": "ef_tests",
+      "mode": "real",
+      "sha256": "500748c54f0431a563fce4018b400de6f48bf0bbb1cfdf8a3445fe661b8f71e3"
+    },
+    "fixture_fake": {
+      "revision": "7c38f3d0f905ae1f8a9c7903d141f4a0ff3f72af",
+      "tree": "0f48850f088748e820377b5ec91a6021e6789720",
+      "dirty": false,
+      "features": "ef_tests,fake_crypto_real_pubkeys",
+      "mode": "fixture_fake",
+      "sha256": "eb97016b027272e2177ed31e4e018fa636c65fb6361d880a6438ae5542cb95d8"
+    }
+  },
+  "ssz_regeneration": {
+    "reference": "d2021d2719235f0df4726a1d330502cb15aa8ea3",
+    "cases": 9344,
+    "files": 37376,
+    "byte_identity": true
+  },
+  "jobs": [
+    {
+      "name": "mainnet-gloas-epoch_processing-builder_pending_payments-real",
+      "expected": 7,
+      "reported": 7,
+      "passed": 7,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-effective_balance_updates-real",
+      "expected": 2,
+      "reported": 2,
+      "passed": 2,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-eth1_data_reset-real",
+      "expected": 2,
+      "reported": 2,
+      "passed": 2,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-historical_summaries_update-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-inactivity_updates-real",
+      "expected": 21,
+      "reported": 21,
+      "passed": 21,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-justification_and_finalization-real",
+      "expected": 10,
+      "reported": 10,
+      "passed": 10,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-participation_flag_updates-real",
+      "expected": 10,
+      "reported": 10,
+      "passed": 10,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-pending_consolidations-real",
+      "expected": 13,
+      "reported": 13,
+      "passed": 13,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-pending_deposits-real",
+      "expected": 47,
+      "reported": 47,
+      "passed": 47,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-pending_deposits_churn-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-proposer_lookahead-real",
+      "expected": 4,
+      "reported": 4,
+      "passed": 4,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-ptc_window-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-randao_mixes_reset-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-registry_updates-real",
+      "expected": 16,
+      "reported": 16,
+      "passed": 16,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-rewards_and_penalties-real",
+      "expected": 15,
+      "reported": 15,
+      "passed": 15,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-slashings-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-epoch_processing-slashings_reset-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-finality-finality-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-fork-fork-real",
+      "expected": 45,
+      "reported": 45,
+      "passed": 45,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-fork_choice-ex_ante-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-fork_choice-get_head-real",
+      "expected": 8,
+      "reported": 8,
+      "passed": 8,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-fork_choice-get_parent_payload_status-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-fork_choice-on_attestation-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-fork_choice-on_block-real",
+      "expected": 8,
+      "reported": 8,
+      "passed": 8,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-fork_choice-on_execution_payload_envelope-real",
+      "expected": 15,
+      "reported": 15,
+      "passed": 15,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-fork_choice-on_payload_attestation_message-real",
+      "expected": 7,
+      "reported": 7,
+      "passed": 7,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-fork_choice-payload_data_availability-real",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-fork_choice-payload_timeliness-real",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-light_client-single_merkle_proof-real",
+      "expected": 4,
+      "reported": 4,
+      "passed": 4,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-compute_columns_for_custody_group-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-get_custody_groups-real",
+      "expected": 11,
+      "reported": 11,
+      "passed": 11,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_attester_slashing-real",
+      "expected": 12,
+      "reported": 12,
+      "passed": 12,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_beacon_aggregate_and_proof-real",
+      "expected": 40,
+      "reported": 40,
+      "passed": 40,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_beacon_attestation-real",
+      "expected": 30,
+      "reported": 30,
+      "passed": 30,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_beacon_block-real",
+      "expected": 46,
+      "reported": 46,
+      "passed": 46,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_bls_to_execution_change-real",
+      "expected": 6,
+      "reported": 6,
+      "passed": 6,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_data_column_sidecar-real",
+      "expected": 10,
+      "reported": 10,
+      "passed": 10,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_execution_payload_bid-real",
+      "expected": 45,
+      "reported": 45,
+      "passed": 45,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_execution_payload_envelope-real",
+      "expected": 27,
+      "reported": 27,
+      "passed": 27,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_partial_data_column_sidecar-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_payload_attestation_message-real",
+      "expected": 13,
+      "reported": 13,
+      "passed": 13,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_proposer_preferences-real",
+      "expected": 26,
+      "reported": 26,
+      "passed": 26,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_proposer_slashing-real",
+      "expected": 9,
+      "reported": 9,
+      "passed": 9,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_sync_committee_contribution_and_proof-real",
+      "expected": 15,
+      "reported": 15,
+      "passed": 15,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_sync_committee_message-real",
+      "expected": 7,
+      "reported": 7,
+      "passed": 7,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-networking-gossip_voluntary_exit-real",
+      "expected": 15,
+      "reported": 15,
+      "passed": 15,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-attestation-fixture_fake",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-attestation-real",
+      "expected": 58,
+      "reported": 58,
+      "passed": 58,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-attester_slashing-real",
+      "expected": 30,
+      "reported": 30,
+      "passed": 30,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-block_header-real",
+      "expected": 6,
+      "reported": 6,
+      "passed": 6,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-bls_to_execution_change-real",
+      "expected": 14,
+      "reported": 14,
+      "passed": 14,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-builder_deposit_request-real",
+      "expected": 28,
+      "reported": 28,
+      "passed": 28,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-builder_exit_request-real",
+      "expected": 7,
+      "reported": 7,
+      "passed": 7,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-consolidation_request-real",
+      "expected": 10,
+      "reported": 10,
+      "passed": 10,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-deposit_request-real",
+      "expected": 16,
+      "reported": 16,
+      "passed": 16,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-execution_payload_bid-real",
+      "expected": 20,
+      "reported": 20,
+      "passed": 20,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-parent_execution_payload-real",
+      "expected": 24,
+      "reported": 24,
+      "passed": 24,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-payload_attestation-real",
+      "expected": 9,
+      "reported": 9,
+      "passed": 9,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-proposer_slashing-real",
+      "expected": 39,
+      "reported": 39,
+      "passed": 39,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-sync_aggregate-real",
+      "expected": 26,
+      "reported": 26,
+      "passed": 26,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-voluntary_exit-real",
+      "expected": 26,
+      "reported": 26,
+      "passed": 26,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-voluntary_exit_churn-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-withdrawal_request-real",
+      "expected": 19,
+      "reported": 19,
+      "passed": 19,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-operations-withdrawals-real",
+      "expected": 85,
+      "reported": 85,
+      "passed": 85,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-random-random-real",
+      "expected": 16,
+      "reported": 16,
+      "passed": 16,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-rewards-basic-real",
+      "expected": 11,
+      "reported": 11,
+      "passed": 11,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-rewards-inactivity_scores-real",
+      "expected": 12,
+      "reported": 12,
+      "passed": 12,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-rewards-leak-real",
+      "expected": 13,
+      "reported": 13,
+      "passed": 13,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-rewards-random-real",
+      "expected": 10,
+      "reported": 10,
+      "passed": 10,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-sanity-blocks-real",
+      "expected": 81,
+      "reported": 81,
+      "passed": 81,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-sanity-slots-real",
+      "expected": 17,
+      "reported": 17,
+      "passed": 17,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-AggregateAndProof-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-Attestation-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-AttestationData-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-AttesterSlashing-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-BLSToExecutionChange-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-BeaconBlock-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-BeaconBlockBody-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-BeaconBlockHeader-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-BeaconState-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-Builder-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-BuilderDepositRequest-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-BuilderExitRequest-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-BuilderPendingPayment-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-BuilderPendingWithdrawal-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-Checkpoint-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-ConsolidationRequest-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-ContributionAndProof-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-DataColumnSidecar-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-DataColumnsByRootIdentifier-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-Deposit-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-DepositData-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-DepositMessage-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-DepositRequest-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-Eth1Block-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-Eth1Data-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-ExecutionPayload-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-ExecutionPayloadBid-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-ExecutionPayloadEnvelope-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-ExecutionRequests-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-Fork-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-ForkData-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-HistoricalSummary-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-IndexedAttestation-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-IndexedPayloadAttestation-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-LightClientBootstrap-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-LightClientFinalityUpdate-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-LightClientHeader-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-LightClientOptimisticUpdate-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-LightClientUpdate-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-MatrixEntry-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-NewPayloadRequest-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-PartialDataColumnGroupID-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-PartialDataColumnPartsMetadata-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-PartialDataColumnSidecar-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-PayloadAttestation-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-PayloadAttestationData-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-PayloadAttestationMessage-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-PendingConsolidation-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-PendingDeposit-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-PendingPartialWithdrawal-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-PowBlock-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-ProposerPreferences-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-ProposerSlashing-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SignedAggregateAndProof-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SignedBLSToExecutionChange-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SignedBeaconBlock-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SignedBeaconBlockHeader-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SignedContributionAndProof-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SignedExecutionPayloadBid-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SignedExecutionPayloadEnvelope-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SignedProposerPreferences-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SignedVoluntaryExit-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SigningData-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SingleAttestation-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SyncAggregate-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SyncAggregatorSelectionData-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SyncCommittee-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SyncCommitteeContribution-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-SyncCommitteeMessage-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-Validator-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-VoluntaryExit-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-Withdrawal-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-ssz_static-WithdrawalRequest-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "mainnet-gloas-transition-core-real",
+      "expected": 29,
+      "reported": 29,
+      "passed": 29,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-altair-fast_confirmation-empty_slots-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-altair-fast_confirmation-is_one_confirmed-fixture_fake",
+      "expected": 13,
+      "reported": 13,
+      "passed": 13,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-bellatrix-fast_confirmation-empty_slots-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-bellatrix-fast_confirmation-is_one_confirmed-fixture_fake",
+      "expected": 13,
+      "reported": 13,
+      "passed": 13,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-capella-fast_confirmation-empty_slots-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-capella-fast_confirmation-is_one_confirmed-fixture_fake",
+      "expected": 13,
+      "reported": 13,
+      "passed": 13,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-deneb-fast_confirmation-empty_slots-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-deneb-fast_confirmation-is_one_confirmed-fixture_fake",
+      "expected": 13,
+      "reported": 13,
+      "passed": 13,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-electra-fast_confirmation-empty_slots-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-electra-fast_confirmation-is_one_confirmed-fixture_fake",
+      "expected": 26,
+      "reported": 26,
+      "passed": 26,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-fulu-fast_confirmation-empty_slots-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-fulu-fast_confirmation-is_one_confirmed-fixture_fake",
+      "expected": 26,
+      "reported": 26,
+      "passed": 26,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-builder_pending_payments-real",
+      "expected": 7,
+      "reported": 7,
+      "passed": 7,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-effective_balance_updates-real",
+      "expected": 2,
+      "reported": 2,
+      "passed": 2,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-eth1_data_reset-real",
+      "expected": 2,
+      "reported": 2,
+      "passed": 2,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-historical_summaries_update-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-inactivity_updates-real",
+      "expected": 21,
+      "reported": 21,
+      "passed": 21,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-justification_and_finalization-real",
+      "expected": 10,
+      "reported": 10,
+      "passed": 10,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-participation_flag_updates-real",
+      "expected": 12,
+      "reported": 12,
+      "passed": 12,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-pending_consolidations-real",
+      "expected": 13,
+      "reported": 13,
+      "passed": 13,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-pending_deposits-real",
+      "expected": 48,
+      "reported": 48,
+      "passed": 48,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-pending_deposits_churn-real",
+      "expected": 4,
+      "reported": 4,
+      "passed": 4,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-proposer_lookahead-real",
+      "expected": 4,
+      "reported": 4,
+      "passed": 4,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-ptc_window-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-randao_mixes_reset-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-registry_updates-real",
+      "expected": 23,
+      "reported": 23,
+      "passed": 23,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-rewards_and_penalties-real",
+      "expected": 15,
+      "reported": 15,
+      "passed": 15,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-slashings-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-slashings_reset-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-epoch_processing-sync_committee_updates-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fast_confirmation-basic-fixture_fake",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fast_confirmation-current_epoch-fixture_fake",
+      "expected": 22,
+      "reported": 22,
+      "passed": 22,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fast_confirmation-empty_slots-fixture_fake",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fast_confirmation-ffg-fixture_fake",
+      "expected": 4,
+      "reported": 4,
+      "passed": 4,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fast_confirmation-is_one_confirmed-fixture_fake",
+      "expected": 29,
+      "reported": 29,
+      "passed": 29,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fast_confirmation-previous_epoch-fixture_fake",
+      "expected": 108,
+      "reported": 108,
+      "passed": 108,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fast_confirmation-reconfirmation-fixture_fake",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fast_confirmation-restart_gu-fixture_fake",
+      "expected": 6,
+      "reported": 6,
+      "passed": 6,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fast_confirmation-revert_finality-fixture_fake",
+      "expected": 8,
+      "reported": 8,
+      "passed": 8,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fast_confirmation-variables-fixture_fake",
+      "expected": 8,
+      "reported": 8,
+      "passed": 8,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-finality-finality-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork-fork-real",
+      "expected": 47,
+      "reported": 47,
+      "passed": 47,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-deposit_with_reorg-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-ex_ante-real",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-filter_node_tree_variants-real",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-get_head-real",
+      "expected": 12,
+      "reported": 12,
+      "passed": 12,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-get_parent_payload_status-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-on_attestation-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-on_block-real",
+      "expected": 25,
+      "reported": 25,
+      "passed": 25,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-on_execution_payload_envelope-real",
+      "expected": 15,
+      "reported": 15,
+      "passed": 15,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-on_payload_attestation_message-real",
+      "expected": 7,
+      "reported": 7,
+      "passed": 7,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-payload_data_availability-real",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-payload_timeliness-real",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-reorg-real",
+      "expected": 8,
+      "reported": 8,
+      "passed": 8,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-should_apply_proposer_boost-real",
+      "expected": 4,
+      "reported": 4,
+      "passed": 4,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-fork_choice-withholding-real",
+      "expected": 2,
+      "reported": 2,
+      "passed": 2,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-light_client-data_collection-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-light_client-single_merkle_proof-real",
+      "expected": 4,
+      "reported": 4,
+      "passed": 4,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-light_client-update_ranking-real",
+      "expected": 1,
+      "reported": 1,
+      "passed": 1,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-compute_columns_for_custody_group-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-get_custody_groups-real",
+      "expected": 11,
+      "reported": 11,
+      "passed": 11,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_attester_slashing-real",
+      "expected": 12,
+      "reported": 12,
+      "passed": 12,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_beacon_aggregate_and_proof-real",
+      "expected": 40,
+      "reported": 40,
+      "passed": 40,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_beacon_attestation-real",
+      "expected": 30,
+      "reported": 30,
+      "passed": 30,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_beacon_block-real",
+      "expected": 46,
+      "reported": 46,
+      "passed": 46,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_bls_to_execution_change-real",
+      "expected": 6,
+      "reported": 6,
+      "passed": 6,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_data_column_sidecar-real",
+      "expected": 10,
+      "reported": 10,
+      "passed": 10,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_execution_payload_bid-real",
+      "expected": 45,
+      "reported": 45,
+      "passed": 45,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_execution_payload_envelope-real",
+      "expected": 27,
+      "reported": 27,
+      "passed": 27,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_partial_data_column_sidecar-real",
+      "expected": 5,
+      "reported": 5,
+      "passed": 5,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_payload_attestation_message-real",
+      "expected": 13,
+      "reported": 13,
+      "passed": 13,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_proposer_preferences-real",
+      "expected": 26,
+      "reported": 26,
+      "passed": 26,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_proposer_slashing-real",
+      "expected": 9,
+      "reported": 9,
+      "passed": 9,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_sync_committee_contribution_and_proof-real",
+      "expected": 15,
+      "reported": 15,
+      "passed": 15,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_sync_committee_message-real",
+      "expected": 8,
+      "reported": 8,
+      "passed": 8,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-networking-gossip_voluntary_exit-real",
+      "expected": 15,
+      "reported": 15,
+      "passed": 15,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-attestation-fixture_fake",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-attestation-real",
+      "expected": 63,
+      "reported": 63,
+      "passed": 63,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-attester_slashing-real",
+      "expected": 31,
+      "reported": 31,
+      "passed": 31,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-block_header-real",
+      "expected": 6,
+      "reported": 6,
+      "passed": 6,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-bls_to_execution_change-real",
+      "expected": 14,
+      "reported": 14,
+      "passed": 14,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-builder_deposit_request-real",
+      "expected": 28,
+      "reported": 28,
+      "passed": 28,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-builder_exit_request-real",
+      "expected": 7,
+      "reported": 7,
+      "passed": 7,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-consolidation_request-real",
+      "expected": 37,
+      "reported": 37,
+      "passed": 37,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-deposit_request-real",
+      "expected": 16,
+      "reported": 16,
+      "passed": 16,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-execution_payload_bid-real",
+      "expected": 20,
+      "reported": 20,
+      "passed": 20,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-parent_execution_payload-real",
+      "expected": 24,
+      "reported": 24,
+      "passed": 24,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-payload_attestation-real",
+      "expected": 11,
+      "reported": 11,
+      "passed": 11,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-proposer_slashing-real",
+      "expected": 39,
+      "reported": 39,
+      "passed": 39,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-sync_aggregate-real",
+      "expected": 24,
+      "reported": 24,
+      "passed": 24,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-voluntary_exit-real",
+      "expected": 22,
+      "reported": 22,
+      "passed": 22,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-voluntary_exit_churn-real",
+      "expected": 3,
+      "reported": 3,
+      "passed": 3,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-withdrawal_request-real",
+      "expected": 29,
+      "reported": 29,
+      "passed": 29,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-operations-withdrawals-real",
+      "expected": 86,
+      "reported": 86,
+      "passed": 86,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-random-random-real",
+      "expected": 16,
+      "reported": 16,
+      "passed": 16,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-rewards-basic-real",
+      "expected": 11,
+      "reported": 11,
+      "passed": 11,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-rewards-inactivity_scores-real",
+      "expected": 12,
+      "reported": 12,
+      "passed": 12,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-rewards-leak-real",
+      "expected": 13,
+      "reported": 13,
+      "passed": 13,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-rewards-random-real",
+      "expected": 10,
+      "reported": 10,
+      "passed": 10,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-sanity-blocks-real",
+      "expected": 96,
+      "reported": 96,
+      "passed": 96,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-sanity-slots-real",
+      "expected": 17,
+      "reported": 17,
+      "passed": 17,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-AggregateAndProof-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-Attestation-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-AttestationData-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-AttesterSlashing-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-BLSToExecutionChange-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-BeaconBlock-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-BeaconBlockBody-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-BeaconBlockHeader-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-BeaconState-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-Builder-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-BuilderDepositRequest-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-BuilderExitRequest-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-BuilderPendingPayment-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-BuilderPendingWithdrawal-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-Checkpoint-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-ConsolidationRequest-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-ContributionAndProof-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-DataColumnSidecar-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-DataColumnsByRootIdentifier-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-Deposit-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-DepositData-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-DepositMessage-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-DepositRequest-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-Eth1Block-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-Eth1Data-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-ExecutionPayload-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-ExecutionPayloadBid-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-ExecutionPayloadEnvelope-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-ExecutionRequests-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-Fork-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-ForkData-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-HistoricalSummary-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-IndexedAttestation-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-IndexedPayloadAttestation-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-LightClientBootstrap-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-LightClientFinalityUpdate-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-LightClientHeader-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-LightClientOptimisticUpdate-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-LightClientUpdate-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-MatrixEntry-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-NewPayloadRequest-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-PartialDataColumnGroupID-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-PartialDataColumnPartsMetadata-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-PartialDataColumnSidecar-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-PayloadAttestation-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-PayloadAttestationData-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-PayloadAttestationMessage-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-PendingConsolidation-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-PendingDeposit-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-PendingPartialWithdrawal-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-PowBlock-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-ProposerPreferences-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-ProposerSlashing-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SignedAggregateAndProof-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SignedBLSToExecutionChange-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SignedBeaconBlock-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SignedBeaconBlockHeader-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SignedContributionAndProof-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SignedExecutionPayloadBid-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SignedExecutionPayloadEnvelope-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SignedProposerPreferences-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SignedVoluntaryExit-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SigningData-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SingleAttestation-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SyncAggregate-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SyncAggregatorSelectionData-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SyncCommittee-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SyncCommitteeContribution-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-SyncCommitteeMessage-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-Validator-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-VoluntaryExit-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-Withdrawal-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-ssz_static-WithdrawalRequest-fixture_fake",
+      "expected": 123,
+      "reported": 123,
+      "passed": 123,
+      "exit_code": 0,
+      "error": null
+    },
+    {
+      "name": "minimal-gloas-transition-core-real",
+      "expected": 37,
+      "reported": 37,
+      "passed": 37,
+      "exit_code": 0,
+      "error": null
+    }
+  ],
+  "retained_raw_summary_sha256": "ea19ad40610bc463f799f26199a25970b2371d36fcc4c6905fa260563e93ff55",
+  "later_source_changes": "Only workflow/docs, an equivalent collapsed fixture-context condition, unit-handler constructor style and checked arithmetic in reward golden assertions. Latest hosted named current-reference acceptance remains required.",
+  "boundaries": {
+    "original04_attribution": "unconfirmed",
+    "actual48h_passed": false,
+    "large_scale_passed": false,
+    "lodestar_upstream_approval": "excluded_not_passed",
+    "ethereum_stf_guest": "later_scope"
+  },
+  "remaining_qualification": [
+    "Full affected library/network tests and native node build",
+    "Latest hosted CI including actual named current-reference job",
+    "Target/source composition and authorized eth2030 integration"
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "reference": "d2021d2719235f0df4726a1d330502cb15aa8ea3",
+  "purpose": "component deltas, distinct from the genesis consensus epoch no-op",
+  "files": {
+    "genesis/pre.ssz": {
+      "source_case": "empty",
+      "source_file": "pre.ssz_snappy",
+      "reference_sha256": "43148e6f997e9ac01831fe39bf47b01720a8f7012040afeb9fcc212ebd8c02ab",
+      "ssz_sha256": "ce16c52df30ed7bae21b4c6decee4e1848806197cad08f2c269e8967bcf3745f",
+      "bytes": 24269
+    },
+    "genesis/source_deltas.ssz": {
+      "source_case": "empty",
+      "source_file": "source_deltas.ssz_snappy",
+      "reference_sha256": "c75381f95b7cec92377cd5528a334df4442982193838712f069204b96fcf9b66",
+      "ssz_sha256": "d66ef7b104b3ed1709049928fb6eacdf679e08a52ba3b2c026845af2ca0ddc2b",
+      "bytes": 1032
+    },
+    "genesis/target_deltas.ssz": {
+      "source_case": "empty",
+      "source_file": "target_deltas.ssz_snappy",
+      "reference_sha256": "b1fce76702aed000668eba7fcf5e1683149f2a5f17424fe1bfee014a38aaa0a5",
+      "ssz_sha256": "91dff9542e25c893da8a5c8cedda85c3afbf44bc898ff11cd9eaa37256194e7c",
+      "bytes": 1032
+    },
+    "genesis/head_deltas.ssz": {
+      "source_case": "empty",
+      "source_file": "head_deltas.ssz_snappy",
+      "reference_sha256": "3580f2588db87caa1dea3e18d0ce47e2153c3a37de31fb85758c3d4e4e898f63",
+      "ssz_sha256": "0f058de6271d30b7dc6bfb47c809d724a8794d5bbb29d717e2f05528dc3827a6",
+      "bytes": 1032
+    },
+    "genesis/inactivity_penalty_deltas.ssz": {
+      "source_case": "empty",
+      "source_file": "inactivity_penalty_deltas.ssz_snappy",
+      "reference_sha256": "3580f2588db87caa1dea3e18d0ce47e2153c3a37de31fb85758c3d4e4e898f63",
+      "ssz_sha256": "0f058de6271d30b7dc6bfb47c809d724a8794d5bbb29d717e2f05528dc3827a6",
+      "bytes": 1032
+    },
+    "eligible/pre.ssz": {
+      "source_case": "full_all_correct",
+      "source_file": "pre.ssz_snappy",
+      "reference_sha256": "b85d2c64f452713728fb53619e074a6972aee0abbc85eeabe69aae8b722928a6",
+      "ssz_sha256": "d12315aa5c0fe9d9060cc8712fb1e7c30909203163c222f7a0c71ae51349021c",
+      "bytes": 24269
+    },
+    "eligible/source_deltas.ssz": {
+      "source_case": "full_all_correct",
+      "source_file": "source_deltas.ssz_snappy",
+      "reference_sha256": "6a1a9ab50df6febd71086618cfce6c90d869137471aeb564804974c6bc3599ea",
+      "ssz_sha256": "30bca64209a30ac57d14f014142aad0062eb7106d0942ec19f027eff5b0de481",
+      "bytes": 1032
+    },
+    "eligible/target_deltas.ssz": {
+      "source_case": "full_all_correct",
+      "source_file": "target_deltas.ssz_snappy",
+      "reference_sha256": "f00b438b02cdc99c6f7702d2c3a41136c18c05fdb62226b08bb5881f9a6ecc33",
+      "ssz_sha256": "ff91ad64fd1b728aa240c6317f67c7844a3072b4da84f74b965b821cc1f84143",
+      "bytes": 1032
+    },
+    "eligible/head_deltas.ssz": {
+      "source_case": "full_all_correct",
+      "source_file": "head_deltas.ssz_snappy",
+      "reference_sha256": "3580f2588db87caa1dea3e18d0ce47e2153c3a37de31fb85758c3d4e4e898f63",
+      "ssz_sha256": "0f058de6271d30b7dc6bfb47c809d724a8794d5bbb29d717e2f05528dc3827a6",
+      "bytes": 1032
+    },
+    "eligible/inactivity_penalty_deltas.ssz": {
+      "source_case": "full_all_correct",
+      "source_file": "inactivity_penalty_deltas.ssz_snappy",
+      "reference_sha256": "3580f2588db87caa1dea3e18d0ce47e2153c3a37de31fb85758c3d4e4e898f63",
+      "ssz_sha256": "0f058de6271d30b7dc6bfb47c809d724a8794d5bbb29d717e2f05528dc3827a6",
+      "bytes": 1032
+    }
+  }
+}

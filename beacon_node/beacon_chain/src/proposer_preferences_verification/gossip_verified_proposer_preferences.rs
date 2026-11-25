@@ -64,6 +64,17 @@ pub(crate) fn verify_preferences_consistency<E: EthSpec>(
     Ok(())
 }
 
+/// Run the actual consistency guard with the independently configured rule
+/// context for activate-at-genesis synthetic EF fixtures.
+#[cfg(feature = "ef_tests")]
+pub fn testing_verify_preferences_consistency<E: EthSpec>(
+    preferences: &ProposerPreferences,
+    clock: &impl SlotClock,
+    spec: &ChainSpec,
+) -> Result<(), ProposerPreferencesError> {
+    verify_preferences_consistency::<E>(preferences, clock, spec)
+}
+
 pub struct GossipVerificationContext<'a, T: BeaconChainTypes> {
     pub canonical_head: &'a CanonicalHead<T>,
     pub gossip_verified_proposer_preferences_cache: &'a GossipVerifiedProposerPreferenceCache,

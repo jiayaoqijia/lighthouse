@@ -9,7 +9,7 @@ use state_processing::per_epoch_processing::base::rewards_and_penalties::Propose
 use state_processing::{
     EpochProcessingError,
     per_epoch_processing::{
-        Delta, altair,
+        Delta,
         base::{self, ValidatorStatuses, rewards_and_penalties::AttestationDelta},
     },
 };
@@ -50,6 +50,7 @@ pub struct Metadata {
 #[derive(Debug, Clone)]
 pub struct RewardsTest<E: EthSpec> {
     pub path: PathBuf,
+    strict_snapshot: bool,
     pub metadata: Metadata,
     pub pre: BeaconState<E>,
     pub deltas: AllDeltas,
@@ -95,6 +96,7 @@ impl<E: EthSpec> LoadCase for RewardsTest<E> {
 
         Ok(Self {
             path: path.into(),
+            strict_snapshot: false,
             metadata,
             pre,
             deltas,
@@ -103,6 +105,9 @@ impl<E: EthSpec> LoadCase for RewardsTest<E> {
 }
 
 impl<E: EthSpec> Case for RewardsTest<E> {
+    fn prepare_for_snapshot(&mut self) {
+        self.strict_snapshot = true;
+    }
     fn description(&self) -> String {
         self.metadata.description.clone().unwrap_or_default()
     }
@@ -115,7 +120,7 @@ impl<E: EthSpec> Case for RewardsTest<E> {
         // what the spec for `process_rewards_and_penalties` says to do. We skip these tests for now.
         //
         // See: https://github.com/ethereum/consensus-specs/issues/3593
-        if fork_name != ForkName::Base && state.current_epoch() == 0 {
+        if !self.strict_snapshot && fork_name != ForkName::Base && state.current_epoch() == 0 {
             return Err(Error::SkippedKnownFailure);
         }
 
@@ -208,18 +213,11 @@ fn compute_altair_deltas<E: EthSpec>(
     state: &mut BeaconState<E>,
     spec: &ChainSpec,
 ) -> Result<TotalDeltas, EpochProcessingError> {
-    // Initialise deltas to pre-state balances.
-    let mut deltas = state
-        .balances()
-        .iter()
-        .map(|x| *x as i64)
-        .collect::<Vec<_>>();
-    altair::process_rewards_and_penalties_slow(state, spec)?;
-
-    for (delta, new_balance) in deltas.iter_mut().zip(state.balances()) {
-        let old_balance = *delta;
-        *delta = *new_balance as i64 - old_balance;
-    }
-
-    Ok(TotalDeltas { deltas })
+    let components = state_processing::per_epoch_processing::single_pass::compute_rewards_and_penalties_deltas_slow(state, spec)?;
+    Ok(TotalDeltas {
+        deltas: components
+            .into_iter()
+            .map(|delta| delta.rewards as i64 - delta.penalties as i64)
+            .collect(),
+    })
 }

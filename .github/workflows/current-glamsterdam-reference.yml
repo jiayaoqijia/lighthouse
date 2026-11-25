@@ -1,0 +1,68 @@
+name: Complete current Glamsterdam reference
+on:
+  pull_request:
+    branches: [eth2030]
+    paths:
+      - 'consensus/**'
+      - 'beacon_node/**'
+      - 'crypto/**'
+      - 'testing/ef_tests/**'
+      - 'Cargo.lock'
+      - '.github/workflows/current-glamsterdam-reference.yml'
+  workflow_dispatch:
+concurrency:
+  group: current-glamsterdam-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  current-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PYTHONDONTWRITEBYTECODE: 1
+      CARGO_INCREMENTAL: 0
+      CARGO_BUILD_JOBS: 2
+    steps:
+      - uses: actions/checkout@v4
+      - uses: moonrepo/setup-rust@v1
+        with:
+          channel: stable
+          cache-target: release
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Define canonical evidence paths outside the source checkout
+        run: |
+          printf 'CURRENT_INPUTS=%s/current-inputs\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'CURRENT_BINARIES=%s/current-binaries\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'CURRENT_RESULTS=%s/current-results\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+      - name: Install native build dependencies
+        run: sudo apt-get -o Acquire::Retries=5 update && sudo apt-get -o Acquire::Retries=5 install -y libssl-dev libclang-dev cmake protobuf-compiler
+      - name: Test strict inventory and prepare unchanged source inputs
+        run: |
+          python testing/ef_tests/test_current_reference.py
+          python testing/ef_tests/test_source_pinned_fcr.py
+          python testing/ef_tests/current_reference.py prepare "$CURRENT_INPUTS"
+      - name: Install exact reference test dependencies and generate executable specs
+        run: |
+          python -m pip install --constraint testing/ef_tests/source-pinned/current-d2021d27/generator-constraints.txt "$CURRENT_INPUTS/reference[test]"
+          cd "$CURRENT_INPUTS/reference"
+          python -m pysetup.generate_specs --all-forks
+      - name: Independently regenerate all SSZ vectors and check every input byte
+        run: python testing/ef_tests/current_reference.py regenerate-ssz "$CURRENT_INPUTS"
+      - name: Build immutable real and explicit synthetic crypto consumers
+        run: python testing/ef_tests/current_reference.py build "$CURRENT_BINARIES"
+      - name: Consume all 12195 full-node and historical compatibility cases without waivers
+        run: python testing/ef_tests/current_reference.py run "$CURRENT_INPUTS" "$CURRENT_BINARIES" "$CURRENT_RESULTS"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: current-glamsterdam-reference-${{ github.sha }}
+          path: |
+            ${{ env.CURRENT_RESULTS }}/*.json
+            ${{ env.CURRENT_RESULTS }}/*.log
+            ${{ env.CURRENT_BINARIES }}/*.json
+            ${{ env.CURRENT_BINARIES }}/*-build.log
+            ${{ env.CURRENT_INPUTS }}/ssz-generation.*
+            ${{ env.CURRENT_INPUTS }}/ssz-generation-receipt.json
+          if-no-files-found: error
+          retention-days: 30
