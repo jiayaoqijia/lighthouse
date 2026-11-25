@@ -90,8 +90,25 @@ impl TAggregatePublicKey<PublicKey> for AggregatePublicKey {
         GenericPublicKey::from_point(PublicKey(self.0))
     }
 
-    fn aggregate(_pubkeys: &[GenericPublicKey<PublicKey>]) -> Result<Self, Error> {
-        Ok(Self(INFINITY_PUBLIC_KEY))
+    fn aggregate(pubkeys: &[GenericPublicKey<PublicKey>]) -> Result<Self, Error> {
+        #[cfg(feature = "fake_crypto_real_pubkeys")]
+        {
+            // Independent FCR vectors disable signature verification but still
+            // serialize genuine aggregate sync committee public keys into state.
+            // Preserve those roots without pretending this is real-BLS admission.
+            let points = pubkeys
+                .iter()
+                .map(|key| blst::min_pk::PublicKey::from_bytes(&key.serialize()))
+                .collect::<Result<Vec<_>, _>>()?;
+            let refs = points.iter().collect::<Vec<_>>();
+            let aggregate = blst::min_pk::AggregatePublicKey::aggregate(&refs, true)?;
+            Ok(Self(aggregate.to_public_key().to_bytes()))
+        }
+        #[cfg(not(feature = "fake_crypto_real_pubkeys"))]
+        {
+            let _ = pubkeys;
+            Ok(Self(INFINITY_PUBLIC_KEY))
+        }
     }
 }
 
@@ -250,5 +267,33 @@ impl TSecretKey<Signature, PublicKey> for SecretKey {
         let mut sk = Self::random();
         sk.0[..].copy_from_slice(&bytes[0..SECRET_KEY_BYTES_LEN]);
         Ok(sk)
+    }
+}
+
+#[cfg(all(test, feature = "fake_crypto_real_pubkeys"))]
+mod real_public_key_tests {
+    use super::*;
+    #[test]
+    fn fixture_mode_preserves_real_aggregate_public_key_bytes() {
+        let keys: Vec<_> = (1..=3)
+            .map(|i| {
+                blst::min_pk::SecretKey::from_bytes(&[i; 32])
+                    .unwrap()
+                    .sk_to_pk()
+            })
+            .collect();
+        let expected =
+            blst::min_pk::AggregatePublicKey::aggregate(&keys.iter().collect::<Vec<_>>(), true)
+                .unwrap()
+                .to_public_key()
+                .to_bytes();
+        let inputs: Vec<_> = keys
+            .iter()
+            .map(|key| {
+                GenericPublicKey::from_point(PublicKey::deserialize(&key.to_bytes()).unwrap())
+            })
+            .collect();
+        let aggregate = AggregatePublicKey::aggregate(&inputs).unwrap();
+        assert_eq!(aggregate.to_public_key().serialize(), expected);
     }
 }

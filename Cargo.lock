@@ -4004,6 +4004,7 @@ version = "0.1.0"
 dependencies = [
  "criterion",
  "ethereum_hashing",
+ "ethereum_ssz",
  "fixed_bytes",
  "metrics",
  "proto_array",

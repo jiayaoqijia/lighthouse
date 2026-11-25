@@ -8,6 +8,8 @@ edition = { workspace = true }
 arbitrary = ["dep:arbitrary"]
 default = ["supranational"]
 fake_crypto = []
+# Test-vector signatures remain synthetic; public-key aggregation affects state roots.
+fake_crypto_real_pubkeys = ["fake_crypto", "supranational"]
 supranational = ["blst"]
 supranational-portable = ["supranational", "blst/portable"]
 supranational-force-adx = ["supranational", "blst/force-adx"]
