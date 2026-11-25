@@ -34,8 +34,10 @@ fn bytes(hex: &str) -> Vec<u8> {
     hex::decode(hex.strip_prefix("0x").unwrap()).unwrap()
 }
 
-#[tokio::test]
-async fn captured_gloas_rows_reach_real_state_validation_and_pending_availability() {
+fn captured_harness() -> (
+    Vectors,
+    BeaconChainHarness<crate::test_utils::EphemeralHarnessType<E>>,
+) {
     let vectors: Vectors = serde_json::from_slice(include_bytes!(
         "../../lighthouse_network/tests/testdata/gloas-multi-row-partials.json"
     ))
@@ -58,6 +60,29 @@ async fn captured_gloas_rows_reach_real_state_validation_and_pending_availabilit
     assert_eq!(state.canonical_root().unwrap(), block.state_root());
     assert_eq!(block.canonical_root(), vectors.beacon_root);
     assert_eq!(state.validators().len(), 384);
+    let proposer = &state
+        .validators()
+        .get(block.message().proposer_index() as usize)
+        .unwrap()
+        .pubkey;
+    let pubkey = proposer.decompress().unwrap();
+    assert!(block.verify_signature(
+        None,
+        &pubkey,
+        &state.fork(),
+        state.genesis_validators_root(),
+        &spec
+    ));
+    let mut bad_signature = block.clone();
+    *bad_signature.signature_mut() = bls::Signature::empty();
+    assert!(!bad_signature.verify_signature(
+        None,
+        &pubkey,
+        &state.fork(),
+        state.genesis_validators_root(),
+        &spec
+    ));
+
     let clock = TestingSlotClock::new(
         Slot::new(0),
         Duration::from_secs(state.genesis_time()),
@@ -87,6 +112,12 @@ async fn captured_gloas_rows_reach_real_state_validation_and_pending_availabilit
             .sampling_columns_for_epoch(Slot::new(vectors.slot).epoch(E::slots_per_epoch()))
             .contains(&vectors.column_index)
     );
+    (vectors, harness)
+}
+
+#[tokio::test]
+async fn captured_gloas_rows_reach_real_state_validation_and_pending_availability() {
+    let (vectors, harness) = captured_harness();
     let column = |name: &str| PartialDataColumnGloas::<E> {
         block_root: vectors.beacon_root,
         slot: Slot::new(vectors.slot),
@@ -225,4 +256,45 @@ async fn captured_gloas_rows_reach_real_state_validation_and_pending_availabilit
     let independent =
         DataColumnSidecarGloas::<E>::from_ssz_bytes(&bytes(&vectors.full_column_ssz)).unwrap();
     assert_eq!(actual.as_ssz_bytes(), independent.as_ssz_bytes());
+}
+
+/// Replay the exact SSZ captured after delivery by the independent encrypted peer.
+/// The state/block remain an authenticated anchor, not an entire chain replay.
+#[tokio::test]
+#[ignore = "requires retained encrypted Rust/JS peer exchanges"]
+async fn independent_delivered_columns_reach_real_kzg_consumer() {
+    let directory =
+        std::env::var("ETH2030_INDEPENDENT_PEER_OUTPUT").expect("retained peer exchanges required");
+    for name in ["js-to-rust.ssz", "rust-to-js.ssz"] {
+        let (vectors, harness) = captured_harness();
+        let raw = std::fs::read(std::path::Path::new(&directory).join(name)).unwrap();
+        assert_eq!(
+            raw,
+            bytes(&vectors.full_column_ssz),
+            "{name}: altered transport bytes"
+        );
+        let full =
+            types::DataColumnSidecar::<E>::from_ssz_bytes_for_fork(&raw, types::ForkName::Gloas)
+                .unwrap();
+        let subnet = types::DataColumnSubnetId::new(
+            vectors.column_index % harness.spec.data_column_sidecar_subnet_count,
+        );
+        let mut bad = full.clone();
+        if let types::DataColumnSidecar::Gloas(column) = &mut bad {
+            column.column[0][0] ^= 1;
+        }
+        assert!(matches!(
+            harness
+                .chain
+                .verify_data_column_sidecar_for_gossip(Arc::new(bad), subnet)
+                .await,
+            Err(GossipDataColumnError::InvalidKzgProof { .. })
+        ));
+        let verified = harness
+            .chain
+            .verify_data_column_sidecar_for_gossip(Arc::new(full), subnet)
+            .await
+            .expect("exact independent delivered bytes must pass real state-bound KZG validation");
+        assert_eq!(verified.as_data_column().as_ssz_bytes(), raw);
+    }
 }

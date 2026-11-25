@@ -422,3 +422,6 @@ fn actual_unknown_partial_version_is_ignored_without_peer_penalty() {
   }
  });
 }
+
+#[path = "partial_peers/independent_peer.rs"]
+mod independent_peer;
