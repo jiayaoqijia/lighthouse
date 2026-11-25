@@ -13,3 +13,10 @@ Head-change notifications schedule canonical recomputation after actual selectio
 Durable updates now carry a versioned schema identifier; public wire SSZ is unchanged. Legacy untagged rows decode only when their attested slot agrees with the decoded schema. A mid-period Gloas activation regression covers both single/range reads, the legacy format and malformed versions/tags.
 
 All ten native regressions pass in the final release run (`light-client-canonical-unit-final.log`), including atomic-write failure with unchanged previous data and successful retry, cold reconciliation of stale noncanonical keys, head notification, and repeated mismatched-committee bootstrap reads. Affected beacon-chain/client tests compile successfully. Full current-source collection replay, broad affected tests, node build, Clippy and hosted CI remain required before merge. This does not resolve original-04 or constitute 48-hour acceptance.
+
+The full composed collection replay then reached step 125 and exposed one API
+semantic mismatch: an unknown bootstrap root returned a cache error instead of
+the normal unavailable result. Missing roots now return `Ok(None)`; actual
+database errors still propagate. Existing HTTP callers already map absence to
+404 and P2P callers to ResourceUnavailable. A dedicated native regression covers
+both branches. Clippy's exact CI flags pass after naming the cache tuple types.

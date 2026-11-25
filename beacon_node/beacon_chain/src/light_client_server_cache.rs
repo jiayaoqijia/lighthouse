@@ -376,9 +376,7 @@ impl<T: BeaconChainTypes> LightClientServerCache<T> {
         chain_spec: &ChainSpec,
     ) -> Result<Option<(LightClientBootstrap<T::EthSpec>, ForkName)>, BeaconChainError> {
         let Some(block) = store.get_blinded_block(block_root)? else {
-            return Err(BeaconChainError::LightClientBootstrapError(format!(
-                "Block root {block_root} not found"
-            )));
+            return Ok(None);
         };
 
         let (_, slot) = (block.state_root(), block.slot());
