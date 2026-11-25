@@ -301,41 +301,40 @@ impl<E: EthSpec> GossipTester<E> {
                 }
             }
             for root in roots {
-                if let Some(block) = blocks.values().find(|block| block.canonical_root() == root) {
-                    if let Some(mut state) = tester
+                if let Some(block) = blocks.values().find(|block| block.canonical_root() == root)
+                    && let Some(mut state) = tester
                         .harness
                         .chain
                         .store
                         .get_state(&block.state_root(), Some(block.slot()), true)
                         .map_err(|e| Error::InternalError(format!("fixture head state: {e:?}")))?
-                    {
-                        *state.finalized_checkpoint_mut() = checkpoint;
-                        state.apply_pending_mutations().map_err(|e| {
-                            Error::InternalError(format!("fixture checkpoint mutation: {e:?}"))
+                {
+                    *state.finalized_checkpoint_mut() = checkpoint;
+                    state.apply_pending_mutations().map_err(|e| {
+                        Error::InternalError(format!("fixture checkpoint mutation: {e:?}"))
+                    })?;
+                    tester
+                        .harness
+                        .chain
+                        .store
+                        .state_cache
+                        .lock()
+                        .delete_block_states(&root);
+                    tester
+                        .harness
+                        .chain
+                        .store
+                        .state_cache
+                        .lock()
+                        .delete_state(&block.state_root());
+                    tester
+                        .harness
+                        .chain
+                        .store
+                        .put_state(&block.state_root(), &state)
+                        .map_err(|e| {
+                            Error::InternalError(format!("fixture finality override: {e:?}"))
                         })?;
-                        tester
-                            .harness
-                            .chain
-                            .store
-                            .state_cache
-                            .lock()
-                            .delete_block_states(&root);
-                        tester
-                            .harness
-                            .chain
-                            .store
-                            .state_cache
-                            .lock()
-                            .delete_state(&block.state_root());
-                        tester
-                            .harness
-                            .chain
-                            .store
-                            .put_state(&block.state_root(), &state)
-                            .map_err(|e| {
-                                Error::InternalError(format!("fixture finality override: {e:?}"))
-                            })?;
-                    }
                 }
             }
         }
