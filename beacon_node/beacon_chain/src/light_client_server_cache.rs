@@ -15,6 +15,9 @@ use types::{
 /// represents unlikely re-orgs, while keeping the cache very small.
 const PREV_BLOCK_CACHE_SIZE: usize = 32;
 
+type SelectedHead<E> = (Hash256, Arc<canonical::BranchUpdates<E>>);
+type WrittenCommittee<E> = (u64, Arc<SyncCommittee<E>>);
+
 /// This cache computes light client messages ahead of time, required to satisfy p2p and API
 /// requests. These messages include proofs on historical states, so on-demand computation is
 /// expensive.
@@ -24,9 +27,9 @@ pub struct LightClientServerCache<T: BeaconChainTypes> {
     /// Latest eligible optimistic update on the selected canonical branch.
     latest_optimistic_update: RwLock<Option<LightClientOptimisticUpdate<T::EthSpec>>>,
     branches: Mutex<LruCache<Hash256, Arc<canonical::BranchUpdates<T::EthSpec>>>>,
-    selected_head: Mutex<Option<(Hash256, Arc<canonical::BranchUpdates<T::EthSpec>>)>>,
+    selected_head: Mutex<Option<SelectedHead<T::EthSpec>>>,
     /// Caches the current sync committee,
-    latest_written_current_sync_committee: RwLock<Option<(u64, Arc<SyncCommittee<T::EthSpec>>)>>,
+    latest_written_current_sync_committee: RwLock<Option<WrittenCommittee<T::EthSpec>>>,
     /// Caches state proofs by block root
     prev_block_cache: Mutex<LruCache<Hash256, LightClientCachedData<T::EthSpec>>>,
     /// Tracks the latest broadcasted finality update
@@ -373,9 +376,7 @@ impl<T: BeaconChainTypes> LightClientServerCache<T> {
         chain_spec: &ChainSpec,
     ) -> Result<Option<(LightClientBootstrap<T::EthSpec>, ForkName)>, BeaconChainError> {
         let Some(block) = store.get_blinded_block(block_root)? else {
-            return Err(BeaconChainError::LightClientBootstrapError(format!(
-                "Block root {block_root} not found"
-            )));
+            return Ok(None);
         };
 
         let (_, slot) = (block.state_root(), block.slot());

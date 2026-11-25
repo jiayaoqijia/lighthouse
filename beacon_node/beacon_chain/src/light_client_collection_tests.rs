@@ -8,6 +8,16 @@ use std::{io::Read, sync::Arc};
 use store::{DBColumn, HotColdDB, KeyValueStore, MemoryStore};
 use types::*;
 type E = MinimalEthSpec;
+
+#[tokio::test]
+async fn unknown_bootstrap_is_unavailable_but_database_errors_propagate() {
+    let h = harness();
+    let root = Hash256::repeat_byte(0xab);
+    assert!(h.chain.get_light_client_bootstrap(&root).unwrap().is_none());
+    h.chain.store.hot_db.inject_faults(true);
+    assert!(h.chain.get_light_client_bootstrap(&root).is_err());
+    h.chain.store.hot_db.inject_faults(false);
+}
 fn raw(bytes: &[u8]) -> Vec<u8> {
     let mut out = vec![];
     GzDecoder::new(bytes).read_to_end(&mut out).unwrap();
