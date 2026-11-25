@@ -19,7 +19,7 @@ use tokio::time::sleep;
 use tracing::Level;
 use tracing_subscriber::prelude::*;
 use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
-use types::{Epoch, EthSpec, MinimalEthSpec};
+use types::{Epoch, EthSpec, MainnetEthSpec, MinimalEthSpec};
 
 const END_EPOCH: u64 = 16;
 const GENESIS_DELAY: u64 = 38;
@@ -179,7 +179,11 @@ pub fn run_fallback_sim(matches: &ArgMatches) -> Result<(), String> {
 
     let genesis_delay = GENESIS_DELAY;
 
-    let mut slot_duration_ms = spec.get_slot_duration().as_millis() as u64;
+    // Full-cryptography qualification uses production timing even with a
+    // minimal state. Explicit speed-up factors remain available for stress.
+    let mut slot_duration_ms = MainnetEthSpec::default_spec()
+        .get_slot_duration()
+        .as_millis() as u64;
     slot_duration_ms /= speed_up_factor;
     slot_duration_ms = max(1_000, slot_duration_ms);
     spec = spec.set_slot_duration_ms::<MinimalEthSpec>(slot_duration_ms);
@@ -198,6 +202,7 @@ pub fn run_fallback_sim(matches: &ArgMatches) -> Result<(), String> {
     env.eth2_config.spec = spec.clone();
 
     let slot_duration = spec.get_slot_duration();
+    println!(" slot-duration-ms: {}", slot_duration.as_millis());
     let slots_per_epoch = MinimalEthSpec::slots_per_epoch();
 
     let disconnection_epoch = 1;

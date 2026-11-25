@@ -1,0 +1,56 @@
+name: Independent Glamsterdam peer components
+on:
+  pull_request:
+    branches: [eth2030]
+    paths:
+      - 'beacon_node/lighthouse_network/**'
+      - 'beacon_node/beacon_chain/**'
+      - 'consensus/types/**'
+      - 'Cargo.lock'
+      - '.github/workflows/independent-glamsterdam-peers.yml'
+  workflow_dispatch:
+jobs:
+  encrypted-independent-peer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_BUILD_JOBS: 2
+      ETH2030_LODESTAR_ROOT: ${{ github.workspace }}/.interop/lodestar
+      ETH2030_INDEPENDENT_PEER_OUTPUT: ${{ github.workspace }}/independent-peer-results
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: fyInALT/lodestar
+          ref: 4e224659179dc8050344b48a397f1791450bf24c
+          path: .interop/lodestar
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22.1'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.0.0
+          run_install: false
+      - name: Install immutable independent dependency graph
+        working-directory: .interop/lodestar
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Build pinned independent codec and transport libraries
+        run: node beacon_node/lighthouse_network/tests/partial_peers/build_independent_libraries.mjs "$ETH2030_LODESTAR_ROOT"
+      - name: Check Rust dependencies and build peer tests
+        run: cargo check --locked -p beacon_chain -p lighthouse_network --tests
+      - name: Exercise encrypted mixed peers, reconnect, metadata and malformed-message scoring
+        run: cargo test --locked --release -p lighthouse_network --test lighthouse_network_tests actual_independent_full_peer -- --ignored --nocapture
+      - name: Verify actual delivered bytes with real BLS anchor and KZG consumer
+        run: cargo test --locked --release -p beacon_chain --lib independent_delivered_columns_reach_real_kzg_consumer -- --ignored --nocapture
+      - name: Run complete network integration and partial-consumer controls
+        run: |
+          cargo test --locked --release -p lighthouse_network --test lighthouse_network_tests
+          cargo test --locked --release -p beacon_chain --lib captured_gloas_rows_reach_real_state_validation_and_pending_availability
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: independent-glamsterdam-peer-${{ github.sha }}
+          path: independent-peer-results/
+          if-no-files-found: error
+          retention-days: 30

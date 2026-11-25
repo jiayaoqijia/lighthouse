@@ -45,7 +45,7 @@ pub fn cli_app() -> Command {
                         .long("speed-up-factor")
                         .action(ArgAction::Set)
                         .default_value("2")
-                        .help("Speed up factor. Please use a divisor of 6."),
+                        .help("Speed up factor applied to the 12-second production slot clock."),
                 )
                 .arg(
                     Arg::new("debug-level")
@@ -116,7 +116,7 @@ pub fn cli_app() -> Command {
                         .long("speed-up-factor")
                         .action(ArgAction::Set)
                         .default_value("2")
-                        .help("Speed up factor. Please use a divisor of 6."),
+                        .help("Speed up factor applied to the 12-second production slot clock."),
                 )
                 .arg(
                     Arg::new("debug-level")
