@@ -20,3 +20,25 @@ the normal unavailable result. Missing roots now return `Ok(None)`; actual
 database errors still propagate. Existing HTTP callers already map absence to
 404 and P2P callers to ResourceUnavailable. A dedicated native regression covers
 both branches. Clippy's exact CI flags pass after naming the cache tuple types.
+
+## Actual background consumer correction
+
+Final source inspection found that the worker recomputes the *current* canonical
+head while notifying the processor with an *older queued event* parent root.
+Two native real-worker/channel tests reproduce both the wrong-root notification
+and publication of a nonexistent zero-participant update. The corrected signed
+fixture chain uses slots2/4/5 with native fork-choice/ancestry preconditions;
+the initial incorrect slots1/2 ancestry assumption is retained separately and
+excluded from the positive reproduction. `WORKER_NOTIFICATIONS.json` records
+the exact roots and acceptance boundaries.
+
+Notifications now use the actual cached optimistic update's canonical attested
+root, after successful persistence/reconstruction, and skip nonexistent updates.
+The complete client library passes all four tests, including both new actual
+producer/consumer regressions. Affected exact CI-flags Clippy passes. Unchanged
+reference blocks4/5 and their source-byte identities are retained with the
+existing collection fixture; flate2 is a test-only workspace dependency, and
+the lockfile adds only that direct test dependency. The complete current
+full-node collection also passed separately in PR23's12195-case campaign.
+Latest composed node build and hosted CI remain required; this does not identify
+the original-04 wait chain.

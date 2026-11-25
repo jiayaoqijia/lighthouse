@@ -2263,6 +2263,7 @@ dependencies = [
  "eth2_config",
  "ethereum_ssz",
  "execution_layer",
+ "flate2",
  "futures",
  "genesis",
  "http_api",

@@ -1,0 +1,27 @@
+{
+  "baseline_head": "acca3906761c805568ebfeb376c990ce951bb996",
+  "reference": "d2021d2719235f0df4726a1d330502cb15aa8ea3",
+  "consumer": "actual compute_light_client_updates worker, futures event channel, blocking reconstruction task and actual BeaconProcessorSend output channel",
+  "profile": "real BLS signed-block import with declared mock EL verdicts; this is a CL producer/consumer regression",
+  "positive_fixture_chain_slots": [2, 4, 5],
+  "queued_event_parent": "0xfcc08c4fd748c9be80442d53b27967c26c7b1bc8b4491b104dbaebbbf7b67f84",
+  "actual_cached_attested_root": "0x19ed55476ba7f4979f0e17e0ec5686eaf31aa8749e7c7486c6209eb7adb50a25",
+  "before": {
+    "actual_wrong_root_notification": "assertion failed after all native canonical-selection/ancestry/eligibility preconditions passed",
+    "nonexistent_update_notification": "assertion failed: worker announced data that does not exist",
+    "tests_passed": 0,
+    "tests_failed": 2,
+    "retained_log": "light-client-actual-worker-before2.log",
+    "earlier_attempt_boundary": "The first stale-event test incorrectly assumed slots1/2 were parent and child. Its ancestry precondition failed; it is retained but not counted as the stale-event reproduction."
+  },
+  "repair": "After successful canonical recomputation, obtain the actual cached optimistic update and notify its canonical attested root; publish no notification when no eligible update exists.",
+  "after": {
+    "complete_client_library_tests_passed": 4,
+    "tests_failed": 0,
+    "tests_ignored": 0,
+    "retained_log": "light-client-actual-worker-fixed.log",
+    "affected_ci_flags_clippy": "passed",
+    "source_boundary": "Red/green worktree regression; final clean-source composed build and exact latest hosted CI are required before merge."
+  },
+  "original04_attribution": "unconfirmed; this producer notification defect is not the historic native EL import stall"
+}

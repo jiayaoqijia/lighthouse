@@ -61,6 +61,20 @@
       "ssz_sha256": "47511cbbbe67877bd2d9231f5d48668468589f0e552900419dfd8affb6438b03",
       "gzip_sha256": "09be94070dbf4589bc9e6259bc40dbed3662a0dbbce688916463f854c7a3c132",
       "ssz_bytes": 1099
+    },
+    "block-4.ssz.gz": {
+      "reference_file": "block_4_0xa2f7b2c341eeb2a74e23a05e864db4837c9d357e7051e89fd38016496651c43b.ssz_snappy",
+      "reference_sha256": "72364b11fcb54089e2e8d6816e0b425b40f37ea2cb9a7e0415af4ebf35e27f2d",
+      "ssz_sha256": "7ebe73d7ff26a84faa4ad53eb7112434cb00a4331b81380eaa09802df06a7556",
+      "gzip_sha256": "feb8bbd80108e1bfec49ee2b617d473cbc39867eafb610b55a58dae8d7db922e",
+      "ssz_bytes": 1099
+    },
+    "block-5.ssz.gz": {
+      "reference_file": "block_5_0x0ba3cace7d52e99e30780b794ee037bc8567b697121e54dbeac452335c738f11.ssz_snappy",
+      "reference_sha256": "cf51107bc4ab38e10ea9de7963af1584e504e6d10be486b38e5612606307c27c",
+      "ssz_sha256": "d257ec904c2928bdde2c219a8068865878eb7327bc601f91c73f28b23eb57e55",
+      "gzip_sha256": "2e611c1a63b840e023cc13683e8b87483443e39b23254866ede286e34190d28b",
+      "ssz_bytes": 1099
     }
   }
 }
