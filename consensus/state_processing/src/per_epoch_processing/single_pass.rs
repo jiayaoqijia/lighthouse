@@ -1545,7 +1545,11 @@ mod reward_component_reference_tests {
         for (index, delta) in actual.iter().enumerate() {
             assert_eq!(
                 delta.rewards,
-                expected.iter().map(|item| item.rewards[index]).sum::<u64>(),
+                expected
+                    .iter()
+                    .map(|item| item.rewards[index])
+                    .safe_sum()
+                    .expect("independent reward total fits u64"),
                 "reward for {index}"
             );
             assert_eq!(
@@ -1553,7 +1557,8 @@ mod reward_component_reference_tests {
                 expected
                     .iter()
                     .map(|item| item.penalties[index])
-                    .sum::<u64>(),
+                    .safe_sum()
+                    .expect("independent penalty total fits u64"),
                 "penalty for {index}"
             );
         }

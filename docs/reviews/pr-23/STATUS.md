@@ -39,3 +39,22 @@ corrected workflow passes actionlint. This workflow/documentation follow-up
 does not change the native source qualified by the 7c38f3d0f executables. Final
 hosted acceptance must include the actual named current-reference job, not only
 the pre-existing test-suite checks.
+
+## Complete local current-reference result
+
+All **12195/12195** full-node and historical compatibility cases now pass in
+320 strict consumer jobs at the clean, immutable 7c38f3d0f source executables.
+There are no native failures, missing receipts, duplicate receipts or waived
+cases. `LOCAL_REFERENCE_QUALIFICATION.json` preserves each job's counts, exact
+source/crypto identities and binary receipts. The four client/store-role cases
+remain explicitly unrun, never counted as passed. The real-profile dynamic
+lane has2515 cases; six explicitly ignored-BLS operations,330 synthetic-signature
+FCR cases and9344 SSZ cases retain their separate crypto labels.
+
+The complete collection replay now covers genesis finality, canonical reorgs,
+committee-period transitions, repeated bootstrap reads and the unknown-root
+case through real signed-block import and the native cache/store. The extended
+Clippy check includes all affected packages **and** the ef_tests feature; it
+passes after equivalent fixture-condition/unit-handler cleanups and checked
+reward assertion arithmetic. Both workflow files pass actionlint. Full affected
+runtime tests/node build and latest hosted qualification are still in progress.
