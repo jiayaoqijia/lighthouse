@@ -18,9 +18,9 @@ jobs:
       PYTHONDONTWRITEBYTECODE: 1
       CARGO_INCREMENTAL: 0
       CARGO_BUILD_JOBS: 2
-      CURRENT_INPUTS: ${{ runner.temp }}/current-inputs
-      CURRENT_BINARIES: ${{ runner.temp }}/current-binaries
-      CURRENT_RESULTS: ${{ runner.temp }}/current-results
+      CURRENT_INPUTS: ${{ github.workspace }}/../current-inputs
+      CURRENT_BINARIES: ${{ github.workspace }}/../current-binaries
+      CURRENT_RESULTS: ${{ github.workspace }}/../current-results
     steps:
       - uses: actions/checkout@v4
       - uses: moonrepo/setup-rust@v1
@@ -53,11 +53,11 @@ jobs:
         with:
           name: current-glamsterdam-reference-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/current-results/*.json
-            ${{ runner.temp }}/current-results/*.log
-            ${{ runner.temp }}/current-binaries/*.json
-            ${{ runner.temp }}/current-binaries/*-build.log
-            ${{ runner.temp }}/current-inputs/ssz-generation.*
-            ${{ runner.temp }}/current-inputs/ssz-generation-receipt.json
+            ${{ github.workspace }}/../current-results/*.json
+            ${{ github.workspace }}/../current-results/*.log
+            ${{ github.workspace }}/../current-binaries/*.json
+            ${{ github.workspace }}/../current-binaries/*-build.log
+            ${{ github.workspace }}/../current-inputs/ssz-generation.*
+            ${{ github.workspace }}/../current-inputs/ssz-generation-receipt.json
           if-no-files-found: error
           retention-days: 30

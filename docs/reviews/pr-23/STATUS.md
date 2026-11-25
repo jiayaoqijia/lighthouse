@@ -23,3 +23,19 @@ The reward adapter now extracts deltas from the same native per-validator arithm
 Fresh independent regeneration emits all 9,344 SSZ cases in 72.75 seconds (11,392 upstream skips outside the selected emitted suite). Every emitted source file matches the earlier frozen input by SHA-256: zero missing files and zero differences. CI reproduces these goldens from the pinned source rather than commit the oversized aggregate archive. All 134 current-source compatibility vectors for the two changed pre-Gloas FCR handlers across Altair through Fulu pass native replay at the same clean a79ddcfb source; stale beta.4 expected roots are not waived.
 
 The reproducible input package retains all 2525 dynamic cases in a 6835436-byte XZ archive without changing their files. `current_reference.py` requires exactly 12195 passed full-node/compatibility receipts, verifies every installed/regenerated input, stamps and preserves both clean-source executables, partitions the six explicitly ignored-BLS operation fixtures, and fails missing, duplicate, skipped or mismatched-profile results. Four light-client client/store cases remain explicitly unrun, outside the full-node role. Full composed qualification is pending the separate canonical light-client cache/store repair; preliminary results are not substituted for that final run.
+
+The complete new inventory driver at the prior 2a1496789 snapshot reports
+12194 passing cases and exactly one failure, the independently reproduced
+unknown-bootstrap semantic mismatch. The complete collection case passes in
+the repaired clean 7c38f3d0f client. Final all-case replay uses immutable real
+and fixture-crypto executables both stamped with that same clean source; raw
+earlier failures remain retained. The pinned Python environment deliberately
+uses upstream's ruamel.yaml, not an undeclared PyYAML dependency.
+
+The initial hosted current-reference workflow was rejected before job creation
+because runner.temp is not allowed in job-level env expressions. Artifact paths
+now use the allowed github.workspace context outside the source checkout; the
+corrected workflow passes actionlint. This workflow/documentation follow-up
+does not change the native source qualified by the 7c38f3d0f executables. Final
+hosted acceptance must include the actual named current-reference job, not only
+the pre-existing test-suite checks.
