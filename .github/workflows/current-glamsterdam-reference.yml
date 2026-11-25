@@ -23,11 +23,15 @@ jobs:
       CURRENT_RESULTS: ${{ runner.temp }}/current-results
     steps:
       - uses: actions/checkout@v4
+      - uses: moonrepo/setup-rust@v1
+        with:
+          channel: stable
+          cache-target: release
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
       - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install -y libssl-dev libclang-dev cmake protobuf-compiler
+        run: sudo apt-get -o Acquire::Retries=5 update && sudo apt-get -o Acquire::Retries=5 install -y libssl-dev libclang-dev cmake protobuf-compiler
       - name: Test strict inventory and prepare unchanged source inputs
         run: |
           python testing/ef_tests/test_current_reference.py

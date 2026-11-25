@@ -164,7 +164,8 @@ def validate_results(records, expected, revision, mode, fork):
 
 
 def run(inputs, binaries, output, workers):
-    import yaml
+    from ruamel.yaml import YAML
+    yaml = YAML(typ='safe')
     output.mkdir(parents=True, exist_ok=False)
     stamps = {mode: json.loads((binaries / (mode + '.json')).read_text()) for mode in ('real', 'fixture_fake')}
     for mode, stamp in stamps.items():
@@ -193,7 +194,7 @@ def run(inputs, binaries, output, workers):
                 continue
             mode = 'fixture_fake' if lane in ('ssz', 'fcr') else 'real'
             if runner == 'operations' and (case / 'meta.yaml').exists():
-                if yaml.safe_load((case / 'meta.yaml').read_text()).get('bls_setting') == 2:
+                if yaml.load((case / 'meta.yaml').read_text()).get('bls_setting') == 2:
                     mode = 'fixture_fake'
                     synthetic_operations.append(str(rel))
             # Isolate each selected set without editing any original vector bytes.
