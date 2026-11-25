@@ -15,5 +15,26 @@
   "normative_boundary": "Current Gloas get_weight zeroes previous-slot payload-decision weights and should_extend_payload can select a timely/available FULL parent. All produced blocks need not remain canonical under delayed envelopes. These logs establish a delayed-message/reorg sequence, not a native EL deadlock.",
   "unattributed": "The artifact does not attribute the two late envelope deliveries to an exact scheduler/transport wait. This is not evidence that original-04 was reproduced or resolved.",
   "qualification_change": "Keep every existing all-canonical-slot and95-percent-attestation assertion and all real cryptography; use the production12-second clock for the default hosted qualification profile. Explicit accelerated-clock stress remains available.",
-  "new_full_local_qualification": "pending"
+  "new_full_local_qualification": {
+    "status": "passed",
+    "qualified_functional_source": "c7766d76b1b7a3eedaf6bd7c0c3c359e019cc99d",
+    "binary_sha256": "1add1d455082f0f25f85db8323690de76fce8d78db805f33c7bb8a231dbd91ff",
+    "slot_duration_ms": 12000,
+    "beacon_nodes": 6,
+    "validator_clients": 3,
+    "all_canonical_slot_assertions": "passed",
+    "forced_el_disconnection_and_recovery": "passed",
+    "attestations": {
+      "total": 900,
+      "head": 888,
+      "target": 891,
+      "source": 891,
+      "head_percentage": 98.67,
+      "target_percentage": 99.0,
+      "source_percentage": 99.0,
+      "required_percentage": 95.0
+    },
+    "exit_code": 0,
+    "original04_resolved": false
+  }
 }
