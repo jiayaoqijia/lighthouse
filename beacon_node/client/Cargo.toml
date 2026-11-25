@@ -43,6 +43,7 @@ tracing-subscriber = { workspace = true }
 types = { workspace = true }
 
 [dev-dependencies]
+flate2 = { workspace = true }
 operation_pool = { workspace = true }
 state_processing = { workspace = true }
 tokio = { workspace = true }

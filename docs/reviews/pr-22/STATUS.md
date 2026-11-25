@@ -1,0 +1,44 @@
+# Current full-node light-client collection
+
+The newly connected unchanged d2021d27 `minimal/gloas/light_client/data_collection` vector fails through native block import and actual light-client cache/store APIs: after a block whose sync aggregate has no participants, native `best_update` is present while the independent reference has none. The actual client producer calls the same cache method without filtering, confirming an active-path issue rather than only a test setup assumption. The cache currently updates latest and per-period values before checking participant sufficiency. Bootstrap committee data still needs to be retained for those blocks.
+
+Normative sources are d2021d27 `specs/altair/light-client/full-node.md` and inherited Gloas light-client rules/types, including EIP-7732, EIP-7688/EIP-7495 and the unchanged independent collection helper. The original failure is retained in `current-light-client-collection-first.log` under the qualification directory. Further expected collection checks remain pending; neither source inspection nor this first failure is counted as a complete collection acceptance. The four light-client *sync client* vectors describe a different role from this full-node server and remain explicitly inventoried.
+
+The first independent native regressions reproduced two distinct assertion failures: a zero-participant block created a period update, and the first eligible update omitted the valid genesis finality proof. After filtering only update creation (while still caching bootstrap committee data) and projecting finality from the constructed full update, all three real-BLS regressions pass, including durable legacy-zero-update read rejection. Further canonical branch/period collection replay is still pending. The collection fixture includes an explicit per-epoch BLOB_SCHEDULE, which the full replay adapter must apply and use at each object's attested-slot context.
+
+The next unchanged collection step exposed an actual canonical-reorg leak. A native signed-block regression independently selects roots for slots 1, 2 and the competing slot 3 using real fork choice and reproduces the orphaned period update. Publication now derives branch-local best/latest data from the selected stored ancestry, retains only 32 branch cache entries, and atomically replaces/removes durable period rows before publishing the in-memory view. Cold caches reconstruct retained ancestry and reconcile actual durable keys, including legacy assignments. Committee-period-crossing signatures retain optimistic data but cannot become per-period best updates; unavailable finality yields no fabricated branch.
+
+Head-change notifications schedule canonical recomputation after actual selection. The client worker performs ancestry/proof I/O on the existing blocking executor. Existing isolated signature-verifier fixtures use an explicitly named component helper; production serving and complete collection qualification use the canonical path. Bootstrap reads verify a cached committee/proof pair against the requested block state root and recover a mismatched pair from its post-state. Committee write deduplication includes the period, not just identical committee bytes.
+
+Durable updates now carry a versioned schema identifier; public wire SSZ is unchanged. Legacy untagged rows decode only when their attested slot agrees with the decoded schema. A mid-period Gloas activation regression covers both single/range reads, the legacy format and malformed versions/tags.
+
+All ten native regressions pass in the final release run (`light-client-canonical-unit-final.log`), including atomic-write failure with unchanged previous data and successful retry, cold reconciliation of stale noncanonical keys, head notification, and repeated mismatched-committee bootstrap reads. Affected beacon-chain/client tests compile successfully. Full current-source collection replay, broad affected tests, node build, Clippy and hosted CI remain required before merge. This does not resolve original-04 or constitute 48-hour acceptance.
+
+The full composed collection replay then reached step 125 and exposed one API
+semantic mismatch: an unknown bootstrap root returned a cache error instead of
+the normal unavailable result. Missing roots now return `Ok(None)`; actual
+database errors still propagate. Existing HTTP callers already map absence to
+404 and P2P callers to ResourceUnavailable. A dedicated native regression covers
+both branches. Clippy's exact CI flags pass after naming the cache tuple types.
+
+## Actual background consumer correction
+
+Final source inspection found that the worker recomputes the *current* canonical
+head while notifying the processor with an *older queued event* parent root.
+Two native real-worker/channel tests reproduce both the wrong-root notification
+and publication of a nonexistent zero-participant update. The corrected signed
+fixture chain uses slots2/4/5 with native fork-choice/ancestry preconditions;
+the initial incorrect slots1/2 ancestry assumption is retained separately and
+excluded from the positive reproduction. `WORKER_NOTIFICATIONS.json` records
+the exact roots and acceptance boundaries.
+
+Notifications now use the actual cached optimistic update's canonical attested
+root, after successful persistence/reconstruction, and skip nonexistent updates.
+The complete client library passes all four tests, including both new actual
+producer/consumer regressions. Affected exact CI-flags Clippy passes. Unchanged
+reference blocks4/5 and their source-byte identities are retained with the
+existing collection fixture; flate2 is a test-only workspace dependency, and
+the lockfile adds only that direct test dependency. The complete current
+full-node collection also passed separately in PR23's12195-case campaign.
+Latest composed node build and hosted CI remain required; this does not identify
+the original-04 wait chain.
