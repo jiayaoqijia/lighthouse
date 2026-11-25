@@ -17,14 +17,9 @@ pub async fn compute_light_client_updates<T: BeaconChainTypes>(
     mut light_client_server_rv: Receiver<LightClientProducerEvent<T::EthSpec>>,
     beacon_processor_send: BeaconProcessorSend<T::EthSpec>,
 ) {
-    // Should only receive events for recent blocks, import_block filters by blocks close to clock.
-    //
-    // Intents to process SyncAggregates of all recent blocks sequentially, without skipping.
-    // Uses a bounded receiver, so may drop some SyncAggregates if very overloaded. This is okay
-    // since only the most recent updates have value.
+    // Events are wakeups: the selected head can advance while work is queued.
+    // Reconstruction derives all relevant aggregates on that canonical branch.
     while let Some(event) = light_client_server_rv.next().await {
-        let parent_root = event.0;
-
         let inner = chain.clone();
         let Some(task) = chain.task_executor.clone().spawn_blocking_handle(
             move || inner.recompute_and_cache_light_client_updates(event),
@@ -44,6 +39,16 @@ pub async fn compute_light_client_updates<T: BeaconChainTypes>(
             }
         }
 
+        // Wake only consumers of data that was actually materialized. Using the
+        // old event's parent can miss the new update, or drain a pending update
+        // before any eligible aggregate exists.
+        let Some(update) = chain
+            .light_client_server_cache
+            .get_latest_optimistic_update()
+        else {
+            continue;
+        };
+        let parent_root = update.get_canonical_root();
         let msg = ReprocessQueueMessage::NewLightClientOptimisticUpdate { parent_root };
         if beacon_processor_send
             .try_send(WorkEvent {
@@ -56,3 +61,7 @@ pub async fn compute_light_client_updates<T: BeaconChainTypes>(
         };
     }
 }
+
+#[cfg(test)]
+#[path = "light_client_updates_tests.rs"]
+mod tests;

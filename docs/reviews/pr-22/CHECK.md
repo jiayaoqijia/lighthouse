@@ -15,3 +15,4 @@
 - [x] Preserve schema identity when reading/writing updates across a fork inside a sync period; retain legacy compatibility.
 - [x] Qualify repeated bootstrap reads against a cached branch and a mismatched global period committee.
 - [x] Qualify head-change background notifications and run ancestry reconstruction off the async reactor.
+- [x] Reproduce and fix actual worker notifications after queued events become older than the selected head; do not notify nonexistent updates.
