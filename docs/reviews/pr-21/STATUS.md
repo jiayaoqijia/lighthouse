@@ -26,5 +26,5 @@ from an EL import stall and does not invent a cause for the delivery delay.
 The full qualification profile now uses production twelve-second slots while
 retaining real cryptography, every canonical-slot assertion and the 95-percent
 attestation requirement. Explicit compressed-clock stress is still available.
-The new complete local fallback run remains pending.
+The new complete local fallback run passes at functional source c7766d76b with six beacon nodes and three validator clients, all canonical-slot assertions, forced EL disconnections/recovery, head98.67-percent and target/source99-percent attestation performance (required95-percent). The binary identity and counts are retained in FALLBACK_SIMULATOR_CI.json. The complete basic simulator also passes at production timing with four beacon nodes and two validator clients. Latest hosted CI and final composition remain the live merge gate.
 
