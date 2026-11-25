@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 import gzip
 import hashlib
 import importlib.util
+from importlib.metadata import version
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -103,6 +104,7 @@ def prepare(output):
 
 
 def regenerate_ssz(inputs):
+    verify_generator_environment()
     ref = inputs / 'reference'
     output = inputs / 'ssz'
     if output.exists():
@@ -122,6 +124,18 @@ def regenerate_ssz(inputs):
     (inputs / 'ssz-generation-receipt.json').write_text(json.dumps({
         'reference': REFERENCE, 'cases': 9344, 'files': len(expected['files']),
         'byte_identity': True}, indent=2) + '\n')
+
+
+def verify_generator_environment():
+    # Compressed fixture bytes must be reproducible too. Upstream pins direct
+    # dependencies, but Snappy's transitive implementation can otherwise drift.
+    for line in (BUNDLE / 'generator-constraints.txt').read_text().splitlines():
+        if not line or line.startswith('#'):
+            continue
+        name, expected = line.split('==')
+        actual = version(name)
+        if actual != expected:
+            raise ValueError(f'Generator dependency differs: {name} {actual}, expected {expected}')
 
 
 def git(*args):

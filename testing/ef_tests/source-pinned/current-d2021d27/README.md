@@ -27,7 +27,7 @@ the repository, preserving previous evidence:
 
 ```sh
 python testing/ef_tests/current_reference.py prepare /tmp/current-inputs
-python -m pip install '/tmp/current-inputs/reference[test]'
+python -m pip install --constraint testing/ef_tests/source-pinned/current-d2021d27/generator-constraints.txt '/tmp/current-inputs/reference[test]'
 (cd /tmp/current-inputs/reference && python -m pysetup.generate_specs --all-forks)
 python testing/ef_tests/current_reference.py regenerate-ssz /tmp/current-inputs
 python testing/ef_tests/current_reference.py build /tmp/current-binaries
@@ -36,6 +36,10 @@ python testing/ef_tests/current_reference.py run /tmp/current-inputs /tmp/curren
 
 Use Python 3.12–3.14 with upstream's exact dependencies and the repository's Rust
 toolchain. The complete current-reference CI workflow runs the same commands.
+The qualified generator uses Python3.14 and the complete pinned transitive
+package graph in `generator-constraints.txt`; this also freezes the Snappy
+implementation used for byte-identity checks. A mismatched environment fails
+before regeneration rather than quietly producing incomparable compressed data.
 Every native case records the compiled clean source revision and crypto mode;
 immutable executable copies have digest receipts and are checked before replay.
 This qualification does not claim 48-hour or larger-scale acceptance, Lodestar

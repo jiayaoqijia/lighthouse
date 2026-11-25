@@ -5,6 +5,7 @@ import tarfile
 import tempfile
 import unittest
 import sys
+from unittest.mock import patch
 
 sys.dont_write_bytecode = True
 
@@ -14,6 +15,11 @@ spec.loader.exec_module(current)
 
 
 class CurrentReferenceAdmission(unittest.TestCase):
+    def test_generator_dependency_drift_is_rejected_before_regeneration(self):
+        with patch.object(current, 'version', return_value='0.0.unqualified'):
+            with self.assertRaisesRegex(ValueError, 'Generator dependency differs'):
+                current.verify_generator_environment()
+
     def test_receipts_reject_missing_duplicate_waived_and_wrong_crypto(self):
         record = {'path': '/qualification/one', 'source_revision': 'a' * 40,
             'source_dirty': False, 'crypto': 'real', 'fork': 'gloas',

@@ -42,7 +42,7 @@ jobs:
           python testing/ef_tests/current_reference.py prepare "$CURRENT_INPUTS"
       - name: Install exact reference test dependencies and generate executable specs
         run: |
-          python -m pip install "$CURRENT_INPUTS/reference[test]"
+          python -m pip install --constraint testing/ef_tests/source-pinned/current-d2021d27/generator-constraints.txt "$CURRENT_INPUTS/reference[test]"
           cd "$CURRENT_INPUTS/reference"
           python -m pysetup.generate_specs --all-forks
       - name: Independently regenerate all SSZ vectors and check every input byte
