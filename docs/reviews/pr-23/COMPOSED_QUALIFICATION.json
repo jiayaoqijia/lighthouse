@@ -1,0 +1,153 @@
+{
+  "qualified_clean_client": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+  "reference": "d2021d2719235f0df4726a1d330502cb15aa8ea3",
+  "all_local_steps": "passed",
+  "steps": [
+    {
+      "name": "build",
+      "revision": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+      "exit_code": 0
+    },
+    {
+      "name": "reference",
+      "revision": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+      "exit_code": 0
+    },
+    {
+      "name": "libraries",
+      "revision": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+      "exit_code": 0
+    },
+    {
+      "name": "independent-peer",
+      "revision": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+      "exit_code": 0
+    },
+    {
+      "name": "real-wire-consumer",
+      "revision": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+      "exit_code": 0
+    },
+    {
+      "name": "network-integration",
+      "revision": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+      "exit_code": 0
+    },
+    {
+      "name": "clippy",
+      "revision": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+      "exit_code": 0
+    },
+    {
+      "name": "node-build",
+      "revision": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+      "exit_code": 0
+    }
+  ],
+  "current_reference": {
+    "passed": 12195,
+    "expected": 12195,
+    "consumer_jobs": 320,
+    "failed_jobs": 0,
+    "inventory": {
+      "ssz": 9344,
+      "fcr": 330,
+      "all": 12195,
+      "client_role": 4,
+      "synthetic_operations": 6
+    },
+    "client_role_unrun": [
+      {
+        "path": "tests/minimal/gloas/light_client/sync/pyspec_tests/advance_finality_without_sync_committee",
+        "status": "unrun_client_role",
+        "reason": "This client is a full-node LC server; wallet/store sync is a separate role."
+      },
+      {
+        "path": "tests/minimal/gloas/light_client/sync/pyspec_tests/light_client_sync",
+        "status": "unrun_client_role",
+        "reason": "This client is a full-node LC server; wallet/store sync is a separate role."
+      },
+      {
+        "path": "tests/minimal/gloas/light_client/sync/pyspec_tests/light_client_sync_no_force_update",
+        "status": "unrun_client_role",
+        "reason": "This client is a full-node LC server; wallet/store sync is a separate role."
+      },
+      {
+        "path": "tests/minimal/gloas/light_client/sync/pyspec_tests/supply_sync_committee_from_past_update",
+        "status": "unrun_client_role",
+        "reason": "This client is a full-node LC server; wallet/store sync is a separate role."
+      }
+    ]
+  },
+  "library_tests": {
+    "beacon_chain": 403,
+    "client": 4,
+    "state_processing": 69,
+    "failed": 0,
+    "external_consumer_ignored_in_default_run": 1,
+    "external_consumer_explicitly_executed": "passed"
+  },
+  "independent_peer": {
+    "repository": "https://github.com/fyInALT/lodestar",
+    "revision": "4e224659179dc8050344b48a397f1791450bf24c",
+    "actual_encrypted_rust_js_peer": "passed",
+    "actual_delivered_bytes_real_bls_kzg_consumer": "passed",
+    "native_network_tests_passed": 24,
+    "external_peer_ignored_in_default_run": 1,
+    "external_peer_explicitly_executed": "passed",
+    "wire_files": {
+      "js-to-rust.ssz": {
+        "bytes": 4248,
+        "sha256": "c34ce9f4d18b2d95ffc3a6ab1a8347f078591f85febdfb52780ed6b3488c6444"
+      },
+      "rust-to-js.ssz": {
+        "bytes": 4248,
+        "sha256": "c34ce9f4d18b2d95ffc3a6ab1a8347f078591f85febdfb52780ed6b3488c6444"
+      },
+      "events.jsonl": {
+        "bytes": 15868,
+        "sha256": "90a1476185b0c4fba6ea43d99049447d3489e8f132574c528c677c9b3f6b8e6e"
+      }
+    },
+    "boundary": "Independent transport/codec components, not a full Lodestar CLI or prior-chain replay; upstream approval remains excluded."
+  },
+  "native_node": {
+    "source": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+    "sha256": "51f4f23cfce154d96f0334706ce2ac636e6d1b730d3031aa32658e9e7a658fb9",
+    "version": "Lighthouse v8.4.0-rc.0-c93c64e\nBLS library: blst\nBLS hardware acceleration: true\nSHA256 hardware acceleration: true\nAllocator: jemalloc (4K)\nProfile: release\nSpecs: mainnet (true), minimal (false), gnosis (false)\n",
+    "all_eight_local_qualification_steps": "passed",
+    "crypto_features": "default real BLS/KZG"
+  },
+  "consumer_binaries": {
+    "real": {
+      "revision": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+      "tree": "21dbdf4122c8f1bcc9d6a36392dd9985b9f3f36d",
+      "dirty": false,
+      "features": "ef_tests",
+      "mode": "real",
+      "sha256": "84661759fd67ba43cb30e38e9368421314f1cf43c5d1c3d9015f3884e3c0ddb1"
+    },
+    "fixture_fake": {
+      "revision": "c93c64e5ae71c771133e48f0b40c5326f9e19f45",
+      "tree": "21dbdf4122c8f1bcc9d6a36392dd9985b9f3f36d",
+      "dirty": false,
+      "features": "ef_tests,fake_crypto_real_pubkeys",
+      "mode": "fixture_fake",
+      "sha256": "a4c27b53a198f1870b2eacd09ae95e16de3d15c2089f4fce4cc622ccc8110724"
+    }
+  },
+  "hosted_c93_reference_job": {
+    "job_id": 138892962069,
+    "native_fixture_and_regeneration_steps": "passed",
+    "artifact_upload": "failed: action rejects literal dot/parent segments",
+    "fix": "Canonical RUNNER_TEMP paths are exported through GITHUB_ENV and shared by execution and artifact upload. Local shell/env/actionlint probes pass; the complete new hosted run must still pass."
+  },
+  "merge_gate": "Require successful current-reference, encrypted-independent-peer and aggregate test-suite/local-testnet checks for the final review head; latest CI and final integration are evaluated live, not waived by local results.",
+  "boundaries": {
+    "original04_attribution": "unconfirmed",
+    "actual48h_passed": false,
+    "large_scale_acceptance": "excluded_not_passed",
+    "lodestar_upstream_approval": "excluded_not_passed",
+    "ethereum_stf_guest": "later_scope"
+  }
+}

@@ -5,10 +5,15 @@
 - [x] Generate the complete current Gloas suites for both presets, including inherited applicable transition/operation/SSZ cases; retain all skips/failures.
 - [x] Replay every supported emitted vector through actual Lighthouse handlers; add missing compatible handlers without deriving expected states from the client.
 - [x] Exercise negative bid/envelope/request admission; independent mixed-peer consumers are separately qualified in PR21.
-- [ ] Verify cargo check, full affected tests and CI; submit a separate eth2030-target PR.
+- [x] Verify affected compilation, complete library/consumer tests and native node build; submit the independent eth2030-target PR23.
 
 Heze research is separate from the scheduled Glamsterdam contract. Unsupported vectors are reported, never silently admitted. A stale published release is not substituted for the selected current contract.
 
 - [x] Package the unchanged dynamic corpus and current historical FCR compatibility inputs with per-file identities.
 - [x] Reproduce all SSZ goldens independently and confirm byte identity; implement the same complete hosted qualification workflow.
 - [x] Complete canonical light-client collection replay after the separate native cache/store repair and require all 12195 full-node/compatibility receipts.
+
+Live merge gate: the final review head must pass hosted current-reference,
+encrypted-independent-peer, test-suite-success and local-testnet-success checks.
+The integration review records the final CI/merge outcome; local results do not
+waive this gate. Only the workflow-defined checkpoint-sync skip is permitted.

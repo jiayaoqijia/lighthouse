@@ -1,5 +1,32 @@
 # Current Gloas source-vector admission
 
+The complete clean composition **c93c64e5ae71c771133e48f0b40c5326f9e19f45**
+passes all eight local release-qualification stages:12195/12195 current and
+historical compatibility cases,403 beacon-chain/4 client/69 state-processing
+library tests, the actual encrypted Rust/JS independent peer, its delivered-byte
+real BLS/KZG consumer,24 complete native network integration tests, affected
+Clippy and the native production node build. The two external tests omitted
+from ordinary unit runs are each explicitly executed and pass.
+`COMPOSED_QUALIFICATION.json` retains the source, crypto-mode/binary identities,
+wire sizes and hashes, all stage receipts and the exact finite scope.
+
+Hosted C93 qualification also passes input preparation, pinned dependency/spec
+generation, every regenerated SSZ byte check, both clean consumers and the full
+12195-case native replay. Its last artifact-upload step fails because the action
+forbids literal `..` path segments. The follow-up exports canonical runner-temp
+paths through GITHUB_ENV and uses those same values in upload inputs; actual
+shell/environment probes and actionlint pass. The complete new hosted run,
+including successful upload and all aggregate checks, remains the live merge
+gate. This workflow/documentation follow-up leaves native code and tests
+identical to the qualified C93 composition.
+
+The four light-client client/store-role vectors remain explicitly unrun and
+outside full-node serving, never counted as passed. Original-04 attribution is
+unconfirmed.48h/scale and Lodestar upstream approval remain excluded, not passed.
+The following sections retain earlier source-specific diagnostic checkpoints.
+
+## Earlier diagnostic checkpoints
+
 In progress against `eth2030` source `983f62e9b08e3ee655df951909df099e80e5ad7b`. Independent Python vectors are generated from unchanged consensus-specs `d2021d2719235f0df4726a1d330502cb15aa8ea3` (package version 1.7.0-beta.5; no corresponding release tag at the audit). Both mainnet and minimal presets include Gloas tests and inherited tests. Reference generator skips are reported separately from emitted client cases.
 
 A separate explicit-path runner admits every registered emitted case through the existing native EF handler, emits per-case results and fails unsupported handlers, loading failures and known/BLS skips. Existing default release fixture roots and full-suite behavior are preserved. The Gloas gossip adapter is being extended to native bid, signed envelope, proposer preferences, payload attestation and data-column processing. Ordered cross-topic setup messages retain their independent bytes. Final acceptance and test counts are not yet established.
